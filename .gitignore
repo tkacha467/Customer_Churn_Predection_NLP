@@ -1,2 +1,10 @@
-data/nlp/train.csv
-data/nlp/test.csv
+data/
+models/
+node_modules/
+__pycache__/
+.env
+.ipynb_checkpoints/
+*.pkl
+*.zip
+frontend_deprecated/node_modules/
+frontend_deprecated/.env
