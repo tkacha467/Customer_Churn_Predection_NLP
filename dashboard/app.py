@@ -1,103 +1,114 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import os
 
-st.set_page_config(page_title="ChurnLens Dashboard", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Review Integrity NLP", layout="wide", page_icon="🤖")
 
-# --- Load Data ---
+st.sidebar.title("NLP Integrity Platform")
+st.sidebar.markdown("Analyzing Flipkart reviews using a DistilBERT model trained on 3.6M Amazon reviews.")
+
+page = st.sidebar.radio("Navigate", ["Dataset Overview", "Amazon Data Explorer", "Flipkart Integrity Analysis", "Model Architecture"])
+
 @st.cache_data
-def load_data():
-    try:
-        features = pd.read_csv('../data/processed/rfm_features.csv')
-        risk_scores = pd.read_csv('../data/processed/final_risk_scores.csv')
-        nlp_scores = pd.read_csv('../data/processed/nlp_integrity_scores.csv')
-        return features, risk_scores, nlp_scores
-    except Exception as e:
-        st.error(f"Error loading data: {e}. Please ensure you have run the full pipeline in src/.")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+def load_flipkart_results():
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(project_root, 'data', 'processed', 'flipkart_integrity_results.csv')
+    if os.path.exists(file_path):
+        return pd.read_csv(file_path)
+    return None
 
-features, risk_scores, nlp_scores = load_data()
+@st.cache_data
+def load_amazon_sample(sample_size=1000):
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    train_path = os.path.join(project_root, 'data', 'train.csv')
+    if os.path.exists(train_path):
+        # Read a chunk instead of the whole 1.5GB file
+        df = pd.read_csv(train_path, header=None, names=['Class_Index', 'Review_Title', 'Review_Text'], nrows=sample_size)
+        df['Sentiment'] = df['Class_Index'].map({1: 'NEGATIVE', 2: 'POSITIVE'})
+        return df
+    return None
 
-# --- Sidebar Navigation ---
-st.sidebar.title("ChurnLens")
-st.sidebar.markdown("Customer Risk Intelligence Platform")
-page = st.sidebar.radio("Navigate", ["Overview", "Churn Analysis", "Review Integrity", "Customer Lookup", "Model Performance"])
-
-if not risk_scores.empty:
-    if page == "Overview":
-        st.title("Project Overview")
-        st.write("Welcome to the ChurnLens dashboard. This platform combines XGBoost churn predictions with DistilBERT NLP review integrity to provide a unified Customer Risk Score.")
+if page == "Dataset Overview":
+    st.title("Dataset Overview")
+    st.write("This project utilizes a pure NLP pipeline relying on two massive datasets.")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("1. Amazon Polarity Dataset")
+        st.metric("Total Reviews (Train)", "3,600,000")
+        st.metric("Total Reviews (Test)", "400,000")
+        st.write("Used exclusively for training and validating the DistilBERT sequence classification model. Labels are purely binary (1=Negative, 2=Positive).")
         
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Customers", len(risk_scores))
-        churn_rate = (risk_scores['churn'].mean() * 100) if 'churn' in risk_scores else 0
-        col2.metric("Overall Churn Rate", f"{churn_rate:.1f}%")
-        
-        high_risk = len(risk_scores[risk_scores['risk_category'] == 'HIGH RISK'])
-        col3.metric("High Risk Customers", high_risk)
+    with col2:
+        st.subheader("2. Flipkart Dataset")
+        st.metric("Total Reviews", "363,261")
+        st.write("Used exclusively for Inference. The trained Amazon DistilBERT model analyzes the sentiment of the textual review and compares it against the user's provided Star Rating to flag fake or sarcastic mismatches.")
 
-        st.subheader("Risk Distribution")
-        fig = px.pie(risk_scores, names='risk_category', title='Customer Risk Categories',
-                     color='risk_category', color_discrete_map={'HIGH RISK':'#ff4b4b', 'MEDIUM RISK':'#ffa421', 'LOW RISK':'#00cc96'})
-        st.plotly_chart(fig, use_container_width=True)
-
-    elif page == "Churn Analysis":
-        st.title("Churn Analysis (XGBoost)")
-        
-        st.subheader("RFM Distribution by Churn Status")
+elif page == "Amazon Data Explorer":
+    st.title("Amazon Reviews Dataset (Training Data)")
+    st.write("Because the Amazon training file is **1.5 GB** (3.6 Million rows), we are loading a random sample of 1,000 reviews here for exploration and visualization.")
+    
+    amazon_df = load_amazon_sample(1000)
+    
+    if amazon_df is not None:
         col1, col2 = st.columns(2)
+        col1.metric("Sample Size Loaded", len(amazon_df))
+        col2.metric("Total Size on Disk", "3.6 Million")
         
-        fig_recency = px.box(features, x='churn', y='recency', color='churn', title="Recency vs Churn")
-        col1.plotly_chart(fig_recency, use_container_width=True)
+        st.subheader("Raw Data Sample")
+        st.dataframe(amazon_df[['Sentiment', 'Review_Title', 'Review_Text']], use_container_width=True)
         
-        fig_monetary = px.box(features, x='churn', y='monetary', color='churn', title="Monetary Value vs Churn")
-        col2.plotly_chart(fig_monetary, use_container_width=True)
+        st.subheader("Sentiment Distribution (Training Set)")
+        # In the full dataset it's perfectly balanced (1.8M pos / 1.8M neg).
+        fig = px.pie(amazon_df, names='Sentiment', title='Balance of Positive vs Negative Reviews', color='Sentiment', color_discrete_map={'POSITIVE':'green', 'NEGATIVE':'red'})
+        st.plotly_chart(fig)
+    else:
+        st.error("Amazon train.csv not found in data/ folder!")
 
-    elif page == "Review Integrity":
-        st.title("Review Integrity (DistilBERT)")
-        st.write("Detecting mismatches where the sentiment of the review text contradicts the star rating.")
+elif page == "Flipkart Integrity Analysis":
+    st.title("Flipkart Review Integrity Analysis")
+    st.write("Detecting mismatches where the sentiment of the review text contradicts the star rating.")
+    
+    df = load_flipkart_results()
+    
+    if df is not None:
+        mismatches = df[df['Mismatch_Flag'] == 1]
         
-        if not nlp_scores.empty:
-            mismatches = nlp_scores[nlp_scores['integrity_mismatch'] == 1]
-            st.metric("Total Mismatches Detected", len(mismatches))
-            
-            st.subheader("Flagged Review Examples")
-            st.dataframe(mismatches[['star_rating', 'bert_sentiment', 'english_text', 'bert_confidence']].head(10))
+        col1, col2 = st.columns(2)
+        col1.metric("Total Reviews Analyzed (Sample)", len(df))
+        col2.metric("Total Mismatches Detected", len(mismatches))
+        
+        st.subheader("Flagged Review Examples")
+        if len(mismatches) > 0:
+            st.dataframe(mismatches[['Product_name', 'Rate', 'Sentiment', 'Review_Text', 'Confidence']], use_container_width=True)
         else:
-            st.warning("NLP data not found.")
-
-    elif page == "Customer Lookup":
-        st.title("Customer Risk Lookup")
-        customer_id = st.text_input("Enter customer_unique_id")
-        
-        if customer_id:
-            customer_data = risk_scores[risk_scores['customer_unique_id'] == customer_id]
-            if not customer_data.empty:
-                st.subheader("Customer Risk Profile")
-                
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Risk Score", f"{customer_data['risk_score'].values[0]:.2f}")
-                c2.metric("Risk Category", customer_data['risk_category'].values[0])
-                c3.metric("Churn Probability", f"{customer_data['churn_probability'].values[0]:.2f}")
-                
-                st.write("Feature Details")
-                st.json(customer_data.to_dict(orient='records')[0])
-            else:
-                st.error("Customer not found.")
-
-    elif page == "Model Performance":
-        st.title("Model Performance")
-        st.write("Evaluate the XGBoost and DistilBERT model metrics here.")
-        
-        # Load pre-saved confusion matrix images if they exist
-        if os.path.exists('../models/confusion_matrix.png'):
-            st.image('../models/confusion_matrix.png', caption='XGBoost Confusion Matrix')
-        else:
-            st.info("Confusion matrix image not found. Run model training to generate it.")
+            st.success("No mismatches found in this sample!")
             
-        if os.path.exists('../models/feature_importance.png'):
-            st.image('../models/feature_importance.png', caption='XGBoost Feature Importance')
-else:
-    st.warning("Please run the data pipeline to generate processed datasets.")
+        st.subheader("Sentiment Distribution")
+        fig = px.pie(df, names='Sentiment', title='Predicted Sentiment Breakdown')
+        st.plotly_chart(fig)
+        
+    else:
+        st.warning("No analysis results found. Please run `python src/flipkart_integrity.py` first.")
+
+elif page == "Model Architecture":
+    st.title("Model Architecture: DistilBERT")
+    
+    st.markdown("""
+    ### Why DistilBERT?
+    DistilBERT is a smaller, faster, cheaper, and lighter version of BERT. It retains 97% of BERT's language understanding capabilities while being 60% faster.
+    
+    ### Training Pipeline
+    1. **Data**: 3.6 Million Amazon Reviews
+    2. **Preprocessing**: Tokenized with `AutoTokenizer`, truncated to 512 tokens.
+    3. **Mapping**: 
+       - Class 1 → 0 (Negative)
+       - Class 2 → 1 (Positive)
+    4. **Fine-tuning**: `AutoModelForSequenceClassification` with 2 output labels.
+    
+    ### Integrity Logic
+    The model runs on Flipkart reviews and compares its prediction against the Star Rating (`Rate`):
+    - **Fake Negative**: User gave 4 or 5 stars, but text is predicted NEGATIVE.
+    - **Fake Positive**: User gave 1 or 2 stars, but text is predicted POSITIVE.
+    """)

@@ -2,98 +2,109 @@ import pandas as pd
 import numpy as np
 import os
 import torch
-from transformers import pipeline
-from deep_translator import GoogleTranslator
+from datasets import Dataset
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score
+import warnings
+warnings.filterwarnings('ignore')
 
-def analyze_review_integrity(raw_data_path='../data/raw/', processed_data_path='../data/processed/', limit=None):
-    print("Starting DistilBERT NLP Integrity Analysis...")
-    
-    reviews_file = os.path.join(raw_data_path, 'olist_order_reviews_dataset.csv')
-    try:
-        reviews = pd.read_csv(reviews_file)
-    except FileNotFoundError:
-        print(f"Reviews file not found at {reviews_file}")
-        return None
+def compute_metrics(pred):
+    labels = pred.label_ids
+    preds = pred.predictions.argmax(-1)
+    f1 = f1_score(labels, preds, average="weighted")
+    acc = accuracy_score(labels, preds)
+    return {"accuracy": acc, "f1": f1}
 
-    # Filter to reviews that actually have text
-    reviews = reviews.dropna(subset=['review_comment_message']).copy()
+def train_amazon_sentiment(data_path='/content/drive/MyDrive/Churnlens_predection/', models_path='/content/drive/MyDrive/Churnlens_predection/models/', sample_size=50000):
+    print("Starting Amazon DistilBERT Training Pipeline...")
     
-    if limit:
-        print(f"Limiting to {limit} reviews for speed...")
-        reviews = reviews.head(limit)
+    train_file = os.path.join(data_path, 'train.csv')
+    
+    if not os.path.exists(train_file):
+        print(f"File not found: {train_file}")
+        return
         
-    print(f"Processing {len(reviews)} reviews...")
+    print(f"Loading data from {train_file}...")
+    # Amazon dataset has no headers
+    df = pd.read_csv(train_file, header=None, names=['class_index', 'review_title', 'review_text'])
     
-    # Initialize the sentiment pipeline
-    # We use a pre-trained DistilBERT model for sentiment analysis
-    # If the user trains their own in Colab, they can change this path to models/distilbert/
-    try:
-        sentiment_pipeline = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
-    except Exception as e:
-        print(f"Failed to load HuggingFace pipeline: {e}")
-        return None
-
-    translator = GoogleTranslator(source='pt', target='en')
+    # Class 1 is Negative, Class 2 is Positive
+    # Map to 0 and 1
+    df['label'] = df['class_index'].map({1: 0, 2: 1})
     
-    results = []
+    # Combine title and text
+    df['text'] = df['review_title'].fillna('') + " " + df['review_text'].fillna('')
     
-    for idx, row in reviews.iterrows():
-        original_text = row['review_comment_message']
-        star_rating = row['review_score']
+    # Sample the dataset
+    if sample_size and sample_size < len(df):
+        print(f"Sampling {sample_size} rows out of {len(df)}...")
+        df = df.sample(sample_size, random_state=42)
         
-        # 1. Translate Portuguese to English
-        try:
-            english_text = translator.translate(original_text)
-        except Exception:
-            # Fallback if translation fails (e.g. rate limit)
-            english_text = original_text
-            
-        # 2. Get BERT Sentiment
-        try:
-            # Truncate to 512 characters to avoid BERT length errors
-            prediction = sentiment_pipeline(english_text[:512])[0]
-            sentiment_label = prediction['label']
-            sentiment_score = prediction['score']
-        except Exception:
-            sentiment_label = 'NEUTRAL'
-            sentiment_score = 0.5
-            
-        # 3. Calculate Integrity Mismatch
-        # Rule: Rating >= 4 but Sentiment is NEGATIVE -> Mismatch (1)
-        # Rule: Rating <= 2 but Sentiment is POSITIVE -> Mismatch (1)
-        is_mismatch = 0
-        if star_rating >= 4 and sentiment_label == 'NEGATIVE':
-            is_mismatch = 1
-        elif star_rating <= 2 and sentiment_label == 'POSITIVE':
-            is_mismatch = 1
-            
-        results.append({
-            'review_id': row['review_id'],
-            'order_id': row['order_id'],
-            'english_text': english_text,
-            'star_rating': star_rating,
-            'bert_sentiment': sentiment_label,
-            'bert_confidence': sentiment_score,
-            'integrity_mismatch': is_mismatch,
-            # Assign an integrity score (1.0 = perfect integrity, 0.0 = total mismatch)
-            'integrity_score': 1.0 - is_mismatch 
-        })
+    # Split into train and validation sets
+    train_df, val_df = train_test_split(df[['text', 'label']], test_size=0.2, random_state=42)
+    
+    print("Tokenizing data...")
+    model_name = "distilbert-base-uncased"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    
+    train_dataset = Dataset.from_pandas(train_df)
+    val_dataset = Dataset.from_pandas(val_df)
+    
+    def tokenize_function(examples):
+        return tokenizer(examples['text'], padding="max_length", truncation=True, max_length=128)
         
-        if len(results) % 100 == 0:
-            print(f"Processed {len(results)} / {len(reviews)} reviews...")
-
-    nlp_df = pd.DataFrame(results)
+    tokenized_train = train_dataset.map(tokenize_function, batched=True)
+    tokenized_val = val_dataset.map(tokenize_function, batched=True)
     
-    os.makedirs(processed_data_path, exist_ok=True)
-    save_file = os.path.join(processed_data_path, 'nlp_integrity_scores.csv')
-    nlp_df.to_csv(save_file, index=False)
+    print("Initializing Model...")
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
     
-    print(f"\nNLP Integrity Analysis Complete! Saved to {save_file}")
-    print(f"Total Mismatches Found: {nlp_df['integrity_mismatch'].sum()}")
+    # Map config labels for clarity during inference
+    model.config.id2label = {0: 'NEGATIVE', 1: 'POSITIVE'}
+    model.config.label2id = {'NEGATIVE': 0, 'POSITIVE': 1}
     
-    return nlp_df
+    # Check if GPU is available
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Training on device: {device}")
+    
+    # Adjust parameters for small local runs
+    epochs = 2 if sample_size > 1000 else 1
+    
+    training_args = TrainingArguments(
+        output_dir=os.path.join(models_path, 'checkpoints'),
+        num_train_epochs=epochs,
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=64,
+        warmup_steps=500 if sample_size > 5000 else 0,
+        weight_decay=0.01,
+        logging_dir='./logs',
+        logging_steps=100 if sample_size > 1000 else 10,
+        eval_strategy="epoch",
+        save_strategy="epoch",
+        load_best_model_at_end=True,
+    )
+    
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=tokenized_train,
+        eval_dataset=tokenized_val,
+        compute_metrics=compute_metrics,
+    )
+    
+    print("Starting Training...")
+    trainer.train()
+    
+    save_dir = os.path.join(models_path, 'distilbert_amazon')
+    os.makedirs(save_dir, exist_ok=True)
+    print(f"Saving fine-tuned model to {save_dir}...")
+    trainer.save_model(save_dir)
+    tokenizer.save_pretrained(save_dir)
+    
+    print("Training Complete!")
 
 if __name__ == "__main__":
-    # For local testing, we limit to 500 rows to avoid waiting hours. 
-    # Remove limit=500 to process the full dataset.
-    analyze_review_integrity(limit=500)
+    # We use a tiny sample size of 100 for local testing so it doesn't freeze laptops.
+    # The user can change this to 50000 or None when running in Colab with GPU.
+    train_amazon_sentiment(sample_size=100)
