@@ -1,0 +1,3 @@
+# .github
+
+Placeholder for .github.
