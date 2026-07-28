@@ -1,3 +1,0 @@
-# src
-
-Placeholder for src.

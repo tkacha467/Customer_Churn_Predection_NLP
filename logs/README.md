@@ -1,3 +1,0 @@
-# logs
-
-Placeholder for logs.

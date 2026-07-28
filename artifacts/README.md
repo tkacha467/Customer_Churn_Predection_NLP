@@ -1,3 +1,0 @@
-# artifacts
-
-Placeholder for artifacts.

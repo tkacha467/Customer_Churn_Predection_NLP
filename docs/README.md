@@ -1,3 +1,0 @@
-# docs
-
-Placeholder for docs.

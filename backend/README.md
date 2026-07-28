@@ -1,3 +1,0 @@
-# backend
-
-Placeholder for backend.
