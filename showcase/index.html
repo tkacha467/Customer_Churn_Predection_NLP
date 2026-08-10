@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChurnLens - AI Customer Risk Intelligence Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <!-- Background elements -->
+    <div class="glow-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+    
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="logo">
+            <span class="logo-icon">🔮</span>
+            <span class="logo-text">Churn<span class="highlight">Lens</span></span>
+        </div>
+        <nav class="nav-links">
+            <a href="#hero" class="active">Intro</a>
+            <a href="#datasets">Data</a>
+            <a href="#rfm">RFM</a>
+            <a href="#xgboost">XGBoost</a>
+            <a href="#nlp">NLP</a>
+            <a href="#fusion">Risk Engine</a>
+            <a href="#simulator" class="simulator-btn">Interactive Demo</a>
+        </nav>
+    </header>
+
+    <!-- Page Scroll Indicator -->
+    <div class="scroll-indicator">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- Presentation Slides -->
+    <main class="presentation-container">
+        
+        <!-- Slide 1: Hero Banner -->
+        <section id="hero" class="slide active">
+            <div class="content hero-content">
+                <div class="badge animate-fade">Multi-Modal Customer Analytics</div>
+                <h1 class="hero-title animate-slide">Unified Customer Risk Intelligence Platform</h1>
+                <p class="hero-description animate-slide">
+                    An advanced predictive architecture combining relational transactional analytics (RFM) and deep Natural Language Processing to detect churn risk and review integrity anomalies in real-time.
+                </p>
+                <div class="hero-actions animate-fade">
+                    <a href="#datasets" class="btn-primary">Explore Pipeline</a>
+                    <a href="#simulator" class="btn-secondary">Try Live Simulator</a>
+                </div>
+            </div>
+            <div class="visual-box animate-fade">
+                <div class="glowing-orb-container">
+                    <div class="orb orb-purple"></div>
+                    <div class="orb orb-cyan"></div>
+                    <div class="orb-core">
+                        <span class="orb-icon">🧠</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 2: Datasets & Relational Data -->
+        <section id="datasets" class="slide">
+            <div class="slide-header">
+                <div class="slide-num">01</div>
+                <h2>Dataset & Data Ingestion</h2>
+            </div>
+            <div class="grid-2">
+                <div class="content-panel">
+                    <h3>Multi-Modal Data Streams</h3>
+                    <p>ChurnLens ingests data from two massive, distinct sources to feed its predictive engines:</p>
+                    <ul class="feature-list">
+                        <li>
+                            <strong class="cyan">Olist E-Commerce Dataset</strong>
+                            <span>9 relational tables containing over 100,000 orders spanning customers, payments, reviews, and items.</span>
+                        </li>
+                        <li>
+                            <strong class="purple">Amazon Polarity Dataset</strong>
+                            <span>3.6 Million reviews used to train and validate our sequence classification and sentiment engines.</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="visual-panel">
+                    <div class="glass-card dataset-card">
+                        <div class="card-header">
+                            <span class="badge badge-cyan">Structured Data</span>
+                        </div>
+                        <div class="metric-val">100k+</div>
+                        <div class="metric-label">Olist Relational Orders</div>
+                    </div>
+                    <div class="glass-card dataset-card">
+                        <div class="card-header">
+                            <span class="badge badge-purple">Unstructured Data</span>
+                        </div>
+                        <div class="metric-val">3.6M</div>
+                        <div class="metric-label">Amazon Training Reviews</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 3: RFM Feature Engineering -->
+        <section id="rfm" class="slide">
+            <div class="slide-header">
+                <div class="slide-num">02</div>
+                <h2>RFM & Target Definition</h2>
+            </div>
+            <div class="grid-2">
+                <div class="visual-panel">
+                    <div class="rfm-wheel">
+                        <div class="wheel-sector cyan-bg"><span>Recency</span></div>
+                        <div class="wheel-sector purple-bg"><span>Frequency</span></div>
+                        <div class="wheel-sector pink-bg"><span>Monetary</span></div>
+                        <div class="wheel-center">
+                            <strong>RFM</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="content-panel">
+                    <h3>Behavioral Feature Extraction</h3>
+                    <p>Transactional details are synthesized into behavioral features:</p>
+                    <ul class="feature-list">
+                        <li><strong>Recency:</strong> Days since the last order.</li>
+                        <li><strong>Frequency:</strong> Count of unique orders.</li>
+                        <li><strong>Monetary:</strong> Cumulative amount spent.</li>
+                        <li><strong>Operational Features:</strong> Delivery delays, payment installments, and average review scores.</li>
+                    </ul>
+                    <div class="rule-box">
+                        <span class="badge badge-danger">Churn Definition</span>
+                        <p>A customer is labeled as **Churned** if they have ordered exactly once and have been inactive for over **180 days**.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 4: XGBoost Churn Model -->
+        <section id="xgboost" class="slide">
+            <div class="slide-header">
+                <div class="slide-num">03</div>
+                <h2>Predictive Modeling (XGBoost)</h2>
+            </div>
+            <div class="grid-2">
+                <div class="content-panel">
+                    <h3>XGBoost Predictive Pipeline</h3>
+                    <p>To overcome severe class imbalances (majority of customers buy once), we implement a robust training pipeline:</p>
+                    <div class="pipeline-flow">
+                        <div class="flow-step">
+                            <div class="step-circle">1</div>
+                            <span>80/20 Train-Test Split</span>
+                        </div>
+                        <div class="flow-arrow">↓</div>
+                        <div class="flow-step">
+                            <div class="step-circle cyan-bg">2</div>
+                            <span>SMOTE Oversampling (Balances Churn Labels)</span>
+                        </div>
+                        <div class="flow-arrow">↓</div>
+                        <div class="flow-step">
+                            <div class="step-circle purple-bg">3</div>
+                            <span>XGBClassifier Prediction</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="visual-panel">
+                    <div class="glass-card metric-card">
+                        <h3>Model Evaluation</h3>
+                        <div class="metrics-grid">
+                            <div class="mini-metric">
+                                <div class="metric-val cyan">84.4%</div>
+                                <div class="metric-lbl">Inference Accuracy</div>
+                            </div>
+                            <div class="mini-metric">
+                                <div class="metric-val purple">0.71</div>
+                                <div class="metric-lbl">F1 Score (Macro)</div>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="bar-chart">
+                                <div class="chart-title">Feature Importance</div>
+                                <div class="bar-row"><span class="bar-lbl">Recency</span><div class="bar-fill cyan-bg" style="width: 90%;"></div></div>
+                                <div class="bar-row"><span class="bar-lbl">Delivery Delay</span><div class="bar-fill cyan-bg" style="width: 75%;"></div></div>
+                                <div class="bar-row"><span class="bar-lbl">Monetary Value</span><div class="bar-fill cyan-bg" style="width: 50%;"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 5: NLP Review Integrity Pipeline -->
+        <section id="nlp" class="slide">
+            <div class="slide-header">
+                <div class="slide-num">04</div>
+                <h2>NLP Review Integrity Pipeline</h2>
+            </div>
+            <div class="grid-2 flex-reverse">
+                <div class="visual-panel">
+                    <div class="nlp-pipeline-chart">
+                        <div class="nlp-node start-node">Review Text</div>
+                        <div class="nlp-connector">↓</div>
+                        <div class="nlp-node clean-node">Emoji & Slang Cleaner</div>
+                        <div class="nlp-connector">↓</div>
+                        <div class="nlp-branch">
+                            <div class="nlp-node model-node cyan-border">
+                                <strong>RoBERTa Sentiment</strong>
+                                <span class="small-lbl">Positive / Neutral / Negative</span>
+                            </div>
+                            <div class="nlp-node model-node purple-border">
+                                <strong>RoBERTa Sarcasm</strong>
+                                <span class="small-lbl">Irony Probability</span>
+                            </div>
+                        </div>
+                        <div class="nlp-connector">↓</div>
+                        <div class="nlp-node fusion-node">Context-Aware Fusion Engine</div>
+                    </div>
+                </div>
+                <div class="content-panel">
+                    <h3>Robust Context-Aware Analysis</h3>
+                    <p>Instead of forcing reviews into binary classes, we implement an advanced pipeline:</p>
+                    <ul class="feature-list">
+                        <li>
+                            <strong class="cyan">3-Class Sentiment Classification</strong>
+                            <span>Differentiates between POSITIVE, NEGATIVE, and NEUTRAL text dynamically using RoBERTa.</span>
+                        </li>
+                        <li>
+                            <strong class="purple">Sarcasm Fusion Modifier</strong>
+                            <span>Detects sarcastic phrasing (e.g. "Five stars for breaking immediately 🥱") and re-weights the scores.</span>
+                        </li>
+                        <li>
+                            <strong class="pink">Neutral Integrity Rule</strong>
+                            <span>Neutral reviews (e.g., "Arrived on Monday") are mapped to `No Strong Sentiment` and are never falsely flagged as suspicous.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 6: Risk Fusion Score Engine -->
+        <section id="fusion" class="slide">
+            <div class="slide-header">
+                <div class="slide-num">05</div>
+                <h2>Unified Customer Risk Score</h2>
+            </div>
+            <div class="grid-2">
+                <div class="content-panel">
+                    <h3>Multimodal Risk Convergence</h3>
+                    <p>A customer's total risk score is calculated by fusing operational features and textual sentiment:</p>
+                    <div class="formula-box">
+                        <div class="formula-title">Risk Formula</div>
+                        <div class="formula-math">
+                            Risk Score = <span class="cyan">0.6 × Churn Prob</span> + <span class="purple">0.4 × Mismatch Flag</span>
+                        </div>
+                    </div>
+                    <ul class="feature-list">
+                        <li>
+                            <strong class="cyan">60% Churn Probability:</strong>
+                            <span>Calculated via the XGBoost pipeline from customer's RFM behavior.</span>
+                        </li>
+                        <li>
+                            <strong class="purple">40% Review Integrity Mismatch:</strong>
+                            <span>Triggered when the text sentiment conflicts with the star rating given.</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="visual-panel">
+                    <div class="fusion-visual">
+                        <div class="circle-ring ring-outer"></div>
+                        <div class="circle-ring ring-inner"></div>
+                        <div class="circle-center">
+                            <span class="risk-lbl">Total Risk</span>
+                            <span class="risk-val cyan-glow">72%</span>
+                        </div>
+                        <div class="connector-line line-left"><span class="node-dot dot-cyan"></span><span class="lbl-txt cyan">XGBoost (60%)</span></div>
+                        <div class="connector-line line-right"><span class="node-dot dot-purple"></span><span class="lbl-txt purple">NLP Fusion (40%)</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 7: Interactive Demo/Playground -->
+        <section id="simulator" class="slide">
+            <div class="slide-header">
+                <div class="slide-num">06</div>
+                <h2>Interactive Risk Engine Simulator</h2>
+            </div>
+            <div class="grid-2">
+                <div class="content-panel glass-card simulator-controls">
+                    <h3>Adjust Customer Parameters</h3>
+                    
+                    <!-- Parameter: Recency -->
+                    <div class="sim-group">
+                        <div class="sim-label-row">
+                            <label for="recencyRange">Recency (Days Inactive):</label>
+                            <span id="recencyVal" class="cyan">90 days</span>
+                        </div>
+                        <input type="range" id="recencyRange" min="1" max="365" value="90">
+                    </div>
+
+                    <!-- Parameter: Frequency -->
+                    <div class="sim-group">
+                        <div class="sim-label-row">
+                            <label for="frequencyRange">Frequency (Total Orders):</label>
+                            <span id="frequencyVal" class="cyan">1 order</span>
+                        </div>
+                        <input type="range" id="frequencyRange" min="1" max="10" value="1">
+                    </div>
+
+                    <!-- Parameter: Review Sentiment -->
+                    <div class="sim-group">
+                        <div class="sim-label-row">
+                            <label>Review Text Sentiment:</label>
+                            <span id="sentimentVal" class="purple">Neutral</span>
+                        </div>
+                        <div class="segmented-control">
+                            <button type="button" class="segment-btn" data-sentiment="POSITIVE">Positive</button>
+                            <button type="button" class="segment-btn active" data-sentiment="NEUTRAL">Neutral</button>
+                            <button type="button" class="segment-btn" data-sentiment="NEGATIVE">Negative</button>
+                        </div>
+                    </div>
+
+                    <!-- Parameter: User Star Rating -->
+                    <div class="sim-group">
+                        <div class="sim-label-row">
+                            <label>User Provided Rating:</label>
+                            <span id="ratingVal" class="star-color">3 Stars</span>
+                        </div>
+                        <div class="star-selector">
+                            <button type="button" class="sim-star-btn active" data-rate="1">★</button>
+                            <button type="button" class="sim-star-btn active" data-rate="2">★</button>
+                            <button type="button" class="sim-star-btn active" data-rate="3">★</button>
+                            <button type="button" class="sim-star-btn" data-rate="4">★</button>
+                            <button type="button" class="sim-star-btn" data-rate="5">★</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="visual-panel glass-card simulator-results">
+                    <h3>Simulation Output</h3>
+                    
+                    <div class="sim-results-grid">
+                        <div class="circle-progress-container">
+                            <svg class="progress-ring" width="160" height="160">
+                                <circle class="progress-ring-circle-bg" stroke="#1e293b" stroke-width="8" fill="transparent" r="70" cx="80" cy="80"/>
+                                <circle class="progress-ring-circle" id="circleProgress" stroke="var(--primary)" stroke-width="8" fill="transparent" r="70" cx="80" cy="80"/>
+                            </svg>
+                            <div class="progress-center">
+                                <span class="sim-risk-val" id="simRiskVal">0%</span>
+                                <span class="sim-risk-lbl">Total Risk</span>
+                            </div>
+                        </div>
+
+                        <div class="sim-details">
+                            <div class="sim-detail-row">
+                                <span>Churn Probability (XGBoost):</span>
+                                <strong id="simChurnVal" class="cyan">0%</strong>
+                            </div>
+                            <div class="sim-detail-row">
+                                <span>Review Consistency:</span>
+                                <strong id="simConsistencyVal" class="purple">No Strong Sentiment</strong>
+                            </div>
+                            <div class="sim-detail-row">
+                                <span>Review Integrity:</span>
+                                <strong id="simIntegrityVal" class="pink">No Clear Mismatch</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sim-log-panel">
+                        <div class="log-title">Simulation Decision Log</div>
+                        <p id="simDecisionLog">Adjust parameters to run the intelligence pipeline simulator.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="presentation-footer">
+        <p>&copy; 2026 ChurnLens Platform. Built for Premium Customer Analytics.</p>
+    </footer>
+
+    <script src="index.js"></script>
+</body>
+</html>
