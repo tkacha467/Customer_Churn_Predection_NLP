@@ -49,7 +49,10 @@ def check_consistency(rating: int, sentiment: str, is_sarcastic: bool):
     consistency = "Match"
     integrity = "Genuine"
     
-    if rating >= 4 and sentiment == "NEGATIVE":
+    if sentiment == "NEUTRAL":
+        consistency = "No Strong Sentiment"
+        integrity = "No Clear Mismatch"
+    elif rating >= 4 and sentiment == "NEGATIVE":
         consistency = "Mismatch"
         integrity = "Suspicious"
     elif rating <= 2 and sentiment == "POSITIVE":

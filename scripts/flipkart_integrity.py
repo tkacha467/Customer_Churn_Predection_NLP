@@ -1,9 +1,19 @@
 import pandas as pd
 import numpy as np
 import os
-from transformers import pipeline
+import sys
 import warnings
 warnings.filterwarnings('ignore')
+
+# Add project root to path for imports
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from api.preprocessing.text_cleaner import text_cleaner
+from api.models.sentiment import sentiment_model
+from api.models.sarcasm import sarcasm_model
+from api.fusion.engine import fusion_engine
 
 def analyze_flipkart_integrity(limit=500):
     print("Starting Flipkart Review Integrity Analysis...")
@@ -31,20 +41,9 @@ def analyze_flipkart_integrity(limit=500):
         print(f"Limiting to {limit} reviews for speed...")
         df = df.sample(limit, random_state=42)
         
-    model_dir = os.path.join(models_path, 'distilbert_amazon')
-    
-    if not os.path.exists(model_dir):
-        print("Local trained model not found! Using default distilbert for demonstration...")
-        model_name = "distilbert-base-uncased-finetuned-sst-2-english"
-    else:
-        print(f"Loading custom model from {model_dir}...")
-        model_name = model_dir
-        
-    try:
-        sentiment_pipeline = pipeline("sentiment-analysis", model=model_name, device=-1) # Force CPU for safety
-    except Exception as e:
-        print(f"Pipeline error: {e}")
-        return
+    # Prime models
+    sentiment_model.predict("test")
+    sarcasm_model.predict("test")
         
     print("Running NLP inference on reviews...")
     results = []
@@ -54,16 +53,23 @@ def analyze_flipkart_integrity(limit=500):
         rating = row['Rate']
         
         try:
-            # Truncate to 512 chars to avoid model limits
-            pred = sentiment_pipeline(text[:512])[0]
-            label = pred['label']
-            score = pred['score']
+            cleaned_text = text_cleaner.clean(text)
             
-            # If using custom model, LABEL_1 is POSITIVE, LABEL_0 is NEGATIVE
-            if label == 'LABEL_1': label = 'POSITIVE'
-            if label == 'LABEL_0': label = 'NEGATIVE'
+            # Sarcasm detection
+            sarcasm_res = sarcasm_model.predict(cleaned_text)
+            sarcasm_prob = sarcasm_res["sarcasm_probability"]
             
-        except Exception:
+            # Sentiment prediction
+            sentiment_res = sentiment_model.predict(cleaned_text)
+            
+            # Fusion
+            fusion_res = fusion_engine.fuse(sentiment_res, sarcasm_prob)
+            
+            label = fusion_res["prediction"] # POSITIVE, NEGATIVE, NEUTRAL
+            score = fusion_res["probabilities"][label.lower()]
+            
+        except Exception as e:
+            print(f"Error processing row {idx}: {e}")
             label = 'NEUTRAL'
             score = 0.5
             
