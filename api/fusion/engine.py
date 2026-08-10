@@ -52,7 +52,7 @@ class FusionEngine:
         }
         
         # Apply neutral thresholds
-        if max(final_probs.values()) < settings.fusion.neutral_max_threshold:
+        if max(final_probs.values()) < settings.thresholds.adaptive_neutral_threshold:
             final_pred = "NEUTRAL"
         else:
             final_pred = max(final_probs, key=final_probs.get).upper()
