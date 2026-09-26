@@ -1,0 +1,12 @@
+{
+  "default_business": {
+    "business_name": "Cuore",
+    "google_review_url": "https://maps.google.com",
+    "platform": "google"
+  },
+  "artisan_coffee": {
+    "platform": "google",
+    "google_review_url": "https://g.page/r/artisan-coffee/review",
+    "business_name": "Artisan Coffee Roasters"
+  }
+}

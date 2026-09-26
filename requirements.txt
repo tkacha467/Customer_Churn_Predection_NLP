@@ -1,1 +1,13 @@
 # Dependencies for ChurnLens AI
+fastapi
+uvicorn
+pydantic
+emoji
+contractions
+torch
+transformers
+huggingface-hub>=0.34.0,<1.0.0
+streamlit
+pandas
+plotly
+

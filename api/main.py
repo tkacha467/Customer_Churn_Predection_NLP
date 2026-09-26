@@ -11,6 +11,8 @@ from api.models.sarcasm import sarcasm_model
 from api.fusion.engine import fusion_engine
 from api.fusion.explainer import explainer
 
+from api.review_assistant import review_router
+
 app = FastAPI(title="NLP Integrity API", description="Modular Context-Aware Sentiment Pipeline")
 
 app.add_middleware(
@@ -21,15 +23,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Register Review Assistant endpoints
+app.include_router(review_router, prefix="/api", tags=["review_assistant"])
+
+import threading
+
 @app.on_event("startup")
 def startup_event():
-    # Load models into memory on startup
     print(f"Loaded sentiment model: {settings.models.sentiment_model}")
     print(f"Loaded sarcasm model: {settings.models.sarcasm_model}")
-    # Prime the models
-    sentiment_model.predict("test")
-    sarcasm_model.predict("test")
-    print("Models primed and ready.")
+    def prime():
+        try:
+            sentiment_model.predict("test")
+            sarcasm_model.predict("test")
+            print("Models primed and ready.")
+        except Exception as e:
+            print(f"Background model priming warning: {e}")
+    threading.Thread(target=prime, daemon=True).start()
 
 class ReviewRequest(BaseModel):
     review: str
@@ -153,7 +163,7 @@ def run_inference_pipeline(req: ReviewRequest, debug=False):
 @app.get("/api/stats")
 def get_stats():
     return {
-        "amazon": {"total_reviews": "3,600,000", "classes": "Binary (1=Negative, 2=Positive)"},
+        "amazon": {"total_reviews": "3,600,000", "test_reviews": "400,000", "classes": "Binary (1=Negative, 2=Positive)"},
         "flipkart": {"total_reviews": "363,261", "classes": "Stars (1-5)"}
     }
 
