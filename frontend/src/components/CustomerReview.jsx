@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import NastaGharRestaurantScene from './NastaGharRestaurantScene';
+import RestaurantWorld from './RestaurantWorld';
 
 // ─── NASTA GHAR BRAND CONSTANTS ──────────────────────────────────────────────
 // These are hardcoded. The API enriches config but NEVER overrides the name.
@@ -373,6 +373,8 @@ export default function CustomerReview({
         </div>
       )}
 
+      <RestaurantWorld />
+
       <div className="ng-card">
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <header className="ng-header">
@@ -386,8 +388,7 @@ export default function CustomerReview({
           )}
         </header>
 
-        {/* ── ANIMATED RESTAURANT SCENE ──────────────────────────────────── */}
-        <NastaGharRestaurantScene />
+
 
         {/* ── PROGRESS DOTS ──────────────────────────────────────────────── */}
         <div className="ng-steps-row">
