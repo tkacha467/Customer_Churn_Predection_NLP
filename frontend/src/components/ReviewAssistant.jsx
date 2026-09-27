@@ -1,35 +1,46 @@
 import { useState, useEffect } from 'react';
 
-const ASPECT_OPTIONS = [
-  { id: 'Food', label: 'Food', icon: '🍽️' },
-  { id: 'Taste', label: 'Taste', icon: '😋' },
-  { id: 'Quality', label: 'Quality', icon: '⭐' },
-  { id: 'Ambiance', label: 'Ambiance', icon: '🕯️' },
-  { id: 'Service', label: 'Service', icon: '🛎️' },
-  { id: 'Staff', label: 'Staff', icon: '👥' },
-  { id: 'Cleanliness', label: 'Cleanliness', icon: '✨' },
-  { id: 'Waiting Time', label: 'Waiting Time', icon: '⏳' },
-  { id: 'Value for Money', label: 'Value for Money', icon: '💰' },
-  { id: 'Location', label: 'Location', icon: '📍' },
-  { id: 'Overall Experience', label: 'Overall Experience', icon: '🌟' },
+const DINING_OCCASIONS = [
+  { id: 'coffee_break', label: 'Coffee & Work', icon: '☕' },
+  { id: 'brunch', label: 'Brunch & Pastries', icon: '🥐' },
+  { id: 'lunch_dinner', label: 'Lunch / Dinner', icon: '🍽️' },
+  { id: 'takeaway', label: 'Takeaway / Express', icon: '🥡' },
 ];
 
-const TONE_OPTIONS = [
-  { id: 'natural', label: 'Natural & Authentic' },
-  { id: 'casual', label: 'Casual & Friendly' },
-  { id: 'professional', label: 'Professional & Courteous' },
-  { id: 'short', label: 'Short & Concise' },
-  { id: 'detailed', label: 'Detailed & Thorough' },
+const HOSPITALITY_ASPECTS = [
+  { id: 'Specialty Coffee', label: 'Specialty Coffee', icon: '☕' },
+  { id: 'Food & Flavor', label: 'Food & Flavor', icon: '🍽️' },
+  { id: 'Bakery & Pastries', label: 'Bakery & Pastries', icon: '🥐' },
+  { id: 'Service & Hospitality', label: 'Service & Hospitality', icon: '🛎️' },
+  { id: 'Vibe & Playlist', label: 'Vibe & Playlist', icon: '🕯️' },
+  { id: 'Table Cleanliness', label: 'Cleanliness', icon: '✨' },
+  { id: 'Order Wait Time', label: 'Order Wait Time', icon: '⏳' },
+  { id: 'Value for Money', label: 'Value for Money', icon: '💰' },
+  { id: 'Patio & Seating', label: 'Patio & Seating', icon: '🌿' },
+];
+
+const TONE_PERSONAS = [
+  { id: 'natural', label: 'Natural Cafe Patron', icon: '☕' },
+  { id: 'foodie', label: 'Foodie & Connoisseur', icon: '🍽️' },
+  { id: 'casual', label: 'Casual & Upbeat', icon: '💬' },
+  { id: 'short', label: 'Short & Punchy', icon: '⚡' },
 ];
 
 export default function ReviewAssistant({ businessId = 'default_business' }) {
+  // Read URL query params if diner scanned table QR (e.g. ?table=4&dining=coffee_break)
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialTable = urlParams.get('table') || 'Table 4';
+  const initialDining = urlParams.get('dining') || 'coffee_break';
+
+  const [tableNumber, setTableNumber] = useState(initialTable);
+  const [diningType, setDiningType] = useState(initialDining);
   const [rating, setRating] = useState(5);
-  const [selectedAspects, setSelectedAspects] = useState(['Food', 'Service']);
+  const [selectedAspects, setSelectedAspects] = useState(['Specialty Coffee', 'Service & Hospitality']);
   const [userNote, setUserNote] = useState('');
   const [tone, setTone] = useState('natural');
   const [length, setLength] = useState('medium');
 
-  // Generation & Review State
+  // Generation & NLP State
   const [draftReview, setDraftReview] = useState('');
   const [sentiment, setSentiment] = useState(null);
   const [confidence, setConfidence] = useState(null);
@@ -38,17 +49,23 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [provider, setProvider] = useState('');
-  
-  // Consent & Google Link State
-  const [showConsentModal, setShowConsentModal] = useState(false);
+
+  // Private Manager Resolution Mode (for 1-2 star ratings)
+  const [preferPrivateResolution, setPreferPrivateResolution] = useState(true);
+  const [guestContact, setGuestContact] = useState('');
+  const [privateSubmittedTicket, setPrivateSubmittedTicket] = useState(null);
+  const [isSubmittingPrivate, setIsSubmittingPrivate] = useState(false);
+
+  // Business & Google Link State
+  const [businessName, setBusinessName] = useState('Cuore Cafe & Artisan Roastery');
   const [googleReviewUrl, setGoogleReviewUrl] = useState('');
   const [isUrlConfigured, setIsUrlConfigured] = useState(false);
-  const [businessName, setBusinessName] = useState('Business');
-  const [copied, setCopied] = useState(false);
   const [sessionId, setSessionId] = useState('');
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Fetch configured Google review link on mount
   useEffect(() => {
+    // Fetch business details
     fetch(`http://127.0.0.1:8000/api/businesses/${businessId}/review-link`)
       .then(res => res.json())
       .then(data => {
@@ -62,12 +79,16 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
     fetch('http://127.0.0.1:8000/api/reviews/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ business_id: businessId })
+      body: JSON.stringify({
+        business_id: businessId,
+        table_number: tableNumber,
+        dining_type: diningType
+      })
     })
       .then(res => res.json())
       .then(data => setSessionId(data.session_id))
-      .catch(err => console.error('Error initializing review session:', err));
-  }, [businessId]);
+      .catch(err => console.error('Error initializing session:', err));
+  }, [businessId, tableNumber, diningType]);
 
   const toggleAspect = (aspectId) => {
     if (selectedAspects.includes(aspectId)) {
@@ -93,13 +114,15 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
           user_note: userNote,
           tone,
           length,
+          dining_type: diningType,
+          table_number: tableNumber,
           session_id: sessionId
         })
       });
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.detail || 'Failed to generate review draft.');
+        throw new Error(errData.detail || 'Failed to draft review.');
       }
 
       const data = await response.json();
@@ -110,14 +133,13 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
       setWarnings(data.warnings || []);
       setProvider(data.generation_provider);
     } catch (error) {
-      console.error('Review generation failed:', error);
-      alert(error.message || 'Generation failed. Please ensure the backend is running.');
+      console.error('Generation failed:', error);
+      alert(error.message || 'Generation failed. Please verify the backend is active.');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Re-validate review if customer manually edited the text
   const handleValidateDraft = async () => {
     if (!draftReview.trim()) return;
     setIsValidating(true);
@@ -126,10 +148,7 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
       const response = await fetch('http://127.0.0.1:8000/api/reviews/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rating,
-          review: draftReview
-        })
+        body: JSON.stringify({ rating, review: draftReview })
       });
 
       const data = await response.json();
@@ -137,21 +156,39 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
       setConfidence(data.confidence);
       setRatingConsistent(data.rating_consistent);
       setWarnings(data.warnings || []);
-
-      // Log manual edit event
-      fetch('http://127.0.0.1:8000/api/reviews/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionId,
-          event_name: 'review_edited',
-          metadata: { rating, consistent: data.rating_consistent }
-        })
-      }).catch(() => {});
     } catch (err) {
       console.error('Validation error:', err);
     } finally {
       setIsValidating(false);
+    }
+  };
+
+  const handlePrivateFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    if (!userNote.trim()) return;
+
+    setIsSubmittingPrivate(true);
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/reviews/private-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_id: businessId,
+          table_number: tableNumber,
+          rating,
+          diner_note: userNote,
+          aspects: selectedAspects,
+          guest_contact: guestContact
+        })
+      });
+
+      const data = await response.json();
+      setPrivateSubmittedTicket(data);
+    } catch (err) {
+      console.error('Failed to submit private resolution:', err);
+      alert('Error contacting management. Please notify your floor server.');
+    } finally {
+      setIsSubmittingPrivate(false);
     }
   };
 
@@ -163,175 +200,280 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
   };
 
   const handleOpenGoogle = () => {
-    // Record analytics event
     fetch('http://127.0.0.1:8000/api/reviews/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: sessionId,
         event_name: 'google_review_link_clicked',
-        metadata: { rating, sentiment, is_configured: isUrlConfigured }
+        metadata: { rating, sentiment, dining_type: diningType, table: tableNumber }
       })
     }).catch(() => {});
 
-    // Always copy to clipboard for convenience
     navigator.clipboard.writeText(draftReview);
-
-    // Open official Google link in a new tab
     if (googleReviewUrl) {
       window.open(googleReviewUrl, '_blank', 'noopener,noreferrer');
     }
     setShowConsentModal(false);
   };
 
-  const ratingDescriptions = {
-    5: 'Exceptional (5 Stars)',
-    4: 'Very Good (4 Stars)',
-    3: 'Average / Neutral (3 Stars)',
-    2: 'Needs Improvement (2 Stars)',
-    1: 'Disappointing (1 Star)'
+  const ratingCaptions = {
+    5: '✨ Exceptional Experience — Truly Memorable!',
+    4: '👍 Very Good Experience — Lots to love!',
+    3: '👌 Decent Visit — Standard with room to improve',
+    2: '⚠️ Fell Below Expectations — Needs Operational Work',
+    1: '❌ Subpar Experience — Failed on Standards'
   };
 
   return (
     <div className="review-assistant-wrapper">
-      <div className="grid-2">
-        {/* STEP 1: Interactive Customer Feedback Form */}
-        <div className="glass-panel">
-          <div className="section-badge">Customer Journey</div>
-          <h2 style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '1.6rem' }}>
-            How was your experience?
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-            Share your authentic feedback. Our AI assistant will help turn your thoughts into a polished review draft.
-          </p>
+      {/* Hospitality Banner */}
+      <div className="hospitality-hero-card glass-panel">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <div className="section-badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' }}>
+              Table QR Guest Experience
+            </div>
+            <h2 style={{ fontSize: '1.8rem', color: '#fff', margin: '0.25rem 0' }}>
+              {businessName}
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+              Your feedback shapes our culinary craft and hospitality. Takes less than 45 seconds.
+            </p>
+          </div>
 
-          <form onSubmit={handleGenerate}>
-            {/* Rating Selector */}
-            <div className="input-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label>Overall Rating</label>
-                <span style={{ fontSize: '0.85rem', color: '#fbbf24', fontWeight: '600' }}>
-                  {ratingDescriptions[rating]}
-                </span>
+          <div className="table-badge-container">
+            <span className="table-badge-icon">📍</span>
+            <input
+              type="text"
+              className="table-input"
+              value={tableNumber}
+              onChange={(e) => setTableNumber(e.target.value)}
+              placeholder="Table #"
+              title="Click to edit table number"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid-2" style={{ marginTop: '1.5rem' }}>
+        {/* STEP 1: Dine-In Review Configuration */}
+        <div className="glass-panel">
+          <div className="section-badge">Step 1 • Your Experience</div>
+          <h3 style={{ fontSize: '1.4rem', color: 'var(--primary)', marginBottom: '0.5rem' }}>
+            How was your table today?
+          </h3>
+
+          {/* Dining Occasion Selector */}
+          <div className="input-group" style={{ marginBottom: '1.25rem' }}>
+            <label>Dining Occasion</label>
+            <div className="occasion-grid">
+              {DINING_OCCASIONS.map(occ => (
+                <button
+                  type="button"
+                  key={occ.id}
+                  className={`occasion-btn ${diningType === occ.id ? 'active' : ''}`}
+                  onClick={() => setDiningType(occ.id)}
+                >
+                  <span style={{ fontSize: '1.2rem' }}>{occ.icon}</span>
+                  <span>{occ.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 5-Star Interactive Rating */}
+          <div className="input-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label>Star Rating</label>
+              <span style={{ fontSize: '0.85rem', color: rating >= 4 ? '#fbbf24' : rating === 3 ? '#94a3b8' : '#f87171', fontWeight: 600 }}>
+                {ratingCaptions[rating]}
+              </span>
+            </div>
+            <div className="star-rating">
+              {[1, 2, 3, 4, 5].map(star => (
+                <button
+                  type="button"
+                  key={star}
+                  className={`star-btn ${rating >= star ? 'active' : ''}`}
+                  onClick={() => setRating(star)}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* NEGATIVE FEEDBACK DEFLECTION CARD: Real-world restaurant manager resolution */}
+          {rating <= 2 && preferPrivateResolution && !privateSubmittedTicket && (
+            <div className="manager-resolution-card animate-fade">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.4rem' }}>🛎️</span>
+                <h4 style={{ color: '#fbbf24', fontSize: '1.05rem', margin: 0 }}>
+                  We Want to Make This Right Immediately
+                </h4>
               </div>
-              <div className="star-rating" style={{ marginTop: '0.25rem' }}>
-                {[1, 2, 3, 4, 5].map(star => (
+              <p style={{ fontSize: '0.85rem', color: '#cbd5e1', lineHeight: 1.5, marginBottom: '0.75rem' }}>
+                Our hospitality standard was not met. Send your feedback directly to our <strong>General Manager</strong> before posting publicly so we can personally follow up and resolve this.
+              </p>
+
+              <form onSubmit={handlePrivateFeedbackSubmit}>
+                <textarea
+                  rows="3"
+                  className="resolution-textarea"
+                  placeholder="Tell our General Manager what went wrong (e.g. coffee was cold, table wait was excessive)..."
+                  value={userNote}
+                  onChange={(e) => setUserNote(e.target.value)}
+                  required
+                />
+                <input
+                  type="text"
+                  className="resolution-input"
+                  placeholder="Your Email or Phone (so GM can reach out)"
+                  value={guestContact}
+                  onChange={(e) => setGuestContact(e.target.value)}
+                  required
+                  style={{ marginTop: '0.5rem' }}
+                />
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                  <button type="submit" className="btn-primary" disabled={isSubmittingPrivate}>
+                    {isSubmittingPrivate ? 'Routing to GM...' : '📩 Send Directly to General Manager'}
+                  </button>
                   <button
                     type="button"
-                    key={star}
-                    className={`star-btn ${rating >= star ? 'active' : ''}`}
-                    onClick={() => setRating(star)}
-                    title={`${star} Star${star > 1 ? 's' : ''}`}
+                    className="btn-secondary"
+                    onClick={() => setPreferPrivateResolution(false)}
+                    style={{ fontSize: '0.8rem' }}
                   >
-                    ★
+                    Draft Public Review Anyway
                   </button>
-                ))}
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Confirmation if private ticket sent */}
+          {privateSubmittedTicket && (
+            <div className="manager-ticket-success animate-fade">
+              <span style={{ fontSize: '1.8rem' }}>✅</span>
+              <div>
+                <h4 style={{ color: '#34d399', margin: '0 0 0.25rem 0' }}>Ticket Logged: {privateSubmittedTicket.ticket_id}</h4>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                  {privateSubmittedTicket.message}
+                </p>
               </div>
             </div>
+          )}
 
-            {/* Experience Aspects Multi-Select */}
-            <div className="input-group">
-              <label>What specific aspects stood out? (Optional)</label>
-              <div className="aspect-chips">
-                {ASPECT_OPTIONS.map(asp => {
-                  const isSelected = selectedAspects.includes(asp.id);
-                  return (
-                    <button
-                      type="button"
-                      key={asp.id}
-                      className={`aspect-chip ${isSelected ? 'selected' : ''}`}
-                      onClick={() => toggleAspect(asp.id)}
-                    >
-                      <span className="chip-icon">{asp.icon}</span>
-                      <span>{asp.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Customer Personal Note */}
-            <div className="input-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label>Tell us more in your own words (Optional)</label>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  Strict anti-hallucination active
-                </span>
-              </div>
-              <textarea
-                rows="3"
-                placeholder="E.g., Really liked the pasta and the staff was very friendly."
-                value={userNote}
-                onChange={(e) => setUserNote(e.target.value)}
-              />
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                ℹ️ The AI will never invent unmentioned dishes, staff names, or events.
-              </div>
-            </div>
-
-            {/* Tone & Style Options */}
-            <div className="grid-2" style={{ gap: '1rem', marginBottom: '1.5rem' }}>
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label>Review Style</label>
-                <select value={tone} onChange={(e) => setTone(e.target.value)}>
-                  {TONE_OPTIONS.map(t => (
-                    <option key={t.id} value={t.id}>{t.label}</option>
-                  ))}
-                </select>
+          {/* Standard Review Generator Workflow */}
+          {(rating >= 3 || !preferPrivateResolution) && (
+            <form onSubmit={handleGenerate}>
+              {/* Hospitality Aspects Chips */}
+              <div className="input-group">
+                <label>What specific highlights stood out?</label>
+                <div className="aspect-chips">
+                  {HOSPITALITY_ASPECTS.map(asp => {
+                    const isSelected = selectedAspects.includes(asp.id);
+                    return (
+                      <button
+                        type="button"
+                        key={asp.id}
+                        className={`aspect-chip ${isSelected ? 'selected' : ''}`}
+                        onClick={() => toggleAspect(asp.id)}
+                      >
+                        <span>{asp.icon}</span>
+                        <span>{asp.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label>Length</label>
-                <select value={length} onChange={(e) => setLength(e.target.value)}>
-                  <option value="short">Short (1-2 sentences)</option>
-                  <option value="medium">Medium (2-3 sentences)</option>
-                  <option value="detailed">Detailed (3-4 sentences)</option>
-                </select>
+              {/* Personal Guest Note */}
+              <div className="input-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>Dishes, drinks, or details you'd like to highlight</label>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Anti-Hallucination active
+                  </span>
+                </div>
+                <textarea
+                  rows="3"
+                  placeholder={
+                    diningType === 'coffee_break'
+                      ? "E.g., The oat flat white was silky and the baristas were very welcoming!"
+                      : "E.g., Loved the truffle pasta and the tiramisu was incredible!"
+                  }
+                  value={userNote}
+                  onChange={(e) => setUserNote(e.target.value)}
+                />
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                  🔒 <em>We will never invent dishes, drinks, or facts you didn't mention.</em>
+                </div>
               </div>
-            </div>
 
-            {/* Generate Action */}
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={isGenerating}
-              style={{ width: '100%' }}
-            >
-              {isGenerating ? (
-                <>
-                  <span className="spinner-inline"></span>
-                  Crafting & Validating Review...
-                </>
-              ) : (
-                '✨ Generate Review Draft'
-              )}
-            </button>
-          </form>
+              {/* Persona / Tone Selector */}
+              <div className="grid-2" style={{ gap: '1rem', marginBottom: '1.5rem' }}>
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label>Review Style</label>
+                  <select value={tone} onChange={(e) => setTone(e.target.value)}>
+                    {TONE_PERSONAS.map(p => (
+                      <option key={p.id} value={p.id}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label>Target Length</label>
+                  <select value={length} onChange={(e) => setLength(e.target.value)}>
+                    <option value="short">Short (1-2 sentences)</option>
+                    <option value="medium">Medium (2-3 sentences)</option>
+                    <option value="detailed">Detailed (3-4 sentences)</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={isGenerating}
+                style={{ width: '100%' }}
+              >
+                {isGenerating ? (
+                  <>
+                    <span className="spinner-inline"></span>
+                    Polishing Draft with Hospitality NLP...
+                  </>
+                ) : (
+                  '✨ Generate Verified Review Draft'
+                )}
+              </button>
+            </form>
+          )}
         </div>
 
-        {/* STEP 2: AI Suggested Review Draft & Live Validation */}
+        {/* STEP 2: Real-time AI Suggested Review & Verification */}
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="section-badge" style={{ background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8' }}>
-            Review Workspace
+            Step 2 • Review Studio
           </div>
-          <h2 style={{ color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '1.6rem' }}>
-            AI Suggested Review
-          </h2>
+          <h3 style={{ fontSize: '1.4rem', color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+            AI Suggested Review Draft
+          </h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-            Edit anything directly. Our built-in NLP engine validates sentiment consistency in real-time.
+            You have full editorial control. Edit anything in the box below before posting to Google.
           </p>
 
           {!draftReview && !isGenerating ? (
             <div className="result-card" style={{ opacity: 0.6, flex: 1 }}>
-              <div className="status-icon">✍️</div>
-              <h3>Your Draft Will Appear Here</h3>
+              <div className="status-icon">☕</div>
+              <h3>Draft Preview Awaiting Details</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '340px' }}>
-                Select your star rating and experience aspects on the left, then click <strong>Generate Review Draft</strong>.
+                Select your dining highlights on the left and click <strong>Generate Verified Review Draft</strong>.
               </p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '1rem' }}>
-              {/* Editable Review Textarea */}
               <div className="review-editor-container">
                 <textarea
                   className="review-textarea"
@@ -339,22 +481,22 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
                   value={draftReview}
                   onChange={(e) => setDraftReview(e.target.value)}
                   onBlur={handleValidateDraft}
-                  placeholder="Your generated review text..."
+                  placeholder="Your review draft..."
                 />
                 <button
                   type="button"
                   className="copy-chip-btn"
                   onClick={handleCopyReview}
-                  title="Copy review to clipboard"
+                  title="Copy text to clipboard"
                 >
                   {copied ? '✓ Copied!' : '📋 Copy'}
                 </button>
               </div>
 
-              {/* Real-time NLP Validation Indicators */}
+              {/* Real-Time Sentiment & Consistency Tag */}
               <div className="validation-bar">
                 <div className="val-item">
-                  <span className="val-label">Sentiment</span>
+                  <span className="val-label">Analyzed Sentiment</span>
                   <span className={`val-tag ${sentiment?.toLowerCase() || 'neutral'}`}>
                     {sentiment || 'Evaluating'} {confidence ? `(${Math.round(confidence * 100)}%)` : ''}
                   </span>
@@ -363,7 +505,7 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
                 <div className="val-item">
                   <span className="val-label">Rating Consistency</span>
                   <span className={`val-tag ${ratingConsistent ? 'match' : 'mismatch'}`}>
-                    {ratingConsistent ? '✓ Consistent' : '⚠️ Potential Mismatch'}
+                    {ratingConsistent ? '✓ Consistent with Stars' : '⚠️ Potential Mismatch'}
                   </span>
                 </div>
 
@@ -377,7 +519,6 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
                 )}
               </div>
 
-              {/* Warnings / Guidance */}
               {warnings.length > 0 && (
                 <div className="warning-box">
                   {warnings.map((w, idx) => (
@@ -386,7 +527,7 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
                 </div>
               )}
 
-              {/* Action Buttons */}
+              {/* Actions */}
               <div className="review-action-row" style={{ marginTop: 'auto', paddingTop: '1rem' }}>
                 <button
                   type="button"
@@ -413,7 +554,7 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
                   disabled={!draftReview.trim()}
                   style={{ flex: 1.2 }}
                 >
-                  🚀 Continue to Google →
+                  🚀 Continue to Google Maps →
                 </button>
               </div>
             </div>
@@ -421,17 +562,20 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
         </div>
       </div>
 
-      {/* STEP 3: Customer Approval & Consent Modal */}
+      {/* Customer Approval Modal */}
       {showConsentModal && (
         <div className="modal-backdrop">
           <div className="glass-panel modal-card">
             <div className="modal-header">
               <span className="modal-icon">🌟</span>
-              <h3>Your Review is Ready</h3>
+              <div>
+                <h3 style={{ margin: 0 }}>Review Ready for Google Maps</h3>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{businessName}</span>
+              </div>
             </div>
 
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '1rem 0' }}>
-              Please review the draft below and ensure it accurately reflects your honest experience with <strong>{businessName}</strong> before submitting it.
+              Please confirm that this review genuinely reflects your experience at {businessName}:
             </p>
 
             <div className="modal-review-preview">
@@ -439,8 +583,8 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
             </div>
 
             {!isUrlConfigured && (
-              <div className="config-notice">
-                ℹ️ The business has not set an official Google Business review link yet. Clicking Continue will open Google Maps where you can search and submit.
+              <div className="config-notice" style={{ margin: '0.75rem 0' }}>
+                ℹ️ Official Google link is being set up by management. Clicking continue will open Google Maps for {businessName}.
               </div>
             )}
 
@@ -450,7 +594,7 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
                 className="btn-secondary"
                 onClick={() => setShowConsentModal(false)}
               >
-                ✏️ Edit Review
+                ✏️ Edit Further
               </button>
 
               <button
@@ -458,12 +602,12 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
                 className="btn-primary"
                 onClick={handleOpenGoogle}
               >
-                📋 Copy & Open Google Review Link ↗
+                📋 Copy Text & Open Google Review Link ↗
               </button>
             </div>
-            
+
             <div style={{ textAlign: 'center', marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              ChurnLens does not submit reviews directly. You will perform the final submission on Google.
+              ChurnLens ensures ethical submission: you perform the final review submission on Google.
             </div>
           </div>
         </div>

@@ -96,3 +96,33 @@ def test_analytics_and_session():
     analytics_data = analytics_res.json()
     assert "total_generations" in analytics_data
     assert "google_clicks" in analytics_data
+
+def test_manager_reply_generation():
+    payload = {
+        "guest_review": "The iced matcha latte was incredible and staff was so welcoming!",
+        "rating": 5,
+        "guest_name": "Samantha",
+        "manager_name": "Chef Marco",
+        "tone": "gracious"
+    }
+    res = client.post("/api/reviews/manager-reply", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert "reply" in data
+    assert "Samantha" in data["reply"]
+    assert "Chef Marco" in data["reply"]
+
+def test_private_feedback_escalation():
+    payload = {
+        "business_id": "test_cafe",
+        "table_number": "Table 7",
+        "rating": 1,
+        "diner_note": "Waited 40 minutes for coffee and it was cold.",
+        "aspects": ["Wait Time", "Coffee"],
+        "guest_contact": "guest@example.com"
+    }
+    res = client.post("/api/reviews/private-feedback", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "escalated"
+    assert "ticket_id" in data

@@ -640,3 +640,419 @@ textarea:focus, input:focus, select:focus {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ========================================================
+   ENTERPRISE HOSPITALITY SAAS STYLES
+   ======================================================== */
+
+/* Header Brand Bar */
+.enterprise-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.header-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.brand-icon {
+  font-size: 2.5rem;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.35rem 0.6rem;
+  border-radius: 12px;
+}
+
+.brand-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #fff;
+}
+
+.highlight-gold {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-subtext {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.header-right-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.branch-selector-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-color);
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+}
+
+.branch-select {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 0.85rem;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+}
+
+.system-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+}
+
+.live-dot {
+  font-size: 0.65rem;
+  animation: pulse 1.8s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+/* Hospitality Hero & Table Badge */
+.hospitality-hero-card {
+  padding: 1.5rem 2rem;
+  border-left: 4px solid #f59e0b;
+}
+
+.table-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  padding: 0.4rem 0.9rem;
+  border-radius: 30px;
+}
+
+.table-badge-icon {
+  font-size: 1rem;
+}
+
+.table-input {
+  background: transparent;
+  border: none;
+  color: #fbbf24;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0;
+  width: 90px;
+  outline: none;
+}
+
+/* Dining Occasion Grid */
+.occasion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.occasion-btn {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 0.6rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.occasion-btn:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--text-main);
+}
+
+.occasion-btn.active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #fbbf24;
+  font-weight: 600;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+}
+
+/* Manager Negative Feedback Deflection Card */
+.manager-resolution-card {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.resolution-textarea {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.resolution-input {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.manager-ticket-success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Sub-nav Buttons inside Management Portal */
+.subnav-container {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.75rem;
+}
+
+.subnav-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.subnav-btn:hover {
+  color: var(--text-main);
+}
+
+.subnav-btn.active {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+/* Printable Table Standee Preview */
+.printable-standee-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.standee-card {
+  width: 290px;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 16px;
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  border: 3px solid #f59e0b;
+}
+
+.standee-brand {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
+
+.standee-tagline {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.8px;
+  margin-bottom: 1rem;
+}
+
+.qr-wrapper {
+  background: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 12px;
+  display: inline-block;
+  border: 1px solid #e2e8f0;
+}
+
+.qr-image {
+  width: 170px;
+  height: 170px;
+  display: block;
+}
+
+.standee-table-badge {
+  display: inline-block;
+  background: #0f172a;
+  color: #fbbf24;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.85rem;
+  border-radius: 20px;
+  margin: 0.75rem 0 0.5rem 0;
+}
+
+.standee-cta {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.standee-subcta {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 0.2rem;
+}
+
+/* Aspect Health List */
+.aspect-health-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.progress-track {
+  width: 100%;
+  height: 7px;
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+/* Private Tickets Grid */
+.tickets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.ticket-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ticket-id {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #f87171;
+  font-weight: 700;
+}
+
+.ticket-table {
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+}
+
+.ticket-rating {
+  color: #fbbf24;
+  font-size: 1rem;
+}
+
+.ticket-note {
+  font-style: italic;
+  font-size: 0.9rem;
+  color: #f8fafc;
+  line-height: 1.4;
+}
+
+.ticket-contact {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.ticket-time {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: auto;
+}
+
+.stat-subtitle {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 0.2rem;
+}
+
+/* Footer */
+.enterprise-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 2rem 0;
+  margin-top: 3rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Print Only Table Standee */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-standee-container, .standee-card, .standee-card * {
+    visibility: visible;
+  }
+  .printable-standee-container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+}

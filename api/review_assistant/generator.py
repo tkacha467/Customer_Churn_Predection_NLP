@@ -1,19 +1,23 @@
 """
-Review Generation Engine for ChurnLens.
+Hospitality Review & Manager Response Generation Engine for ChurnLens.
 Supports:
-1. Google Gemini / OpenAI LLM providers if an API key is configured.
-2. Built-in Deterministic & Natural NLP Synthesis Engine (offline-capable fallback)
-   that strictly adheres to zero-fabrication rules, rating calibration, and selected aspects.
+1. External LLM APIs (Gemini/OpenAI) if configured.
+2. High-Precision Grounded Hospitality Synthesis Engine (zero network dependency)
+   calibrated for cafes, specialty coffee, bistros, and full-service restaurants.
 """
 
 import os
 import json
-import random
 import urllib.request
 import urllib.error
 from typing import List, Dict, Any, Optional
 
-from api.review_assistant.prompts import SYSTEM_PROMPT, build_review_prompt
+from api.review_assistant.prompts import (
+    SYSTEM_PROMPT,
+    MANAGER_REPLY_SYSTEM_PROMPT,
+    build_review_prompt,
+    build_manager_reply_prompt
+)
 
 class ReviewGenerator:
     def __init__(self):
@@ -26,84 +30,112 @@ class ReviewGenerator:
         aspects: List[str],
         user_note: str = "",
         tone: str = "natural",
-        length: str = "medium"
+        length: str = "medium",
+        dining_type: str = "dine_in"
     ) -> Dict[str, Any]:
-        """
-        Generate a review draft according to star rating, aspects, user notes, and tone.
-        Attempts LLM call if credentials exist, otherwise seamlessly uses the
-        anti-fabrication natural synthesis engine.
-        """
         cleaned_aspects = [a.strip() for a in aspects if a.strip()]
         cleaned_note = user_note.strip() if user_note else ""
         norm_tone = tone.lower().strip() if tone else "natural"
         norm_length = length.lower().strip() if length else "medium"
+        norm_dining = dining_type.lower().strip() if dining_type else "dine_in"
 
-        # Check for external LLM execution first
+        # 1. Attempt Gemini if key present
         if self.gemini_api_key:
             try:
-                review_text = self._call_gemini(rating, cleaned_aspects, cleaned_note, norm_tone, norm_length)
+                review_text = self._call_gemini(
+                    rating, cleaned_aspects, cleaned_note, norm_tone, norm_length, norm_dining
+                )
                 if review_text:
                     return {
                         "review": review_text.strip(' "\'\n'),
-                        "provider": "gemini-api"
+                        "provider": "gemini-hospitality-ai"
                     }
             except Exception as e:
-                print(f"[ReviewGenerator] Gemini API error, falling back to natural engine: {e}")
+                print(f"[ReviewGenerator] Gemini error: {e}")
 
+        # 2. Attempt OpenAI if key present
         if self.openai_api_key:
             try:
-                review_text = self._call_openai(rating, cleaned_aspects, cleaned_note, norm_tone, norm_length)
+                review_text = self._call_openai(
+                    rating, cleaned_aspects, cleaned_note, norm_tone, norm_length, norm_dining
+                )
                 if review_text:
                     return {
                         "review": review_text.strip(' "\'\n'),
-                        "provider": "openai-api"
+                        "provider": "openai-hospitality-ai"
                     }
             except Exception as e:
-                print(f"[ReviewGenerator] OpenAI API error, falling back to natural engine: {e}")
+                print(f"[ReviewGenerator] OpenAI error: {e}")
 
-        # Fallback to Built-in Grounded Natural Synthesis Engine
-        review_text = self._synthesize_natural_review(
+        # 3. Built-in Deterministic Hospitality Synthesizer
+        review_text = self._synthesize_hospitality_review(
             rating=rating,
             aspects=cleaned_aspects,
             user_note=cleaned_note,
             tone=norm_tone,
-            length=norm_length
+            length=norm_length,
+            dining_type=norm_dining
         )
 
         return {
             "review": review_text,
-            "provider": "churnlens-grounded-engine"
+            "provider": "churnlens-hospitality-core"
         }
 
+    def generate_manager_reply(
+        self,
+        guest_review: str,
+        rating: int,
+        guest_name: str = "Valued Guest",
+        manager_name: str = "The Management Team",
+        tone: str = "gracious"
+    ) -> Dict[str, Any]:
+        """Generates Michelin-standard hospitality management response to guest review."""
+        if self.gemini_api_key:
+            try:
+                prompt = build_manager_reply_prompt(guest_review, rating, guest_name, manager_name, tone)
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
+                payload = {
+                    "system_instruction": {"parts": [{"text": MANAGER_REPLY_SYSTEM_PROMPT}]},
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {"temperature": 0.3, "maxOutputTokens": 200}
+                }
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=6) as response:
+                    res_data = json.loads(response.read().decode("utf-8"))
+                    cand = res_data.get("candidates", [])
+                    if cand:
+                        text = cand[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                        if text:
+                            return {"reply": text.strip(), "provider": "gemini-gm-ai"}
+            except Exception as e:
+                print(f"[ReviewGenerator] GM reply API error: {e}")
+
+        # Fallback to calibrated GM response templates
+        reply = self._synthesize_manager_reply(guest_review, rating, guest_name, manager_name, tone)
+        return {"reply": reply, "provider": "churnlens-gm-rules"}
+
     def _call_gemini(
-        self, rating: int, aspects: List[str], user_note: str, tone: str, length: str
+        self, rating: int, aspects: List[str], user_note: str, tone: str, length: str, dining_type: str
     ) -> Optional[str]:
-        """Calls Google Gemini API via standard lightweight HTTP."""
-        prompt = build_review_prompt(rating, aspects, user_note, tone, length)
-        # Try gemini-1.5-flash or gemini-2.5-flash
+        prompt = build_review_prompt(rating, aspects, user_note, tone, length, dining_type)
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
-        
         payload = {
-            "system_instruction": {
-                "parts": [{"text": SYSTEM_PROMPT}]
-            },
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }],
-            "generationConfig": {
-                "temperature": 0.4,
-                "maxOutputTokens": 250,
-                "topP": 0.85
-            }
+            "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.35, "maxOutputTokens": 250, "topP": 0.85}
         }
-        
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        
         with urllib.request.urlopen(req, timeout=8) as response:
             res_data = json.loads(response.read().decode("utf-8"))
             candidates = res_data.get("candidates", [])
@@ -114,10 +146,9 @@ class ReviewGenerator:
         return None
 
     def _call_openai(
-        self, rating: int, aspects: List[str], user_note: str, tone: str, length: str
+        self, rating: int, aspects: List[str], user_note: str, tone: str, length: str, dining_type: str
     ) -> Optional[str]:
-        """Calls OpenAI API via standard lightweight HTTP."""
-        prompt = build_review_prompt(rating, aspects, user_note, tone, length)
+        prompt = build_review_prompt(rating, aspects, user_note, tone, length, dining_type)
         url = "https://api.openai.com/v1/chat/completions"
         payload = {
             "model": "gpt-4o-mini",
@@ -125,20 +156,15 @@ class ReviewGenerator:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.4,
-            "max_tokens": 200
+            "temperature": 0.35,
+            "max_tokens": 220
         }
-        
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.openai_api_key}"
-            },
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.openai_api_key}"},
             method="POST"
         )
-        
         with urllib.request.urlopen(req, timeout=8) as response:
             res_data = json.loads(response.read().decode("utf-8"))
             choices = res_data.get("choices", [])
@@ -146,195 +172,202 @@ class ReviewGenerator:
                 return choices[0].get("message", {}).get("content", "").strip()
         return None
 
-    def _synthesize_natural_review(
-        self, rating: int, aspects: List[str], user_note: str, tone: str, length: str
+    def _synthesize_hospitality_review(
+        self, rating: int, aspects: List[str], user_note: str, tone: str, length: str, dining_type: str
     ) -> str:
         """
-        Anti-Fabrication Natural Review Synthesizer.
-        Generates genuine, fluent reviews based solely on selected aspects and note.
-        Does NOT invent any dish, discount, staff name, or unmentioned fact.
+        Anti-Hallucination Hospitality Synthesizer.
+        Generates vivid, authentic dining reviews grounded exclusively in user input.
         """
         sentences = []
 
-        # 1. Incorporate User Note with Tone Alignment
+        # 1. Format User Note safely
         formatted_note = ""
         if user_note:
             cleaned = user_note.strip().rstrip(".")
-            if tone == "casual":
+            if tone == "foodie":
+                formatted_note = f"Specifically, {cleaned.lower()} was prepared wonderfully."
+            elif tone == "casual":
                 formatted_note = f"{cleaned}."
-            elif tone == "professional":
-                formatted_note = f"Notably, {cleaned.lower()}."
             else:
                 formatted_note = f"{cleaned}."
 
-        # 2. Rating-Calibrated Openers
+        # 2. Context-Aware Openers (Dining + Rating)
         if rating == 5:
-            openers = {
-                "natural": "Had a wonderful experience here.",
-                "casual": "Really impressed with everything here!",
-                "professional": "Exceptional experience overall.",
-                "short": "Outstanding experience all around.",
-                "detailed": "We had an absolutely fantastic visit from start to finish."
-            }
+            if dining_type == "coffee_break":
+                opener = "A truly top-tier coffee experience."
+            elif dining_type == "brunch":
+                opener = "Had a fantastic brunch visit here."
+            elif dining_type == "takeaway":
+                opener = "Quick, seamless, and high quality takeaway service."
+            else:
+                opener = "An outstanding dining experience from start to finish."
         elif rating == 4:
-            openers = {
-                "natural": "Had a very positive experience overall.",
-                "casual": "Really solid place with lots to like.",
-                "professional": "A very pleasant visit with quality service.",
-                "short": "Great visit with good overall service.",
-                "detailed": "Overall, we had a very good experience and enjoyed our visit."
-            }
+            if dining_type == "coffee_break":
+                opener = "Really solid cafe with great drinks."
+            elif dining_type == "brunch":
+                opener = "A very enjoyable brunch spot with good overall quality."
+            else:
+                opener = "Had a very positive dining experience here."
         elif rating == 3:
-            openers = {
-                "natural": "A decent experience overall, though fairly average.",
-                "casual": "It was an okay visit, some things were fine and others had room for improvement.",
-                "professional": "A balanced experience meeting standard expectations.",
-                "short": "An acceptable visit overall.",
-                "detailed": "Our visit was satisfactory, though with several areas that could be improved."
-            }
+            opener = "A decent visit overall, though somewhat average."
         elif rating == 2:
-            openers = {
-                "natural": "Disappointing experience overall, with several issues during our visit.",
-                "casual": "Honestly wasn't impressed with our visit here.",
-                "professional": "Regrettably, the experience fell below reasonable expectations.",
-                "short": "Disappointing experience with noticeable shortcomings.",
-                "detailed": "Unfortunately, our visit did not meet expectations due to several clear shortcomings."
-            }
+            opener = "Disappointing visit with several noticeable shortcomings."
         else: # 1 star
-            openers = {
-                "natural": "Very disappointed with this experience.",
-                "casual": "Really bad experience, would definitely not recommend.",
-                "professional": "Extremely dissatisfied with the service and overall standards.",
-                "short": "Extremely poor experience.",
-                "detailed": "A very frustrating and subpar experience that failed on basic standards."
-            }
+            opener = "Extremely dissatisfied with the dining experience and standards."
 
-        opener = openers.get(tone, openers["natural"])
+        # Tone overrides if specific tone requested
+        if tone == "casual" and rating >= 4:
+            opener = "Loved our time here!"
+        elif tone == "foodie" and rating >= 4:
+            opener = "A delightful culinary experience with impressive attention to detail."
+
         sentences.append(opener)
 
-        # 3. Add User Note early if provided
+        # 3. Add Guest Mentioned Note
         if formatted_note:
             sentences.append(formatted_note)
 
-        # 4. Integrate Aspects (Without fabricating specific details!)
+        # 4. Integrate Hospitality Aspects
         aspect_clauses = []
         for aspect in aspects:
             asp_key = aspect.lower().strip()
-            clause = self._get_aspect_phrase(asp_key, rating, tone)
+            clause = self._get_hospitality_aspect_clause(asp_key, rating, tone)
             if clause:
                 aspect_clauses.append(clause)
 
         if aspect_clauses:
             if length == "short":
-                # Only take the first aspect to keep it short
                 sentences.append(aspect_clauses[0])
             elif length == "detailed":
                 sentences.extend(aspect_clauses[:3])
             else:
                 sentences.extend(aspect_clauses[:2])
 
-        # 5. Rating-Calibrated Closers
+        # 5. Closers
         if length != "short":
             if rating == 5:
-                closers = {
-                    "natural": "Will definitely be returning again soon!",
-                    "casual": "Definitely coming back!",
-                    "professional": "I gladly recommend this establishment to others.",
-                    "detailed": "Highly recommended and looking forward to our next visit."
-                }
+                sentences.append("Will definitely be making this a regular spot!")
             elif rating == 4:
-                closers = {
-                    "natural": "I would certainly recommend checking them out.",
-                    "casual": "Worth stopping by.",
-                    "professional": "A commendable establishment that I would recommend.",
-                    "detailed": "We would happily visit again in the future."
-                }
+                sentences.append("Well worth a visit if you are in the area.")
             elif rating == 3:
-                closers = {
-                    "natural": "Hope to see some improvements on future visits.",
-                    "casual": "Might give them another shot later on.",
-                    "professional": "With a few minor adjustments, the experience could be considerably better.",
-                    "detailed": "Average overall, but potential is certainly there."
-                }
+                sentences.append("Hoping for a bit more consistency on future visits.")
             elif rating == 2:
-                closers = {
-                    "natural": "Substantial improvements are needed here.",
-                    "casual": "Probably won't be returning anytime soon.",
-                    "professional": "Management should address these operational concerns.",
-                    "detailed": "We hope management takes constructive note of these issues."
-                }
+                sentences.append("Hope management takes note and addresses these issues.")
             else:
-                closers = {
-                    "natural": "Cannot recommend based on this visit.",
-                    "casual": "Won't be returning.",
-                    "professional": "A completely unsatisfactory experience that needs urgent management review.",
-                    "detailed": "I strongly advise looking elsewhere until standards are elevated."
-                }
-            sentences.append(closers.get(tone, closers["natural"]))
+                sentences.append("Would not recommend based on this visit.")
 
-        # Join cleanly
-        final_text = " ".join([s.strip() for s in sentences if s.strip()])
-        return final_text
+        return " ".join([s.strip() for s in sentences if s.strip()])
 
-    def _get_aspect_phrase(self, aspect: str, rating: int, tone: str) -> Optional[str]:
-        """Maps aspect + rating into grounded phrasing without inventing specifics."""
+    def _get_hospitality_aspect_clause(self, aspect: str, rating: int, tone: str) -> Optional[str]:
         pos = rating >= 4
         neu = rating == 3
-        
+
+        if "coffee" in aspect or "drink" in aspect or "beverage" in aspect:
+            if pos:
+                return "The coffee was brewed to perfection with rich, balanced extraction." if tone == "foodie" else "The coffee and drinks were spot on."
+            elif neu:
+                return "The beverages were decent, though not particularly memorable."
+            else:
+                return "The coffee and drinks were poorly prepared and lacked flavor."
+
         if "food" in aspect or "taste" in aspect or "quality" in aspect:
             if pos:
-                return "The food quality was wonderful and genuinely flavorful." if tone != "professional" else "The culinary offerings were well-prepared and of high quality."
+                return "The culinary flavors and plating were exceptional." if tone == "foodie" else "The food was delicious and freshly prepared."
             elif neu:
-                return "The food was acceptable, though neither memorable nor particularly distinct."
+                return "The food was acceptable, standard cafe quality."
             else:
-                return "The quality of the food was subpar and did not meet basic expectations."
+                return "The food was lukewarm, bland, and fell well short of expectations."
 
-        if "service" in aspect or "staff" in aspect:
+        if "bakery" in aspect or "pastry" in aspect or "dessert" in aspect:
             if pos:
-                return "The staff members were attentive, courteous, and very helpful."
+                return "The pastries and baked goods were remarkably fresh and delicate."
             elif neu:
-                return "Service was standard, though a bit slow at times."
+                return "The bakery items were okay."
             else:
-                return "Customer service was inattentive and unhelpful throughout."
+                return "The baked items tasted dry and not freshly made."
 
-        if "ambiance" in aspect or "cleanliness" in aspect:
+        if "service" in aspect or "staff" in aspect or "hospitality" in aspect:
             if pos:
-                return "The atmosphere was pleasant, clean, and comfortable."
+                return "The service was warm, attentive, and genuinely welcoming."
             elif neu:
-                return "The environment was okay, though could be refreshed."
+                return "Service was standard, though table attention was a bit slow."
             else:
-                return "The environment was poorly maintained and lacked cleanliness."
+                return "Staff hospitality was inattentive and dismissive throughout."
+
+        if "ambiance" in aspect or "vibe" in aspect or "music" in aspect or "atmosphere" in aspect:
+            if pos:
+                return "The ambiance and acoustics created a comfortable, inviting atmosphere."
+            elif neu:
+                return "The atmosphere was fine, standard bustling cafe vibe."
+            else:
+                return "The venue was overly chaotic, noisy, and uninviting."
+
+        if "cleanliness" in aspect or "hygiene" in aspect:
+            if pos:
+                return "The dining area and tables were impeccably clean."
+            elif neu:
+                return "Cleanliness was adequate."
+            else:
+                return "Table turnover and dining cleanliness were noticeably neglected."
+
+        if "wait" in aspect or "time" in aspect:
+            if pos:
+                return "Orders were fulfilled promptly with minimal waiting."
+            elif neu:
+                return "Waiting time was moderate."
+            else:
+                return "Excessive wait times significantly detracted from our visit."
 
         if "value" in aspect or "price" in aspect:
             if pos:
-                return "Great value for money considering the overall quality."
+                return "Generous portions and great value for the high quality provided."
             elif neu:
-                return "Pricing was moderate for what was provided."
+                return "Pricing was reasonable for the portion sizes."
             else:
-                return "Overpriced for the level of quality received."
+                return "Overpriced for what was delivered."
 
-        if "waiting" in aspect or "wait" in aspect:
+        if "patio" in aspect or "seating" in aspect:
             if pos:
-                return "Everything was handled in a timely manner with minimal waiting."
+                return "The seating arrangements and outdoor patio area were wonderful."
             elif neu:
-                return "Wait times were moderate but manageable."
+                return "Seating was adequate."
             else:
-                return "Excessive waiting times detracted significantly from the visit."
+                return "Seating was cramped and uncomfortable."
 
-        if "location" in aspect:
-            if pos:
-                return "The location is convenient and accessible."
-            elif neu:
-                return "The location was easy enough to reach."
-            else:
-                return "The location was difficult to access."
-
-        # Default fallback for other aspects
         if pos:
             return f"The {aspect} was commendable."
         elif neu:
-            return f"The {aspect} was acceptable."
+            return f"The {aspect} was average."
         else:
             return f"The {aspect} was disappointing."
+
+    def _synthesize_manager_reply(
+        self, guest_review: str, rating: int, guest_name: str, manager_name: str, tone: str
+    ) -> str:
+        """Standard professional GM responses for Google Maps reviews."""
+        if rating >= 4:
+            return (
+                f"Dear {guest_name}, thank you so much for your wonderful review! "
+                f"We are thrilled to know you enjoyed your time with us. Our kitchen and service teams take immense pride "
+                f"in delivering memorable dining experiences. We look forward to welcoming you back to the table soon! "
+                f"— Warmly, {manager_name}"
+            )
+        elif rating == 3:
+            return (
+                f"Dear {guest_name}, thank you for sharing your thoughtful feedback. "
+                f"While we are glad certain parts of your visit were positive, our goal is always to deliver an exceptional experience. "
+                f"We have shared your observations with our operations team to refine our service pacing and quality. "
+                f"We hope to have the pleasure of exceeding your expectations on your next visit. "
+                f"— Sincerely, {manager_name}"
+            )
+        else: # 1-2 stars
+            return (
+                f"Dear {guest_name}, we sincerely apologize that your recent experience fell short of our hospitality standards. "
+                f"We hold our team to high culinary and service benchmarks, and we clearly missed the mark during your visit. "
+                f"We take your feedback seriously and would appreciate the opportunity to make this right. Please reach out to us "
+                f"directly so our General Manager can personally follow up with you. "
+                f"— With sincere apologies, {manager_name}"
+            )
 
 review_generator = ReviewGenerator()

@@ -5,31 +5,63 @@ import IntegrityPlayground from './components/IntegrityPlayground';
 import BusinessConsole from './components/BusinessConsole';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('assistant'); // 'assistant' | 'integrity' | 'business'
+  const [activeTab, setActiveTab] = useState('assistant'); // 'assistant' | 'business' | 'integrity'
+  const [selectedBranch, setSelectedBranch] = useState('flagship');
   const businessId = 'default_business';
 
   return (
     <div className="app-container">
-      {/* Header & Brand */}
-      <header>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <span style={{ fontSize: '2.5rem' }}>🔮</span>
-          <h1>ChurnLens AI</h1>
+      {/* Top Enterprise Brand Bar */}
+      <header className="enterprise-header">
+        <div className="header-top-row">
+          <div className="brand-group">
+            <span className="brand-icon">☕</span>
+            <div>
+              <div className="brand-title">ChurnLens <span className="highlight-gold">Hospitality</span></div>
+              <div className="brand-subtext">AI Guest Reviews & Reputation Intelligence for Cafes & Restaurants</div>
+            </div>
+          </div>
+
+          <div className="header-right-controls">
+            <div className="branch-selector-pill">
+              <span style={{ fontSize: '0.85rem' }}>📍</span>
+              <select
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                className="branch-select"
+              >
+                <option value="flagship">Cuore Roastery • Downtown Flagship</option>
+                <option value="uptown">Cuore Bistro • Uptown West</option>
+                <option value="airport">Cuore Express • Terminal 2</option>
+              </select>
+            </div>
+
+            <div className="system-status-pill">
+              <span className="live-dot">●</span>
+              <span>NLP Engine Live</span>
+            </div>
+          </div>
         </div>
-        <p>
-          AI-Assisted Customer Review & Intelligence Platform — turning customer experiences into verified Google reviews and actionable retention insights.
-        </p>
       </header>
 
-      {/* Mode Selector Tabs */}
+      {/* Main SaaS Navigation Tabs */}
       <nav className="nav-tab-container">
         <button
           type="button"
           className={`nav-tab-btn ${activeTab === 'assistant' ? 'active' : ''}`}
           onClick={() => setActiveTab('assistant')}
         >
-          <span>🌟</span>
-          <span>AI Review Assistant</span>
+          <span>☕</span>
+          <span>Guest Table Review</span>
+        </button>
+
+        <button
+          type="button"
+          className={`nav-tab-btn ${activeTab === 'business' ? 'active' : ''}`}
+          onClick={() => setActiveTab('business')}
+        >
+          <span>📊</span>
+          <span>General Manager Portal</span>
         </button>
 
         <button
@@ -38,37 +70,37 @@ function App() {
           onClick={() => setActiveTab('integrity')}
         >
           <span>🛡️</span>
-          <span>Integrity & Risk Engine</span>
-        </button>
-
-        <button
-          type="button"
-          className={`nav-tab-btn ${activeTab === 'business' ? 'active' : ''}`}
-          onClick={() => setActiveTab('business')}
-        >
-          <span>⚙️</span>
-          <span>Business Portal</span>
+          <span>NLP Integrity Lab</span>
         </button>
       </nav>
 
-      {/* Main Tab Content */}
+      {/* Main Workspace View */}
       <main>
         {activeTab === 'assistant' && (
           <ReviewAssistant businessId={businessId} />
         )}
 
-        {activeTab === 'integrity' && (
-          <IntegrityPlayground />
-        )}
-
         {activeTab === 'business' && (
           <BusinessConsole businessId={businessId} />
         )}
+
+        {activeTab === 'integrity' && (
+          <IntegrityPlayground />
+        )}
       </main>
 
-      {/* Footer */}
-      <footer style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', padding: '2rem 0', borderTop: '1px solid rgba(255, 255, 255, 0.05)', marginTop: '2rem' }}>
-        <p>ChurnLens AI Platform • Multi-Modal Customer Intelligence & Verified Google Review Handoff</p>
+      {/* Enterprise Hospitality Footer */}
+      <footer className="enterprise-footer">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <strong>ChurnLens Hospitality AI Platform</strong> • Enterprise Guest Experience & Google Review Handoff
+          </div>
+          <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)' }}>
+            <span>Compliant with Google Business Profile Policies</span>
+            <span>Zero Hallucination Guaranteed</span>
+            <span>Table QR Deep-linking Enabled</span>
+          </div>
+        </div>
       </footer>
     </div>
   );
