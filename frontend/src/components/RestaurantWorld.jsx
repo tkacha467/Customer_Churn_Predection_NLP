@@ -21,7 +21,6 @@ function Person({ x, y, variant = 0, role = 'guest', onClick, label, delay = 0 }
     <g
       className={`ng-svg-person ng-svg-${role}`}
       transform={`translate(${x} ${y})`}
-      style={{ animationDelay: `${delay}s` }}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
