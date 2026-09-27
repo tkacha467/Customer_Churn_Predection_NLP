@@ -1,14 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import RestaurantWorld from './RestaurantWorld';
 
 // ─── NASTA GHAR BRAND CONSTANTS ──────────────────────────────────────────────
 // These are hardcoded. The API enriches config but NEVER overrides the name.
 const BRAND = {
   name: 'Nasta Ghar',
-  emoji: '🍳',
-  category: 'Breakfast & Snacks · Rajkot',
   googleMapUrl:
-    'https://search.google.com/local/writereview?placeid=ChIJEGXiuzcAy1k51pOxt51jLro',
+    'https://maps.app.goo.gl/jDbCXPggNMLoF59K6',
 };
 
 const DEFAULT_TOPICS = [
@@ -41,6 +39,14 @@ export default function CustomerReview({
 
   // Step state
   const [step, setStep] = useState(1);
+  const reviewCardRef = useRef(null);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      if (step > 1) reviewCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      else document.querySelector('.ng-page')?.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }, [step]);
 
   // Rating
   const [rating, setRating] = useState(5);
@@ -52,9 +58,8 @@ export default function CustomerReview({
   const [nothingSpecific, setNothingSpecific] = useState(false);
   const [personalNote, setPersonalNote] = useState('');
 
-  // Google Review URL (from API, fallback to hardcoded)
-  const [googleReviewUrl, setGoogleReviewUrl] = useState(BRAND.googleMapUrl);
-  const [isUrlConfigured, setIsUrlConfigured] = useState(true);
+  // Keep Google Maps pointed at the restaurant's selected destination.
+  const googleReviewUrl = BRAND.googleMapUrl;
 
   // Ideas
   const [ideas, setIdeas] = useState([]);
@@ -80,10 +85,10 @@ export default function CustomerReview({
   const [privateContact, setPrivateContact] = useState('');
   const [privateSent, setPrivateSent] = useState(false);
 
-  // Cookie & Auto-Paste Consent
+  // Acknowledgement for the clipboard handoff instructions.
   const [cookieConsent, setCookieConsent] = useState(() => {
     try {
-      return localStorage.getItem('ng_auto_paste_consent') === 'true';
+      return localStorage.getItem('ng_clipboard_notice_seen') === 'true';
     } catch {
       return false;
     }
@@ -91,11 +96,9 @@ export default function CustomerReview({
 
   const handleAcceptConsent = () => {
     try {
-      localStorage.setItem('ng_auto_paste_consent', 'true');
+      localStorage.setItem('ng_clipboard_notice_seen', 'true');
     } catch {}
     setCookieConsent(true);
-    setShowCopyToast(true);
-    setTimeout(() => setShowCopyToast(false), 2500);
   };
 
   // ─── FETCH CONFIG (optional enrichment, never overrides brand name) ─────────
@@ -103,11 +106,7 @@ export default function CustomerReview({
     fetch(`http://127.0.0.1:8000/api/businesses/${businessId}/review-link`)
       .then((r) => r.json())
       .then((d) => {
-        // Only update Google URL if configured, never update name
-        if (d.review_url && d.is_configured) {
-          setGoogleReviewUrl(d.review_url);
-          setIsUrlConfigured(true);
-        }
+        // Keep the restaurant's selected Google Maps destination fixed; the API may enrich topics.
         // Update topics from API if available
         if (d.topics && d.topics.length > 0) {
           const enriched = d.topics.map((t) => ({
@@ -133,7 +132,7 @@ export default function CustomerReview({
       .then((r) => r.json())
       .then((d) => setSessionId(d.session_id))
       .catch(() => setSessionId(`local-${Date.now()}`));
-  }, [businessId]);
+  }, [businessId, tableParam]);
 
   function getTopicIcon(label) {
     const l = label.toLowerCase();
@@ -254,30 +253,21 @@ export default function CustomerReview({
     }
   };
 
-  // 1-Click: Select, Auto-copy to clipboard, and Open Google Review directly
+  // Copy the selected review, then hand off to Google Maps for customer posting.
   const handlePostDirectly = async (idea) => {
     setSelectedIdeaId(idea.id);
     setDraftReview(idea.text);
     logEvent('idea_selected', { idea_id: idea.id });
     logEvent('review_approved', { length: idea.text.length, direct_post: true });
 
-    // Notify Chrome Extension (if installed) for automatic pasting & star selection
-    window.postMessage({
-      type: 'NASTA_GHAR_REVIEW_SELECTED',
-      payload: {
-        reviewText: idea.text,
-        rating: rating,
-        timestamp: Date.now()
-      }
-    }, '*');
-
-    const ok = await copyTextToClipboard(idea.text);
+    const copyRequest = copyTextToClipboard(idea.text);
+    window.open(googleReviewUrl, '_blank', 'noopener,noreferrer');
+    const ok = await copyRequest;
     setCopied(ok);
     setShowCopyToast(true);
     setTimeout(() => setShowCopyToast(false), 3500);
 
     logEvent('google_review_link_opened');
-    window.open(googleReviewUrl, '_blank', 'noopener,noreferrer');
     setHandoffOpen(true);
   };
 
@@ -314,23 +304,14 @@ export default function CustomerReview({
     if (!draftReview.trim()) return;
     logEvent('review_approved', { length: draftReview.length });
 
-    // Notify Chrome Extension (if installed) for automatic pasting & star selection
-    window.postMessage({
-      type: 'NASTA_GHAR_REVIEW_SELECTED',
-      payload: {
-        reviewText: draftReview,
-        rating: rating,
-        timestamp: Date.now()
-      }
-    }, '*');
-
-    const ok = await copyTextToClipboard(draftReview);
+    const copyRequest = copyTextToClipboard(draftReview);
+    window.open(googleReviewUrl, '_blank', 'noopener,noreferrer');
+    const ok = await copyRequest;
     setCopied(ok);
     setShowCopyToast(true);
     setTimeout(() => setShowCopyToast(false), 3500);
 
     logEvent('google_review_link_opened');
-    window.open(googleReviewUrl, '_blank', 'noopener,noreferrer');
     setHandoffOpen(true);
   };
 
@@ -375,14 +356,10 @@ export default function CustomerReview({
 
       <RestaurantWorld />
 
-      <div className="ng-card">
+      <div ref={reviewCardRef} className={`ng-card ${step === 1 ? 'ng-rating-card' : ''}`}>
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <header className="ng-header">
-          <div className="ng-logo-ring">
-            <span className="ng-logo-emoji">{BRAND.emoji}</span>
-          </div>
-          <h1 className="ng-brand-name">{BRAND.name}</h1>
-          <p className="ng-brand-sub">{BRAND.category}</p>
+          <h1 className="ng-brand-name">નાસ્તા ઘર</h1>
           {tableParam && (
             <span className="ng-table-pill">📍 {tableParam}</span>
           )}
@@ -519,7 +496,7 @@ export default function CustomerReview({
                         className="ng-btn-post-direct"
                         onClick={() => handlePostDirectly(idea)}
                       >
-                        🚀 Post to Google
+                        Copy & open Google Maps
                       </button>
                       <button
                         type="button"
@@ -593,7 +570,7 @@ export default function CustomerReview({
             </div>
 
             <div className="ng-google-notice">
-              ✅ You post directly on Google — your words, your review.
+              Your words, your review. Paste the copy into Google and post it yourself.
             </div>
 
             <button
@@ -602,7 +579,7 @@ export default function CustomerReview({
               onClick={handleContinueToGoogle}
               disabled={!draftReview.trim()}
             >
-              🚀 Copy & Post to Google
+              Copy & open Google Maps
             </button>
 
             <div className="ng-private-prompt">
@@ -737,13 +714,13 @@ export default function CustomerReview({
         </div>
       )}
 
-      {/* ════════ COOKIE & AUTO-PASTE PERMISSION BANNER ════════ */}
-      {!cookieConsent && (
-        <div className="ng-cookie-bar" role="region" aria-label="Auto-paste permission">
+      {/* ════════ CLIPBOARD INFORMATION ════════ */}
+      {!cookieConsent && step > 1 && (
+          <div className="ng-cookie-bar" role="region" aria-label="Review and clipboard information">
           <div className="ng-cookie-content">
             <span className="ng-cookie-emoji">🍪</span>
             <div className="ng-cookie-msg">
-              <strong>Auto-Paste Enabled</strong>: Allow cookies & clipboard to automatically load your selected review so you can paste into Google with 1 tap.
+              <strong>Your review is copied when you choose it.</strong> Paste it into Google and submit it yourself.
             </div>
           </div>
           <button
@@ -751,7 +728,7 @@ export default function CustomerReview({
             className="ng-cookie-btn"
             onClick={handleAcceptConsent}
           >
-            Allow Auto-Paste ✓
+            Got it ✓
           </button>
         </div>
       )}
