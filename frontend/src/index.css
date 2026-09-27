@@ -3786,4 +3786,295 @@ body:has(.ng-app-root) {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   NASTA GHAR ANIMATED RESTAURANT SCENE (ORIGINAL GUJARATI RESTAURANT VISUAL)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ng-scene-wrapper {
+  width: 100%;
+  margin-bottom: 1.5rem;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1.5px solid rgba(201, 255, 0, 0.25);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(23, 59, 32, 0.4),
+    inset 0 1px 0 rgba(244, 246, 106, 0.2);
+  background: #101711;
+  transition: all 0.3s ease;
+}
+
+.ng-scene-wrapper.compact {
+  margin-bottom: 1rem;
+  border-radius: 14px;
+}
+
+.ng-scene-container {
+  position: relative;
+  width: 100%;
+  background: #101711;
+  display: flex;
+  flex-direction: column;
+}
+
+.ng-scene-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1000 / 420;
+  user-select: none;
+}
+
+/* Live Status Badge Overlay */
+.ng-live-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 37, 21, 0.88);
+  border: 1px solid rgba(201, 255, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.ng-live-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c9ff00;
+  box-shadow: 0 0 8px #c9ff00;
+  animation: ngLivePulse 1.8s ease-in-out infinite alternate;
+}
+
+.ng-live-text {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff8e8;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ─── CONTINUOUS CSS KEYFRAME ANIMATIONS ────────────────────────────────────── */
+
+/* 1. Hanging Brass Lamps Gentle Sway */
+.ng-lamp-left {
+  transform-origin: 230px 0px;
+  animation: ngLampSwayLeft 5s ease-in-out infinite alternate;
+}
+
+.ng-lamp-right {
+  transform-origin: 770px 0px;
+  animation: ngLampSwayRight 5.8s ease-in-out infinite alternate;
+}
+
+.ng-lamp-center {
+  transform-origin: 500px 0px;
+  animation: ngLampSwayLeft 6.4s ease-in-out infinite alternate;
+}
+
+@keyframes ngLampSwayLeft {
+  0%   { transform: rotate(-2.2deg); }
+  50%  { transform: rotate(0.4deg); }
+  100% { transform: rotate(2.2deg); }
+}
+
+@keyframes ngLampSwayRight {
+  0%   { transform: rotate(2.4deg); }
+  50%  { transform: rotate(-0.3deg); }
+  100% { transform: rotate(-2.4deg); }
+}
+
+/* 2. Lamp Bulb Warm Pulsing Glow */
+.ng-bulb-pulse {
+  animation: ngBulbPulse 3.6s ease-in-out infinite alternate;
+}
+
+@keyframes ngBulbPulse {
+  0%   { opacity: 0.75; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.2); }
+}
+
+/* 3. Gujarati Maharaj (Chef) Cooking Ladle Stirring Animation */
+.ng-chef-arm-animated {
+  transform-origin: 70px 115px;
+  animation: ngChefStir 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes ngChefStir {
+  0% {
+    transform: rotate(-3deg) translate(0px, 0px);
+  }
+  50% {
+    transform: rotate(2deg) translate(2px, -3px);
+  }
+  100% {
+    transform: rotate(-5deg) translate(-2px, 2px);
+  }
+}
+
+/* 4. Rising Steam Wisps from Kadai, Thali & Chai */
+.ng-steam-wisp-1 {
+  animation: ngSteamFloat 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.ng-steam-wisp-2 {
+  animation: ngSteamFloat 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.9s;
+}
+
+.ng-steam-wisp-3 {
+  animation: ngSteamFloat 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite 1.6s;
+}
+
+.ng-steam-wisp-center {
+  animation: ngSteamFloat 3.4s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.4s;
+}
+
+.ng-steam-wisp-center-2 {
+  animation: ngSteamFloat 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite 1.8s;
+}
+
+.ng-steam-wisp-chai {
+  animation: ngSteamFloat 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.6s;
+}
+
+.ng-steam-wisp-tray {
+  animation: ngSteamFloat 2.9s cubic-bezier(0.4, 0, 0.2, 1) infinite 1.2s;
+}
+
+@keyframes ngSteamFloat {
+  0% {
+    transform: translateY(0px) scale(0.85);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.75;
+  }
+  75% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: translateY(-42px) scale(1.35) translateX(6px);
+    opacity: 0;
+  }
+}
+
+/* 5. Burner Flame Subtle Glow */
+.ng-burner-glow {
+  animation: ngBurnerGlow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes ngBurnerGlow {
+  0%   { opacity: 0.5; transform: scaleX(0.95); }
+  100% { opacity: 0.85; transform: scaleX(1.05); }
+}
+
+/* 6. Hospitality Server Subtle Gentle Float / Movement */
+.ng-server-character {
+  animation: ngServerBreathing 3.6s ease-in-out infinite alternate;
+}
+
+@keyframes ngServerBreathing {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3.5px) rotate(0.3deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+.ng-server-arms-tray {
+  animation: ngTrayFloat 3s ease-in-out infinite alternate;
+}
+
+@keyframes ngTrayFloat {
+  0%   { transform: translateY(0px) rotate(0deg); }
+  50%  { transform: translateY(-2.5px) rotate(-0.6deg); }
+  100% { transform: translateY(1px) rotate(0.4deg); }
+}
+
+/* 7. Ambient Aroma / Spice Light Particles */
+.ng-particle {
+  animation: ngParticleFloat 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.ng-p1 { animation-delay: 0s; }
+.ng-p2 { animation-delay: 0.8s; }
+.ng-p3 { animation-delay: 1.6s; }
+.ng-p4 { animation-delay: 2.3s; }
+.ng-p5 { animation-delay: 3.1s; }
+.ng-p6 { animation-delay: 3.9s; }
+
+@keyframes ngParticleFloat {
+  0% {
+    transform: translate(0px, 0px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(12px, -36px);
+    opacity: 0;
+  }
+}
+
+@keyframes ngLivePulse {
+  0%   { transform: scale(0.9); opacity: 0.6; box-shadow: 0 0 4px #c9ff00; }
+  100% { transform: scale(1.25); opacity: 1; box-shadow: 0 0 10px #c9ff00; }
+}
+
+/* ─── RESPONSIVE BEHAVIOR (MOBILE & DESKTOP) ────────────────────────────────── */
+@media (max-width: 640px) {
+  .ng-scene-wrapper {
+    margin-bottom: 1.25rem;
+    border-radius: 16px;
+  }
+
+  .ng-live-badge {
+    bottom: 6px;
+    right: 8px;
+    padding: 3px 8px;
+  }
+
+  .ng-live-text {
+    font-size: 0.65rem;
+  }
+}
+
+/* ─── ACCESSIBILITY: PREFERS REDUCED MOTION ─────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ng-lamp-left,
+  .ng-lamp-right,
+  .ng-lamp-center,
+  .ng-bulb-pulse,
+  .ng-chef-arm-animated,
+  .ng-steam-wisp-1,
+  .ng-steam-wisp-2,
+  .ng-steam-wisp-3,
+  .ng-steam-wisp-center,
+  .ng-steam-wisp-center-2,
+  .ng-steam-wisp-chai,
+  .ng-steam-wisp-tray,
+  .ng-burner-glow,
+  .ng-server-character,
+  .ng-server-arms-tray,
+  .ng-particle,
+  .ng-live-pulse-dot {
+    animation: none !important;
+    transform: none !important;
+    opacity: 0.75 !important;
+  }
+}
+
+
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
+import NastaGharRestaurantScene from './NastaGharRestaurantScene';
 
 export default function OwnerPortal({
   businessId = 'default_business',
@@ -260,6 +261,11 @@ export default function OwnerPortal({
                 👁️ Test Customer Flow
               </button>
             </div>
+          </div>
+
+          {/* Animated Restaurant Scene Preview for Owner */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <NastaGharRestaurantScene compact={true} />
           </div>
 
           {/* Quick Status Cards */}
