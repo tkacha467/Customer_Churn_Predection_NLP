@@ -13,14 +13,14 @@ from typing import Dict, Any, Optional, List
 CONFIG_FILE = Path(__file__).parent / "business_links.json"
 
 DEFAULT_TOPICS = [
-    "Food",
-    "Coffee & Drinks",
-    "Service",
-    "Friendly staff",
-    "Atmosphere",
+    "Breakfast",
+    "Chai & Beverages",
+    "Snacks",
+    "Taste & Flavour",
+    "Friendly Staff",
     "Cleanliness",
-    "Value",
-    "Fast service"
+    "Value for Money",
+    "Quick Service"
 ]
 
 class GoogleReviewManager:
@@ -41,14 +41,14 @@ class GoogleReviewManager:
         if "default_business" not in self._links:
             default_env = os.getenv("GOOGLE_REVIEW_URL", "https://maps.google.com")
             self._links["default_business"] = {
-                "business_name": "Cuore Cafe",
-                "branch": "Downtown",
-                "category": "Cafe",
-                "description": "Artisan cafe and roastery serving specialty coffee and fresh meals.",
+                "business_name": "Nasta Ghar",
+                "branch": "",
+                "category": "Breakfast & Snacks",
+                "description": "Authentic homestyle breakfast, chai, and snacks in Rajkot.",
                 "google_review_url": default_env,
                 "platform": "google",
                 "topics": DEFAULT_TOPICS,
-                "primary_accent": "#f59e0b"
+                "primary_accent": "#f97316"
             }
 
     def _save_links(self):
@@ -71,12 +71,12 @@ class GoogleReviewManager:
             "platform": "google",
             "review_url": url,
             "is_configured": is_configured,
-            "business_name": info.get("business_name", "Cuore Cafe"),
-            "branch": info.get("branch", "Downtown"),
-            "category": info.get("category", "Cafe"),
-            "description": info.get("description", "Artisan cafe and roastery"),
+            "business_name": info.get("business_name", "Nasta Ghar"),
+            "branch": info.get("branch", ""),
+            "category": info.get("category", "Breakfast & Snacks"),
+            "description": info.get("description", "Authentic homestyle breakfast, chai, and snacks in Rajkot."),
             "topics": info.get("topics", DEFAULT_TOPICS),
-            "primary_accent": info.get("primary_accent", "#f59e0b")
+            "primary_accent": info.get("primary_accent", "#f97316")
         }
 
     def update_business_config(

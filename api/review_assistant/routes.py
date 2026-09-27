@@ -148,12 +148,12 @@ async def get_business_review_link(business_id: str):
         platform=info.get("platform", "google"),
         review_url=info.get("review_url", ""),
         is_configured=info.get("is_configured", False),
-        business_name=info.get("business_name", "Cuore Cafe"),
-        branch=info.get("branch", "Downtown"),
-        category=info.get("category", "Cafe"),
-        description=info.get("description", "Artisan cafe and roastery"),
+        business_name=info.get("business_name", "Nasta Ghar"),
+        branch=info.get("branch", ""),
+        category=info.get("category", "Breakfast & Snacks"),
+        description=info.get("description", "Authentic homestyle breakfast, chai, and snacks in Rajkot."),
         topics=info.get("topics", []),
-        primary_accent=info.get("primary_accent", "#f59e0b")
+        primary_accent=info.get("primary_accent", "#f97316")
     )
 
 # 11. Business Configuration Update
