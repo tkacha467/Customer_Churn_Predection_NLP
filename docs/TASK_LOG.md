@@ -1,74 +1,48 @@
-# Change Log
+# ChurnLens Product Transformation Task Log
 
-## Neutral Sentiment Enhancement
+## Summary of Accomplished Work
 
-Status: Completed
+### 1. Stability Checkpoint & Baseline
+- Verified git status and created tag `pre-product-transformation`.
+- Executed existing test suite (12/12 passing).
 
-Changes:
-- Added three-class sentiment handling.
-- Added explicit NEUTRAL output.
-- Preserved existing POSITIVE and NEGATIVE behavior.
-- Preserved existing churn pipeline.
-- Preserved existing risk scoring.
-- Preserved existing dashboard architecture.
-- Added regression tests.
+### 2. Backend & LLM Architecture Transformation
+- Designed and implemented `ReviewLLMProvider` abstraction (`api/review_assistant/llm_provider.py`) supporting `LocalLLMProvider` and `CloudLLMProvider`.
+- Rewrote `api/review_assistant/prompts.py` enforcing:
+  - 15-45 word length.
+  - Zero fabrication (never invent unmentioned dishes or staff).
+  - Simple everyday English (no corporate/marketing fluff like "culinary excellence").
+  - Tasteful contextual emoji mapping (0-2 emojis).
+  - 3-perspective candidate review idea generator.
+- Added candidate review ideas endpoint: `POST /api/reviews/ideas`.
+- Updated `POST /api/reviews/generate` to accept `selected_idea` and `emoji_preference`.
+- Expanded `POST /api/businesses/{id}/config` and `GET /api/businesses/{id}/review-link` to support restaurant name, branch, category, description, and configurable review topics.
+- Simplified `get_analytics_summary()` to return authentic metrics (drafts created, Google links opened, reviews copied) and eliminated hardcoded fake data.
 
-Files modified:
-- [api/main.py](file:///d:/churnlens/api/main.py)
-- [scripts/flipkart_integrity.py](file:///d:/churnlens/scripts/flipkart_integrity.py)
-- [tests/api/test_neutral_sentiment.py](file:///d:/churnlens/tests/api/test_neutral_sentiment.py)
-- [start_app.bat](file:///d:/churnlens/start_app.bat)
+### 3. Model Audit & Validation
+- Audited CardiffNLP RoBERTa 3-class sentiment model (`cardiffnlp/twitter-roberta-base-sentiment-latest`) as the primary rating consistency validator.
+- Audited and deprecated the fine-tuned DistilBERT binary model from active review generation flow.
+- Created `docs/MODEL_AUDIT.md`.
 
-## Interactive Showcase Webpage (PPT Showcase)
+### 4. Frontend Transformation
+- Replaced legacy navigation (General Manager Portal, NLP Integrity Lab, Model Playground, SHAP) with a clean product experience:
+  - **Public Customer Experience** (`CustomerReview.jsx`):
+    - Welcome & large interactive 5 stars (≥48px touch targets).
+    - What stood out? Configurable topics chips + personal note field.
+    - Review Idea Cards (3 distinct natural ideas + write own).
+    - Customer editor with character count, "Make it more natural" tool, and "Copy & Continue to Google".
+    - Google handoff confirmation modal with step-by-step instructions.
+    - Zero rating-based review gating (all 1-5 star diners have access to Google).
+  - **Restaurant Owner Portal** (`OwnerPortal.jsx`):
+    - Home screen with connection status and monthly metrics.
+    - Review setup: restaurant info, Google review link tester, and review topics manager.
+    - QR Studio: deep-link generation for Table 1-12, Counter, Receipt, or General; table stand preview and PNG download.
+    - Review activity: real-time metric counters and activity feed.
+    - Settings: restaurant configuration and customer preview.
+- Polished styling in `frontend/src/index.css` with warm hospitality theme, dark slate surface, amber accents, and 150-350ms micro-animations.
 
-Status: Completed
-
-Changes:
-- Created a standalone premium interactive presentation webpage explaining ChurnLens.
-- Built-in slide sections covering Data Ingestion, RFM, XGBoost, and the NLP Fusion Pipeline.
-- Added a client-side Interactive Risk Engine Simulator to adjust Recency, Frequency, Sentiment, and Star Ratings, recalculating risk scores dynamically.
-- Integrated background Canvas particle networking and fluid CSS animations.
-- Configured `start_app.bat` to automatically open `showcase/index.html` on platform startup.
-
-Files created:
-- [showcase/index.html](file:///d:/churnlens/showcase/index.html)
-- [showcase/index.css](file:///d:/churnlens/showcase/index.css)
-- [showcase/index.js](file:///d:/churnlens/showcase/index.js)
-
-Files modified:
-- [start_app.bat](file:///d:/churnlens/start_app.bat)
-- [docs/TASK_LOG.md](file:///d:/churnlens/docs/TASK_LOG.md)
-
-## AI-Assisted Customer Review & Intelligence Platform Productization
-
-Status: Completed
-
-Changes:
-- Added isolated `api/review_assistant/` module for calibrated review generation and rating-consistency validation.
-- Built strict anti-fabrication prompt engine and natural synthesizer (never invents unmentioned dishes, staff actions, or facts).
-- Integrated sentiment & sarcasm fusion validation layer with rating calibration.
-- Added official Google Review request URL management and explicit customer approval handoff workflow.
-- Added privacy-conscious product analytics and session tracking endpoints.
-- Upgraded React frontend into a unified tabbed SaaS interface featuring Customer Review Assistant, Integrity Engine Playground, and Merchant Business Console.
-- Added comprehensive unit tests in `tests/test_review_assistant.py` with 100% test pass rate.
-
-Files created:
-- `api/review_assistant/__init__.py`
-- `api/review_assistant/schemas.py`
-- `api/review_assistant/prompts.py`
-- `api/review_assistant/generator.py`
-- `api/review_assistant/validator.py`
-- `api/review_assistant/google_reviews.py`
-- `api/review_assistant/service.py`
-- `api/review_assistant/routes.py`
-- `frontend/src/components/ReviewAssistant.jsx`
-- `frontend/src/components/IntegrityPlayground.jsx`
-- `frontend/src/components/BusinessConsole.jsx`
-- `tests/test_review_assistant.py`
-
-Files modified:
-- `api/main.py`
-- `frontend/src/App.jsx`
-- `frontend/src/index.css`
-- `requirements.txt`
-- `docs/TASK_LOG.md`
+### 5. Testing & Verification
+- Authored `tests/test_product_transformation.py` with 7 comprehensive tests.
+- Executed all 19 pytest tests (19/19 passing).
+- Executed `npm run lint` (0 warnings, 0 errors).
+- Executed `npm run build` (successful Vite production build).

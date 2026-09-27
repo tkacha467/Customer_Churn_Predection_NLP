@@ -1,12 +1,43 @@
 {
   "default_business": {
-    "business_name": "Cuore",
-    "google_review_url": "https://maps.google.com",
-    "platform": "google"
+    "business_name": "Nasta Ghar",
+    "google_review_url": "https://www.google.com/maps/place/Nasta+ghar/@22.287553,70.7539998,17z/data=!4m8!3m7!1s0x3959cb0037bbe265:0xba2e639db7b193d6!8m2!3d22.2875481!4d70.7565747!9m1!1b1!16s%2Fg%2F11yk9xk25r?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D",
+    "platform": "google",
+    "branch": "",
+    "category": "Breakfast & Snacks",
+    "description": "Authentic homestyle breakfast, chai, and snacks in Rajkot.",
+    "topics": [
+      "Breakfast",
+      "Chai & Beverages",
+      "Snacks",
+      "Taste & Flavour",
+      "Friendly Staff",
+      "Cleanliness",
+      "Value for Money",
+      "Quick Service"
+    ],
+    "primary_accent": "#f97316"
   },
   "artisan_coffee": {
     "platform": "google",
     "google_review_url": "https://g.page/r/artisan-coffee/review",
-    "business_name": "Artisan Coffee Roasters"
+    "business_name": "Artisan Coffee Roasters",
+    "category": "Cafe"
+  },
+  "cuore_bistro": {
+    "platform": "google",
+    "topics": [
+      "Fresh Pasta",
+      "Woodfire Pizza",
+      "Espresso",
+      "Staff",
+      "Patio Vibe"
+    ],
+    "google_review_url": "https://g.page/r/cuore-downtown/review",
+    "business_name": "Cuore Downtown",
+    "branch": "Central Mall",
+    "category": "Italian Bistro & Espresso",
+    "description": "Artisan coffee, fresh pasta, and stone-baked pizza.",
+    "primary_accent": "#d97706"
   }
 }
