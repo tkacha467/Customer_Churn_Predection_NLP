@@ -78,7 +78,7 @@ body:has(.ng-app-root){background:#f8f4e9!important;background-image:none!import
  .ng-world-brand strong{font-size:12px;letter-spacing:1.3px}
  .ng-world-brand small{font-size:9px}
  .ng-live-label{font-size:7px;letter-spacing:.5px;white-space:normal;text-align:right;max-width:105px}
- .ng-scene-svg{aspect-ratio:1000 / 560}
+ .ng-scene-svg{height:clamp(270px,76vw,360px);aspect-ratio:auto}
  .ng-live-badge{right:6px;bottom:6px;padding:5px 8px}
  .ng-live-badge span{font-size:7px}
  .ng-world-caption{padding:9px 5px;gap:4px;font-size:8px}
