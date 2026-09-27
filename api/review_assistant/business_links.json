@@ -1,7 +1,12 @@
 {
   "default_business": {
-    "business_name": "Cuore",
-    "google_review_url": "https://maps.google.com",
+    "business_name": "Nasta ghar",
+    "google_review_url": "https://maps.app.goo.gl/FC9yTR9XtqoTJVqy6",
+    "platform": "google"
+  },
+  "nasta_ghar": {
+    "business_name": "Nasta ghar",
+    "google_review_url": "https://maps.app.goo.gl/FC9yTR9XtqoTJVqy6",
     "platform": "google"
   },
   "artisan_coffee": {

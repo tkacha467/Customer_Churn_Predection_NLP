@@ -8,3 +8,6 @@ __pycache__/
 *.zip
 frontend_deprecated/node_modules/
 frontend_deprecated/.env
+.venv/
+.pytest_cache/
+
