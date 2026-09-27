@@ -15,6 +15,7 @@ export default function BusinessConsole({ businessId = 'default_business' }) {
 
   // Analytics State
   const [analytics, setAnalytics] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   // Table QR Studio State
   const [selectedTable, setSelectedTable] = useState('Table 4');
@@ -275,8 +276,8 @@ export default function BusinessConsole({ businessId = 'default_business' }) {
             <div className="glass-panel">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ color: 'var(--text-main)' }}>Live Table Events Stream</h3>
-                <button type="button" className="btn-secondary" onClick={fetchAnalytics} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
-                  🔄 Refresh
+                <button type="button" className="btn-secondary" onClick={fetchAnalytics} disabled={loadingAnalytics} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+                  {loadingAnalytics ? '⏳ Refreshing...' : '🔄 Refresh'}
                 </button>
               </div>
 
