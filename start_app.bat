@@ -39,9 +39,24 @@ cd ..
 :: Wait for frontend to spin up
 timeout /t 4 /nobreak >nul
 
-:: Open the customer-facing review page in default browser
-echo  Opening Nasta Ghar Review Page...
-start "" "http://localhost:5173/review"
+:: Detect Google Chrome executable to ensure opening in Chrome (not Edge)
+set "CHROME_EXE="
+if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" (
+    set "CHROME_EXE=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+) else if exist "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe" (
+    set "CHROME_EXE=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+) else if exist "%LocalAppData%\Google\Chrome\Application\chrome.exe" (
+    set "CHROME_EXE=%LocalAppData%\Google\Chrome\Application\chrome.exe"
+)
+
+:: Open the customer-facing review page
+if defined CHROME_EXE (
+    echo  Opening Nasta Ghar Review Page in Google Chrome...
+    start "" "%CHROME_EXE%" "http://localhost:5173/review"
+) else (
+    echo  Opening Nasta Ghar Review Page in default browser...
+    start "" "http://localhost:5173/review"
+)
 
 echo.
 echo  ==========================================

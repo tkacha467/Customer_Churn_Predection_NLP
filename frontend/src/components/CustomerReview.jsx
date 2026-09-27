@@ -70,6 +70,8 @@ export default function CustomerReview({
   // Handoff
   const [handoffOpen, setHandoffOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showCopyToast, setShowCopyToast] = useState(false);
+  const [copyAgainSuccess, setCopyAgainSuccess] = useState(false);
 
   // Private feedback
   const [showPrivate, setShowPrivate] = useState(false);
@@ -142,6 +144,37 @@ export default function CustomerReview({
     }).catch(() => {});
   };
 
+  // ─── BULLETPROOF CLIPBOARD COPY ─────────────────────────────────────────────
+  const copyTextToClipboard = async (text) => {
+    if (!text) return false;
+    let ok = false;
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      } catch (e) {
+        console.warn('navigator.clipboard failed:', e);
+      }
+    }
+    if (!ok) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (e) {
+        console.error('execCommand copy failed:', e);
+      }
+    }
+    return ok;
+  };
+
   // ─── HANDLERS ───────────────────────────────────────────────────────────────
   const handleRating = (s) => { setRating(s); logEvent('rating_selected', { rating: s }); };
 
@@ -202,6 +235,24 @@ export default function CustomerReview({
     }
   };
 
+  // 1-Click: Select, Auto-copy to clipboard, and Open Google Review directly
+  const handlePostDirectly = async (idea) => {
+    setSelectedIdeaId(idea.id);
+    setDraftReview(idea.text);
+    logEvent('idea_selected', { idea_id: idea.id });
+    logEvent('review_approved', { length: idea.text.length, direct_post: true });
+
+    const ok = await copyTextToClipboard(idea.text);
+    setCopied(ok);
+    setShowCopyToast(true);
+    setTimeout(() => setShowCopyToast(false), 3500);
+
+    logEvent('google_review_link_opened');
+    window.open(googleReviewUrl, '_blank', 'noopener,noreferrer');
+    setHandoffOpen(true);
+  };
+
+  // Customize/Edit idea in Step 4
   const handleSelectIdea = (idea) => {
     setSelectedIdeaId(idea.id);
     setDraftReview(idea.text);
@@ -231,11 +282,13 @@ export default function CustomerReview({
   };
 
   const handleContinueToGoogle = async () => {
+    if (!draftReview.trim()) return;
     logEvent('review_approved', { length: draftReview.length });
-    try {
-      await navigator.clipboard.writeText(draftReview);
-      setCopied(true);
-    } catch { setCopied(true); }
+    const ok = await copyTextToClipboard(draftReview);
+    setCopied(ok);
+    setShowCopyToast(true);
+    setTimeout(() => setShowCopyToast(false), 3500);
+
     logEvent('google_review_link_opened');
     window.open(googleReviewUrl, '_blank', 'noopener,noreferrer');
     setHandoffOpen(true);
@@ -416,13 +469,23 @@ export default function CustomerReview({
                       <span className="ng-idea-focus">{idea.focus}</span>
                     </div>
                     <p className="ng-idea-text">"{idea.text}"</p>
-                    <button
-                      type="button"
-                      className="ng-btn-pick"
-                      onClick={() => handleSelectIdea(idea)}
-                    >
-                      Use this →
-                    </button>
+                    <div className="ng-idea-actions">
+                      <button
+                        type="button"
+                        className="ng-btn-post-direct"
+                        onClick={() => handlePostDirectly(idea)}
+                      >
+                        🚀 Post to Google
+                      </button>
+                      <button
+                        type="button"
+                        className="ng-btn-edit-idea"
+                        onClick={() => handleSelectIdea(idea)}
+                        title="Customize or edit this review before posting"
+                      >
+                        ✏️ Customize
+                      </button>
+                    </div>
                   </div>
                 ))}
 
@@ -495,7 +558,7 @@ export default function CustomerReview({
               onClick={handleContinueToGoogle}
               disabled={!draftReview.trim()}
             >
-              📋 Copy & Open Google Maps
+              🚀 Copy & Post to Google
             </button>
 
             <div className="ng-private-prompt">
@@ -508,17 +571,25 @@ export default function CustomerReview({
         )}
       </div>
 
+      {/* ════════ FLOATING COPY TOAST ════════ */}
+      {showCopyToast && (
+        <div className="ng-toast" role="alert">
+          <span className="ng-toast-icon">📋</span>
+          <span className="ng-toast-msg">Review copied to clipboard! Paste it on Google & tap Post.</span>
+        </div>
+      )}
+
       {/* ════════ HANDOFF MODAL ════════ */}
       {handoffOpen && (
         <div className="ng-modal-backdrop">
           <div className="ng-modal ng-modal-bounce">
-            <div className="ng-modal-icon">🎉</div>
+            <div className="ng-modal-icon">📋</div>
             <h3 className="ng-modal-title">
-              {copied ? 'Review copied to clipboard!' : 'Ready for Google!'}
+              {copied ? 'Review Copied to Clipboard!' : 'Google Review Ready!'}
             </h3>
             <p className="ng-modal-body">
               Google Maps is opening for <strong>{BRAND.name}</strong>.
-              Paste your review and tap <strong>Post</strong>!
+              Your review is copied — just paste and tap Post!
             </p>
 
             <div className="ng-modal-steps">
@@ -528,15 +599,28 @@ export default function CustomerReview({
               </div>
               <div className="ng-modal-step">
                 <span className="ng-modal-step-num">2</span>
-                <span><strong>Paste</strong> your copied review</span>
+                <span><strong>Paste</strong> your review (Right-Click ➔ Paste or Ctrl+V)</span>
               </div>
               <div className="ng-modal-step">
                 <span className="ng-modal-step-num">3</span>
-                <span>Tap <strong>Post</strong> — done! 🎊</span>
+                <span>Tap <strong>Post</strong> — done in seconds! 🎊</span>
               </div>
             </div>
 
-            <div className="ng-preview-text">"{draftReview}"</div>
+            <div className="ng-preview-box">
+              <p className="ng-preview-text">"{draftReview}"</p>
+              <button
+                type="button"
+                className="ng-btn-copy-mini"
+                onClick={async () => {
+                  await copyTextToClipboard(draftReview);
+                  setCopyAgainSuccess(true);
+                  setTimeout(() => setCopyAgainSuccess(false), 2000);
+                }}
+              >
+                {copyAgainSuccess ? '✓ Copied!' : '📋 Copy Again'}
+              </button>
+            </div>
 
             <div className="ng-modal-actions">
               <button
