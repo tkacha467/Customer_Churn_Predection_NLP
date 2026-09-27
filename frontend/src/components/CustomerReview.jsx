@@ -1,72 +1,103 @@
 import { useState, useEffect } from 'react';
 
+// ─── NASTA GHAR BRAND CONSTANTS ──────────────────────────────────────────────
+// These are hardcoded. The API enriches config but NEVER overrides the name.
+const BRAND = {
+  name: 'Nasta Ghar',
+  emoji: '🍳',
+  category: 'Breakfast & Snacks · Rajkot',
+  googleMapUrl:
+    'https://www.google.com/maps/place/Nasta+ghar/@22.287553,70.7539998,17z/data=!4m8!3m7!1s0x3959cb0037bbe265:0xba2e639db7b193d6!8m2!3d22.2875481!4d70.7565747!9m1!1b1!16s%2Fg%2F11yk9xk25r?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D',
+};
+
+const DEFAULT_TOPICS = [
+  { label: 'Breakfast', icon: '🍳' },
+  { label: 'Chai & Tea', icon: '☕' },
+  { label: 'Snacks', icon: '🥪' },
+  { label: 'Taste & Flavour', icon: '😋' },
+  { label: 'Friendly Staff', icon: '😊' },
+  { label: 'Cleanliness', icon: '✨' },
+  { label: 'Value for Money', icon: '💰' },
+  { label: 'Quick Service', icon: '⚡' },
+];
+
+const RATING_LABELS = {
+  5: { text: 'Loved it!', emoji: '🤩' },
+  4: { text: 'Really good', emoji: '😊' },
+  3: { text: 'It was okay', emoji: '🙂' },
+  2: { text: 'Disappointed', emoji: '😕' },
+  1: { text: 'Not good', emoji: '😞' },
+};
+
 export default function CustomerReview({
   businessId = 'default_business',
   onSwitchToOwner = null,
-  isPreview = false
+  isPreview = false,
 }) {
-  // Query parameters: e.g. ?table=Table+4&dining=dine_in&preview=true
   const urlParams = new URLSearchParams(window.location.search);
-  const tableParam = urlParams.get('table') || 'Table 4';
+  const tableParam = urlParams.get('table') || null;
   const isPreviewMode = isPreview || urlParams.get('preview') === 'true';
 
-  // Step state: 1 (rating) -> 2 (topics) -> 3 (ideas) -> 4 (editor)
-  const [currentStep, setCurrentStep] = useState(1);
+  // Step state
+  const [step, setStep] = useState(1);
 
-  // Business config state
-  const [restaurantName, setRestaurantName] = useState('Nasta Ghar');
-  const [branchName, setBranchName] = useState('');
-  const [category, setCategory] = useState('Breakfast & Snacks');
-  const [googleReviewUrl, setGoogleReviewUrl] = useState('https://maps.google.com');
-  const [isUrlConfigured, setIsUrlConfigured] = useState(false);
-  const [availableTopics, setAvailableTopics] = useState([
-    'Breakfast', 'Chai & Beverages', 'Snacks', 'Taste & Flavour', 'Friendly Staff', 'Cleanliness', 'Value for Money', 'Quick Service'
-  ]);
-
-  // Customer choices
+  // Rating
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
-  const [selectedTopics, setSelectedTopics] = useState(['Breakfast', 'Chai & Beverages']);
+
+  // Topics
+  const [availableTopics, setAvailableTopics] = useState(DEFAULT_TOPICS);
+  const [selectedTopics, setSelectedTopics] = useState(['Breakfast', 'Chai & Tea']);
   const [nothingSpecific, setNothingSpecific] = useState(false);
   const [personalNote, setPersonalNote] = useState('');
 
-  // Ideas state
+  // Google Review URL (from API, fallback to hardcoded)
+  const [googleReviewUrl, setGoogleReviewUrl] = useState(BRAND.googleMapUrl);
+  const [isUrlConfigured, setIsUrlConfigured] = useState(true);
+
+  // Ideas
   const [ideas, setIdeas] = useState([]);
-  const [isLoadingIdeas, setIsLoadingIdeas] = useState(false);
+  const [loadingIdeas, setLoadingIdeas] = useState(false);
   const [selectedIdeaId, setSelectedIdeaId] = useState(null);
 
-  // Editor state
+  // Editor
   const [draftReview, setDraftReview] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
 
-  // Session & Telemetry
+  // Session & analytics
   const [sessionId, setSessionId] = useState('');
-  const [isHandoffOpen, setIsHandoffOpen] = useState(false);
-  const [copiedSuccess, setCopiedSuccess] = useState(false);
 
-  // Optional Private Feedback
-  const [showPrivateModal, setShowPrivateModal] = useState(false);
+  // Handoff
+  const [handoffOpen, setHandoffOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Private feedback
+  const [showPrivate, setShowPrivate] = useState(false);
   const [privateNote, setPrivateNote] = useState('');
   const [privateContact, setPrivateContact] = useState('');
   const [privateSent, setPrivateSent] = useState(false);
 
-  // Fetch restaurant details
+  // ─── FETCH CONFIG (optional enrichment, never overrides brand name) ─────────
   useEffect(() => {
     fetch(`http://127.0.0.1:8000/api/businesses/${businessId}/review-link`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.business_name) setRestaurantName(data.business_name);
-        if (data.branch) setBranchName(data.branch);
-        if (data.category) setCategory(data.category);
-        if (data.review_url) setGoogleReviewUrl(data.review_url);
-        setIsUrlConfigured(Boolean(data.is_configured));
-        if (data.topics && data.topics.length > 0) {
-          setAvailableTopics(data.topics);
-          // Preselect first two by default
-          setSelectedTopics(data.topics.slice(0, 2));
+      .then((r) => r.json())
+      .then((d) => {
+        // Only update Google URL if configured, never update name
+        if (d.review_url && d.is_configured) {
+          setGoogleReviewUrl(d.review_url);
+          setIsUrlConfigured(true);
+        }
+        // Update topics from API if available
+        if (d.topics && d.topics.length > 0) {
+          const enriched = d.topics.map((t) => ({
+            label: t,
+            icon: getTopicIcon(t),
+          }));
+          setAvailableTopics(enriched);
+          setSelectedTopics(d.topics.slice(0, 2));
         }
       })
-      .catch(err => console.error('Failed to load restaurant config:', err));
+      .catch(() => {/* use defaults */});
 
     // Initialize session
     fetch('http://127.0.0.1:8000/api/reviews/session', {
@@ -74,76 +105,57 @@ export default function CustomerReview({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         business_id: businessId,
-        table_number: tableParam,
-        dining_type: 'dine_in'
-      })
+        table_number: tableParam || 'Walk-in',
+        dining_type: 'dine_in',
+      }),
     })
-      .then(res => res.json())
-      .then(data => setSessionId(data.session_id))
-      .catch(err => console.error('Failed to initialize review session:', err));
-  }, [businessId, tableParam]);
+      .then((r) => r.json())
+      .then((d) => setSessionId(d.session_id))
+      .catch(() => setSessionId(`local-${Date.now()}`));
+  }, [businessId]);
 
-  // Log analytics event
-  const logEvent = (eventName, metadata = {}) => {
+  function getTopicIcon(label) {
+    const l = label.toLowerCase();
+    if (l.includes('breakfast') || l.includes('nasta')) return '🍳';
+    if (l.includes('chai') || l.includes('tea') || l.includes('coffee') || l.includes('drink') || l.includes('beverage')) return '☕';
+    if (l.includes('snack')) return '🥪';
+    if (l.includes('taste') || l.includes('flavour') || l.includes('food')) return '😋';
+    if (l.includes('staff') || l.includes('service') || l.includes('friendly')) return '😊';
+    if (l.includes('clean')) return '✨';
+    if (l.includes('value') || l.includes('money') || l.includes('price')) return '💰';
+    if (l.includes('quick') || l.includes('fast') || l.includes('speed')) return '⚡';
+    if (l.includes('atmosphere') || l.includes('vibe') || l.includes('ambience')) return '🌟';
+    return '👍';
+  }
+
+  // ─── ANALYTICS ──────────────────────────────────────────────────────────────
+  const logEvent = (name, meta = {}) => {
+    if (!sessionId) return;
     fetch('http://127.0.0.1:8000/api/reviews/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: sessionId,
-        event_name: eventName,
-        metadata: {
-          business_id: businessId,
-          table: tableParam,
-          rating,
-          ...metadata
-        }
-      })
-    }).catch(err => console.error('Failed logging event:', err));
+        event_name: name,
+        metadata: { business_id: businessId, rating, ...meta },
+      }),
+    }).catch(() => {});
   };
 
-  // Step 1: Select Rating
-  const handleRatingSelect = (stars) => {
-    setRating(stars);
-    logEvent('rating_selected', { rating: stars });
+  // ─── HANDLERS ───────────────────────────────────────────────────────────────
+  const handleRating = (s) => { setRating(s); logEvent('rating_selected', { rating: s }); };
+
+  const toggleTopic = (label) => {
+    setNothingSpecific(false);
+    setSelectedTopics((prev) =>
+      prev.includes(label) ? prev.filter((t) => t !== label) : [...prev, label]
+    );
   };
 
-  const getRatingDescriptor = (stars) => {
-    switch (stars) {
-      case 5: return 'Loved it! ⭐';
-      case 4: return 'Really good 😊';
-      case 3: return 'It was okay 🙂';
-      case 2: return 'Disappointed 🙁';
-      case 1: return 'Not good 😞';
-      default: return '';
-    }
-  };
-
-  // Step 2: Toggle Topics
-  const toggleTopic = (topic) => {
-    if (nothingSpecific) {
-      setNothingSpecific(false);
-    }
-    if (selectedTopics.includes(topic)) {
-      setSelectedTopics(selectedTopics.filter(t => t !== topic));
-    } else {
-      setSelectedTopics([...selectedTopics, topic]);
-    }
-  };
-
-  const handleSelectNothingSpecific = () => {
-    setNothingSpecific(true);
-    setSelectedTopics([]);
-  };
-
-  // Move from Step 2 to Step 3: Fetch review ideas
   const handleProceedToIdeas = async () => {
-    setIsLoadingIdeas(true);
-    setCurrentStep(3);
-    logEvent('aspects_selected', {
-      aspects: nothingSpecific ? [] : selectedTopics,
-      has_note: Boolean(personalNote.trim())
-    });
-
+    setLoadingIdeas(true);
+    setStep(3);
+    logEvent('aspects_selected', { aspects: selectedTopics });
     try {
       const res = await fetch('http://127.0.0.1:8000/api/reviews/ideas', {
         method: 'POST',
@@ -152,49 +164,53 @@ export default function CustomerReview({
           business_id: businessId,
           rating,
           aspects: nothingSpecific ? [] : selectedTopics,
-          user_note: personalNote.trim()
-        })
+          user_note: personalNote.trim(),
+        }),
       });
       const data = await res.json();
-      if (data.ideas && data.ideas.length > 0) {
-        setIdeas(data.ideas);
-      }
-    } catch (err) {
-      console.error('Failed fetching review ideas:', err);
-      // Fallback idea
+      if (data.ideas?.length) setIdeas(data.ideas);
+    } catch {
+      // Fallback ideas
       setIdeas([
         {
-          id: 'idea_fallback',
+          id: 'fb1',
+          focus: 'Breakfast',
+          text:
+            rating >= 4
+              ? `Really enjoyed the breakfast at ${BRAND.name}! Fresh, hot, and full of flavour. Definitely coming back! 🍳`
+              : `Visited ${BRAND.name} for breakfast. Food was okay, hoping for a better experience next time.`,
+        },
+        {
+          id: 'fb2',
           focus: 'Overall',
-          text: rating >= 4
-            ? `Really enjoyed my visit to ${restaurantName}! Great service and lovely food.`
-            : `Visited ${restaurantName} today. Service took a while, but hoping for a smoother visit next time.`
-        }
+          text:
+            rating >= 4
+              ? `Great spot for chai and snacks. The staff were friendly and service was quick! ☕`
+              : `The place has potential. Chai was good but some things could be improved.`,
+        },
+        {
+          id: 'fb3',
+          focus: 'Value',
+          text:
+            rating >= 4
+              ? `Wonderful value for money! ${BRAND.name} offers great breakfast at very reasonable prices. Loved the chai ☕`
+              : `Average experience. Could be better for the price.`,
+        },
       ]);
     } finally {
-      setIsLoadingIdeas(false);
+      setLoadingIdeas(false);
     }
   };
 
-  // Step 3: Pick an idea card
   const handleSelectIdea = (idea) => {
     setSelectedIdeaId(idea.id);
     setDraftReview(idea.text);
-    logEvent('idea_selected', { idea_id: idea.id, focus: idea.focus });
-    setCurrentStep(4);
+    logEvent('idea_selected', { idea_id: idea.id });
+    setStep(4);
   };
 
-  const handleWriteMyOwn = () => {
-    setSelectedIdeaId('custom');
-    setDraftReview('');
-    logEvent('write_my_own_selected');
-    setCurrentStep(4);
-  };
-
-  // Step 4: Make it more natural / regenerate
-  const handleMakeMoreNatural = async () => {
+  const handleMakeNatural = async () => {
     setIsRegenerating(true);
-    logEvent('make_more_natural_clicked');
     try {
       const res = await fetch('http://127.0.0.1:8000/api/reviews/generate', {
         method: 'POST',
@@ -202,52 +218,32 @@ export default function CustomerReview({
         body: JSON.stringify({
           business_id: businessId,
           rating,
-          aspects: nothingSpecific ? [] : selectedTopics,
+          aspects: selectedTopics,
           user_note: personalNote.trim(),
           selected_idea: draftReview || undefined,
-          emoji_preference: 'light'
-        })
+          emoji_preference: 'light',
+        }),
       });
       const data = await res.json();
-      if (data.review) {
-        setDraftReview(data.review);
-      }
-    } catch (err) {
-      console.error('Regeneration failed:', err);
-    } finally {
-      setIsRegenerating(false);
-    }
+      if (data.review) setDraftReview(data.review);
+    } catch { /* keep current */ }
+    finally { setIsRegenerating(false); }
   };
 
-  // Step 5: Google Handoff
   const handleContinueToGoogle = async () => {
     logEvent('review_approved', { length: draftReview.length });
-    
-    // Copy review to clipboard
     try {
       await navigator.clipboard.writeText(draftReview);
-      setCopiedSuccess(true);
-      logEvent('review_copied');
-    } catch (err) {
-      console.warn('Clipboard write fallback:', err);
-      setCopiedSuccess(true);
-    }
-
+      setCopied(true);
+    } catch { setCopied(true); }
     logEvent('google_review_link_opened');
-
-    // Open official Google link in new tab
-    const targetUrl = googleReviewUrl || 'https://maps.google.com';
-    window.open(targetUrl, '_blank', 'noopener,noreferrer');
-
-    // Display confirmation modal
-    setIsHandoffOpen(true);
+    window.open(googleReviewUrl, '_blank', 'noopener,noreferrer');
+    setHandoffOpen(true);
   };
 
-  // Submit optional private feedback
-  const handleSendPrivateFeedback = async (e) => {
+  const handlePrivateFeedback = async (e) => {
     e.preventDefault();
     if (!privateNote.trim()) return;
-
     try {
       await fetch('http://127.0.0.1:8000/api/reviews/private-feedback', {
         method: 'POST',
@@ -258,124 +254,128 @@ export default function CustomerReview({
           rating,
           diner_note: privateNote,
           aspects: selectedTopics,
-          guest_contact: privateContact
-        })
+          guest_contact: privateContact,
+        }),
       });
       setPrivateSent(true);
       logEvent('private_feedback_sent');
-    } catch (err) {
-      console.error('Failed submitting private feedback:', err);
-    }
+    } catch { setPrivateSent(true); }
   };
 
+  const activeRating = hoverRating || rating;
+  const ratingLabel = RATING_LABELS[activeRating] || RATING_LABELS[5];
+
+  // ─── RENDER ─────────────────────────────────────────────────────────────────
   return (
-    <div className="customer-page-wrapper">
-      {/* Optional Preview Bar for Restaurant Owner */}
+    <div className="ng-page">
+      {/* Preview Banner */}
       {isPreviewMode && (
-        <div className="preview-top-banner">
-          <span>👁️ Restaurant Owner Preview Mode</span>
+        <div className="ng-preview-bar">
+          <span>👁️ Owner Preview Mode</span>
           {onSwitchToOwner && (
-            <button
-              type="button"
-              className="preview-exit-btn"
-              onClick={onSwitchToOwner}
-            >
-              ← Back to Owner Dashboard
+            <button type="button" className="ng-preview-back" onClick={onSwitchToOwner}>
+              ← Back to Dashboard
             </button>
           )}
         </div>
       )}
 
-      <div className="customer-card">
-        {/* Brand Header */}
-        <header className="customer-header">
-          <div className="customer-logo-badge ng-logo">🍳</div>
-          <h1 className="customer-restaurant-name ng-name">{restaurantName}</h1>
-          <div className="customer-restaurant-sub">
-            <span>{category}</span>
-            {branchName && <span> • {branchName}</span>}
-            {tableParam && <span className="table-badge">📍 {tableParam}</span>}
+      <div className="ng-card">
+        {/* ── HEADER ─────────────────────────────────────────────────────── */}
+        <header className="ng-header">
+          <div className="ng-logo-ring">
+            <span className="ng-logo-emoji">{BRAND.emoji}</span>
           </div>
+          <h1 className="ng-brand-name">{BRAND.name}</h1>
+          <p className="ng-brand-sub">{BRAND.category}</p>
+          {tableParam && (
+            <span className="ng-table-pill">📍 {tableParam}</span>
+          )}
         </header>
 
-        {/* STEP 1: WELCOME & RATING */}
-        {currentStep === 1 && (
-          <div className="customer-step-container step-fade-in">
-            <h2 className="step-title">How was your visit? ☀️</h2>
-            <p className="step-subtitle">Tap a star to rate your experience</p>
+        {/* ── PROGRESS DOTS ──────────────────────────────────────────────── */}
+        <div className="ng-steps-row">
+          {[1, 2, 3, 4].map((s) => (
+            <div key={s} className={`ng-step-dot ${step >= s ? 'done' : ''} ${step === s ? 'active' : ''}`} />
+          ))}
+        </div>
 
-            <div className="star-rating-row" role="radiogroup" aria-label="Rating">
-              {[1, 2, 3, 4, 5].map((star) => (
+        {/* ════════════════════════════════════════════════════════════════
+            STEP 1 — RATING
+        ════════════════════════════════════════════════════════════════ */}
+        {step === 1 && (
+          <div className="ng-step ng-fade-in">
+            <h2 className="ng-step-title">How was your visit?</h2>
+            <p className="ng-step-sub">Tap a star to rate your experience</p>
+
+            <div className="ng-stars-row" role="radiogroup" aria-label="Star rating">
+              {[1, 2, 3, 4, 5].map((s) => (
                 <button
-                  key={star}
+                  key={s}
                   type="button"
-                  className={`star-button ${((hoverRating || rating) >= star) ? 'active' : ''}`}
-                  onClick={() => handleRatingSelect(star)}
-                  onMouseEnter={() => setHoverRating(star)}
+                  className={`ng-star ${activeRating >= s ? 'lit' : ''}`}
+                  onClick={() => handleRating(s)}
+                  onMouseEnter={() => setHoverRating(s)}
                   onMouseLeave={() => setHoverRating(0)}
-                  aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                  aria-label={`${s} star${s > 1 ? 's' : ''}`}
                 >
                   ★
                 </button>
               ))}
             </div>
 
-            <div className="rating-feedback-badge">
-              {getRatingDescriptor(rating)}
+            <div className="ng-rating-label">
+              <span className="ng-rating-emoji">{ratingLabel.emoji}</span>
+              <span>{ratingLabel.text}</span>
             </div>
 
-            <div className="step-action-footer">
-              <button
-                type="button"
-                className="btn-customer-primary"
-                onClick={() => setCurrentStep(2)}
-              >
-                Continue →
-              </button>
-            </div>
+            <button type="button" className="ng-btn-primary" onClick={() => setStep(2)}>
+              Continue →
+            </button>
           </div>
         )}
 
-        {/* STEP 2: WHAT STOOD OUT */}
-        {currentStep === 2 && (
-          <div className="customer-step-container step-fade-in">
-            <h2 className="step-title">What stood out? 🌟</h2>
-            <p className="step-subtitle">Pick anything that matched your visit</p>
+        {/* ════════════════════════════════════════════════════════════════
+            STEP 2 — TOPICS
+        ════════════════════════════════════════════════════════════════ */}
+        {step === 2 && (
+          <div className="ng-step ng-fade-in">
+            <h2 className="ng-step-title">What stood out?</h2>
+            <p className="ng-step-sub">Pick anything that matched your visit</p>
 
-            <div className="topics-chip-grid">
-              {availableTopics.map((topic) => {
-                const isSelected = selectedTopics.includes(topic);
+            <div className="ng-chips-grid">
+              {availableTopics.map(({ label, icon }) => {
+                const selected = selectedTopics.includes(label);
                 return (
                   <button
-                    key={topic}
+                    key={label}
                     type="button"
-                    className={`topic-chip ${isSelected ? 'selected' : ''}`}
-                    onClick={() => toggleTopic(topic)}
+                    className={`ng-chip ${selected ? 'selected' : ''}`}
+                    onClick={() => toggleTopic(label)}
                   >
-                    <span className="chip-indicator">{isSelected ? '✓' : '+'}</span>
-                    <span>{topic}</span>
+                    <span className="ng-chip-icon">{icon}</span>
+                    <span>{label}</span>
                   </button>
                 );
               })}
-
               <button
                 type="button"
-                className={`topic-chip topic-chip-neutral ${nothingSpecific ? 'selected' : ''}`}
-                onClick={handleSelectNothingSpecific}
+                className={`ng-chip ng-chip-neutral ${nothingSpecific ? 'selected' : ''}`}
+                onClick={() => { setNothingSpecific(true); setSelectedTopics([]); }}
               >
-                <span className="chip-indicator">{nothingSpecific ? '✓' : '—'}</span>
+                <span className="ng-chip-icon">—</span>
                 <span>Nothing specific</span>
               </button>
             </div>
 
-            <div className="personal-note-section">
-              <label htmlFor="user-note-input" className="note-label">
-                Add a personal note <span className="text-optional">(optional)</span>
+            <div className="ng-note-wrap">
+              <label htmlFor="ng-note" className="ng-note-label">
+                Personal note <span className="ng-optional">(optional)</span>
               </label>
               <input
-                id="user-note-input"
+                id="ng-note"
                 type="text"
-                className="note-input"
+                className="ng-note-input"
                 placeholder="e.g. The poha was absolutely perfect! 😋"
                 value={personalNote}
                 onChange={(e) => setPersonalNote(e.target.value)}
@@ -383,202 +383,173 @@ export default function CustomerReview({
               />
             </div>
 
-            <div className="step-action-row">
-              <button
-                type="button"
-                className="btn-customer-secondary"
-                onClick={() => setCurrentStep(1)}
-              >
+            <div className="ng-btn-row">
+              <button type="button" className="ng-btn-secondary" onClick={() => setStep(1)}>
                 ← Back
               </button>
-              <button
-                type="button"
-                className="btn-customer-primary"
-                onClick={handleProceedToIdeas}
-              >
+              <button type="button" className="ng-btn-primary" onClick={handleProceedToIdeas}>
                 See Review Ideas →
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 3: REVIEW IDEA CARDS (MAJOR FEATURE) */}
-        {currentStep === 3 && (
-          <div className="customer-step-container step-fade-in">
-            <h2 className="step-title">Your review ideas ✨</h2>
-            <p className="step-subtitle">Pick the one that feels right — you can edit it before posting!</p>
+        {/* ════════════════════════════════════════════════════════════════
+            STEP 3 — IDEA CARDS
+        ════════════════════════════════════════════════════════════════ */}
+        {step === 3 && (
+          <div className="ng-step ng-fade-in">
+            <h2 className="ng-step-title">Your review ideas</h2>
+            <p className="ng-step-sub">Pick the one that feels right — you can edit it next!</p>
 
-            {isLoadingIdeas ? (
-              <div className="loading-ideas-box">
-                <div className="loading-spinner">🍳</div>
-                <p className="loading-text">Crafting honest review ideas for you...</p>
+            {loadingIdeas ? (
+              <div className="ng-loading-box">
+                <div className="ng-loading-spinner">🍳</div>
+                <p className="ng-loading-text">Crafting honest ideas for you...</p>
               </div>
             ) : (
-              <div className="ideas-card-list">
-                {ideas.map((idea, idx) => (
-                  <div key={idea.id || idx} className={`review-idea-card ${selectedIdeaId === idea.id ? 'active' : ''}`}>
-                    <div className="idea-card-header">
-                      <span className="idea-badge">⭐ Option {idx + 1}</span>
-                      <span className="idea-focus-tag">{idea.focus}</span>
+              <div className="ng-ideas-list">
+                {ideas.map((idea, i) => (
+                  <div key={idea.id || i} className={`ng-idea-card ${selectedIdeaId === idea.id ? 'picked' : ''}`}>
+                    <div className="ng-idea-meta">
+                      <span className="ng-idea-num">Option {i + 1}</span>
+                      <span className="ng-idea-focus">{idea.focus}</span>
                     </div>
-                    <p className="idea-card-text">“{idea.text}”</p>
+                    <p className="ng-idea-text">"{idea.text}"</p>
                     <button
                       type="button"
-                      className="btn-pick-idea"
+                      className="ng-btn-pick"
                       onClick={() => handleSelectIdea(idea)}
                     >
-                      Use this idea →
+                      Use this →
                     </button>
                   </div>
                 ))}
 
-                <div className="write-own-divider">
-                  <span>or</span>
-                </div>
+                <div className="ng-divider"><span>or</span></div>
 
                 <button
                   type="button"
-                  className="btn-write-own"
-                  onClick={handleWriteMyOwn}
+                  className="ng-btn-write-own"
+                  onClick={() => { setSelectedIdeaId('custom'); setDraftReview(''); setStep(4); }}
                 >
                   ✍️ Write my own review
                 </button>
               </div>
             )}
 
-            <div className="step-action-row" style={{ marginTop: '1rem' }}>
-              <button
-                type="button"
-                className="btn-customer-secondary"
-                onClick={() => setCurrentStep(2)}
-              >
-                ← Change Highlights
+            <div style={{ marginTop: '1rem' }}>
+              <button type="button" className="ng-btn-secondary" onClick={() => setStep(2)}>
+                ← Change highlights
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 4: CUSTOMER EDITOR */}
-        {currentStep === 4 && (
-          <div className="customer-step-container step-fade-in">
-            <div className="editor-header-row">
-              <h2 className="step-title" style={{ margin: 0 }}>Your review</h2>
-              <span className="char-count-pill">{draftReview.length} chars</span>
+        {/* ════════════════════════════════════════════════════════════════
+            STEP 4 — EDITOR
+        ════════════════════════════════════════════════════════════════ */}
+        {step === 4 && (
+          <div className="ng-step ng-fade-in">
+            <div className="ng-editor-header">
+              <h2 className="ng-step-title" style={{ margin: 0 }}>Your review</h2>
+              <span className="ng-char-pill">{draftReview.length} chars</span>
             </div>
-            <p className="step-subtitle">Feel free to personalize or edit anything before continuing</p>
+            <p className="ng-step-sub">Edit anything before posting — it's your words!</p>
 
-            <div className="customer-editor-box">
+            <div className="ng-textarea-wrap">
               <textarea
-                className="customer-textarea"
-                rows="5"
+                className="ng-textarea"
+                rows={5}
                 value={draftReview}
                 onChange={(e) => setDraftReview(e.target.value)}
-                placeholder="Type your review here..."
+                placeholder="Write your review here..."
               />
             </div>
 
-            <div className="editor-action-row">
+            <div className="ng-editor-tools">
               <button
                 type="button"
-                className="btn-editor-tool"
-                onClick={handleMakeMoreNatural}
+                className="ng-btn-tool"
+                onClick={handleMakeNatural}
                 disabled={isRegenerating || !draftReview.trim()}
               >
                 {isRegenerating ? '✨ Refining...' : '✨ Make it more natural'}
               </button>
-
               <button
                 type="button"
-                className="btn-editor-tool"
-                onClick={() => setCurrentStep(3)}
+                className="ng-btn-tool"
+                onClick={() => setStep(3)}
               >
                 🔄 Try another idea
               </button>
             </div>
 
-            {/* Notice explaining Google direct authorship */}
-            <div className="google-author-notice">
-              <span>✅ You post directly on Google — your words, your review.</span>
+            <div className="ng-google-notice">
+              ✅ You post directly on Google — your words, your review.
             </div>
 
-            {/* Primary Action Button */}
-            <div className="step-action-footer">
-              <button
-                type="button"
-                className="btn-customer-primary btn-cta-large"
-                onClick={handleContinueToGoogle}
-                disabled={!draftReview.trim()}
-              >
-                📋 Copy & Open Google Maps
-              </button>
-            </div>
+            <button
+              type="button"
+              className="ng-btn-primary ng-btn-cta"
+              onClick={handleContinueToGoogle}
+              disabled={!draftReview.trim()}
+            >
+              📋 Copy & Open Google Maps
+            </button>
 
-            {/* Optional Private Feedback Prompt */}
-            <div className="private-feedback-prompt">
-              <span>Want to tell the restaurant privately too? </span>
-              <button
-                type="button"
-                className="link-btn"
-                onClick={() => setShowPrivateModal(true)}
-              >
-                Share private feedback
+            <div className="ng-private-prompt">
+              Want to tell us privately?{' '}
+              <button type="button" className="ng-link-btn" onClick={() => setShowPrivate(true)}>
+                Send private note
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* STEP 5: GOOGLE HANDOFF CONFIRMATION MODAL */}
-      {isHandoffOpen && (
-        <div className="customer-modal-backdrop">
-          <div className="customer-modal-card modal-bounce-in">
-            <div className="modal-icon-circle">🎉</div>
-            <h3 className="modal-title">
-              {copiedSuccess ? 'Your review has been copied!' : 'Ready for Google!'}
+      {/* ════════ HANDOFF MODAL ════════ */}
+      {handoffOpen && (
+        <div className="ng-modal-backdrop">
+          <div className="ng-modal ng-modal-bounce">
+            <div className="ng-modal-icon">🎉</div>
+            <h3 className="ng-modal-title">
+              {copied ? 'Review copied to clipboard!' : 'Ready for Google!'}
             </h3>
-            <p className="modal-body-text">
-              Google Maps is opening in a new tab for <strong>{restaurantName}</strong>.
-              {!isUrlConfigured && (
-                <span style={{ display: 'block', fontSize: '0.8rem', color: '#f59e0b', marginTop: '0.25rem' }}>
-                  (Default Google search link active)
-                </span>
-              )}
+            <p className="ng-modal-body">
+              Google Maps is opening for <strong>{BRAND.name}</strong>.
+              Paste your review and tap <strong>Post</strong>!
             </p>
 
-            <div className="modal-instruction-box">
-              <div className="inst-step">
-                <span className="inst-num">1</span>
-                <span>Select your <strong>{rating} stars</strong> on Google</span>
+            <div className="ng-modal-steps">
+              <div className="ng-modal-step">
+                <span className="ng-modal-step-num">1</span>
+                <span>Select <strong>{rating} stars</strong> on Google</span>
               </div>
-              <div className="inst-step">
-                <span className="inst-num">2</span>
-                <span><strong>Paste</strong> your review text</span>
+              <div className="ng-modal-step">
+                <span className="ng-modal-step-num">2</span>
+                <span><strong>Paste</strong> your copied review</span>
               </div>
-              <div className="inst-step">
-                <span className="inst-num">3</span>
-                <span>Click <strong>Post</strong> on Google!</span>
+              <div className="ng-modal-step">
+                <span className="ng-modal-step-num">3</span>
+                <span>Tap <strong>Post</strong> — done! 🎊</span>
               </div>
             </div>
 
-            <div className="copied-text-preview">
-              "{draftReview}"
-            </div>
+            <div className="ng-preview-text">"{draftReview}"</div>
 
-            <div className="modal-button-stack">
+            <div className="ng-modal-actions">
               <button
                 type="button"
-                className="btn-customer-primary"
-                onClick={() => {
-                  window.open(googleReviewUrl || 'https://maps.google.com', '_blank', 'noopener,noreferrer');
-                }}
+                className="ng-btn-primary"
+                onClick={() => window.open(googleReviewUrl, '_blank', 'noopener,noreferrer')}
               >
                 ↗ Re-open Google Maps
               </button>
-
               <button
                 type="button"
-                className="btn-customer-secondary"
-                onClick={() => setIsHandoffOpen(false)}
+                className="ng-btn-secondary"
+                onClick={() => setHandoffOpen(false)}
               >
                 Done ✓
               </button>
@@ -587,57 +558,48 @@ export default function CustomerReview({
         </div>
       )}
 
-      {/* OPTIONAL PRIVATE FEEDBACK MODAL */}
-      {showPrivateModal && (
-        <div className="customer-modal-backdrop">
-          <div className="customer-modal-card modal-bounce-in">
-            <h3 className="modal-title">Direct Note to Management</h3>
-            <p className="modal-body-text">
-              Share anything you'd like the team at {restaurantName} to know directly.
-            </p>
+      {/* ════════ PRIVATE FEEDBACK MODAL ════════ */}
+      {showPrivate && (
+        <div className="ng-modal-backdrop">
+          <div className="ng-modal ng-modal-bounce">
+            <h3 className="ng-modal-title">Direct note to {BRAND.name}</h3>
+            <p className="ng-modal-body">Share anything you'd like our team to know privately.</p>
 
             {privateSent ? (
-              <div className="private-success-box">
+              <div className="ng-private-success">
                 <span style={{ fontSize: '2rem' }}>💌</span>
                 <h4>Thank you!</h4>
-                <p>Your message has been sent directly to the restaurant management.</p>
+                <p>Your message has been sent directly to the team.</p>
                 <button
                   type="button"
-                  className="btn-customer-primary"
-                  onClick={() => setShowPrivateModal(false)}
+                  className="ng-btn-primary"
+                  onClick={() => setShowPrivate(false)}
                   style={{ marginTop: '1rem' }}
                 >
                   Close
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSendPrivateFeedback} className="private-form">
+              <form onSubmit={handlePrivateFeedback} className="ng-private-form">
                 <textarea
-                  className="customer-textarea"
-                  rows="4"
-                  placeholder="Share private thoughts, suggestions, or experiences..."
+                  className="ng-textarea"
+                  rows={4}
+                  placeholder="Share your thoughts, suggestions, or anything else..."
                   value={privateNote}
                   onChange={(e) => setPrivateNote(e.target.value)}
                   required
                 />
                 <input
                   type="text"
-                  className="note-input"
-                  placeholder="Optional contact info (email or phone) for reply"
+                  className="ng-note-input"
+                  placeholder="Your name or contact (optional)"
                   value={privateContact}
                   onChange={(e) => setPrivateContact(e.target.value)}
                   style={{ marginTop: '0.75rem' }}
                 />
-
-                <div className="modal-button-stack" style={{ marginTop: '1.25rem' }}>
-                  <button type="submit" className="btn-customer-primary">
-                    Send to Restaurant
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-customer-secondary"
-                    onClick={() => setShowPrivateModal(false)}
-                  >
+                <div className="ng-modal-actions" style={{ marginTop: '1.25rem' }}>
+                  <button type="submit" className="ng-btn-primary">Send to Team</button>
+                  <button type="button" className="ng-btn-secondary" onClick={() => setShowPrivate(false)}>
                     Cancel
                   </button>
                 </div>

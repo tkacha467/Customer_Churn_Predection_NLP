@@ -1172,8 +1172,868 @@ textarea:focus, input:focus, select:focus {
 }
 
 /* ==========================================================================
-   CUSTOMER REVIEW EXPERIENCE (MOBILE-FIRST)
+   NASTA GHAR — PREMIUM CUSTOMER REVIEW EXPERIENCE
+   Mobile-first, dark glassmorphism, warm amber accent
    ========================================================================== */
+
+/* App shell */
+.ng-app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 10% 10%, rgba(249, 115, 22, 0.10) 0px, transparent 50%),
+    radial-gradient(ellipse at 90% 85%, rgba(251, 191, 36, 0.08) 0px, transparent 50%);
+}
+
+.ng-footer {
+  margin-top: auto;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #3d4a5a;
+  letter-spacing: 0.02em;
+}
+
+/* Page wrapper */
+.ng-page {
+  max-width: 460px;
+  width: 100%;
+  margin: 2rem auto 4rem;
+  padding: 0 1rem;
+}
+
+/* Preview bar */
+.ng-preview-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.28);
+  color: #fb923c;
+  padding: 0.55rem 1rem;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.ng-preview-back {
+  background: transparent;
+  border: none;
+  color: #fb923c;
+  text-decoration: underline;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+/* ── CARD ─────────────────────────────────────────────────────────────────── */
+.ng-card {
+  background: rgba(13, 18, 30, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 24px 64px -12px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(249, 115, 22, 0.04) inset;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 28px;
+  padding: 2rem 1.75rem 2.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* warm ambient glow at top */
+.ng-card::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  height: 120px;
+  background: radial-gradient(ellipse, rgba(249, 115, 22, 0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── HEADER ────────────────────────────────────────────────────────────────── */
+.ng-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.ng-logo-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.18) 0%, rgba(251, 191, 36, 0.12) 100%);
+  border: 1.5px solid rgba(249, 115, 22, 0.32);
+  border-radius: 22px;
+  margin-bottom: 0.85rem;
+  box-shadow:
+    0 0 28px rgba(249, 115, 22, 0.18),
+    0 4px 16px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.ng-logo-emoji {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.ng-brand-name {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #fb923c 0%, #fbbf24 60%, #fde68a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.2rem;
+  line-height: 1.1;
+}
+
+.ng-brand-sub {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  margin-bottom: 0.5rem;
+}
+
+.ng-table-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(249, 115, 22, 0.14);
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  color: #fb923c;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  margin-top: 0.25rem;
+}
+
+/* ── PROGRESS DOTS ─────────────────────────────────────────────────────────── */
+.ng-steps-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-bottom: 2rem;
+}
+
+.ng-step-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ng-step-dot.done {
+  background: rgba(249, 115, 22, 0.4);
+}
+
+.ng-step-dot.active {
+  width: 22px;
+  background: linear-gradient(90deg, #f97316, #fbbf24);
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.5);
+}
+
+/* ── STEP CONTAINER ────────────────────────────────────────────────────────── */
+.ng-step {
+  display: flex;
+  flex-direction: column;
+}
+
+.ng-fade-in {
+  animation: ngFadeUp 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ngFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ng-step-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  text-align: center;
+  margin-bottom: 0.3rem;
+  letter-spacing: -0.02em;
+}
+
+.ng-step-sub {
+  font-size: 0.87rem;
+  color: #64748b;
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+/* ── STARS ─────────────────────────────────────────────────────────────────── */
+.ng-stars-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+
+.ng-star {
+  background: none;
+  border: none;
+  font-size: 3.2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.12);
+  padding: 0.2rem;
+  min-width: 52px;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+}
+
+.ng-star.lit {
+  color: #f97316;
+  text-shadow: 0 0 18px rgba(249, 115, 22, 0.5);
+}
+
+.ng-star:hover {
+  transform: scale(1.2);
+  color: #fb923c;
+}
+
+.ng-star.lit:hover {
+  transform: scale(1.18);
+}
+
+.ng-rating-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fbbf24;
+  min-height: 1.8rem;
+  margin-bottom: 2rem;
+  letter-spacing: 0.01em;
+}
+
+.ng-rating-emoji {
+  font-size: 1.2rem;
+}
+
+/* ── BUTTONS ───────────────────────────────────────────────────────────────── */
+.ng-btn-primary {
+  width: 100%;
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 50%, #fbbf24 100%);
+  color: #1a0a00;
+  border: none;
+  padding: 0.95rem 1.5rem;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.32);
+  min-height: 52px;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.ng-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ea6c10 0%, #f97316 50%, #f59e0b 100%);
+  box-shadow: 0 6px 28px rgba(249, 115, 22, 0.48);
+  transform: translateY(-1px);
+}
+
+.ng-btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.25);
+}
+
+.ng-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.ng-btn-primary.ng-btn-cta {
+  font-size: 1.05rem;
+  padding: 1.05rem 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(249, 115, 22, 0.38);
+}
+
+.ng-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.ng-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.ng-btn-row {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+.ng-btn-row .ng-btn-primary {
+  flex: 2;
+}
+
+.ng-btn-row .ng-btn-secondary {
+  flex: 1;
+}
+
+/* ── TOPIC CHIPS ───────────────────────────────────────────────────────────── */
+.ng-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.ng-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(22, 30, 48, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #94a3b8;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 42px;
+  user-select: none;
+}
+
+.ng-chip:hover {
+  border-color: rgba(249, 115, 22, 0.35);
+  color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.ng-chip.selected {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(251, 191, 36, 0.14) 100%);
+  border-color: rgba(249, 115, 22, 0.5);
+  color: #fde68a;
+  font-weight: 600;
+  box-shadow: 0 2px 12px rgba(249, 115, 22, 0.18);
+}
+
+.ng-chip-neutral.selected {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+}
+
+.ng-chip-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* ── NOTE INPUT ────────────────────────────────────────────────────────────── */
+.ng-note-wrap {
+  margin-bottom: 1.5rem;
+}
+
+.ng-note-label {
+  display: block;
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+}
+
+.ng-optional {
+  color: #475569;
+  font-weight: 400;
+}
+
+.ng-note-input {
+  width: 100%;
+  background: rgba(10, 14, 24, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  color: #f1f5f9;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 46px;
+  font-family: inherit;
+}
+
+.ng-note-input:focus {
+  border-color: rgba(249, 115, 22, 0.5);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+}
+
+.ng-note-input::placeholder {
+  color: #3d4a5a;
+}
+
+/* ── IDEA CARDS ────────────────────────────────────────────────────────────── */
+.ng-loading-box {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.ng-loading-spinner {
+  font-size: 2.5rem;
+  display: inline-block;
+  animation: ngSpin 1.6s ease-in-out infinite;
+}
+
+@keyframes ngSpin {
+  0%   { transform: scale(1) rotate(0deg); }
+  50%  { transform: scale(1.15) rotate(180deg); }
+  100% { transform: scale(1) rotate(360deg); }
+}
+
+.ng-loading-text {
+  color: #64748b;
+  font-size: 0.92rem;
+  margin-top: 0.85rem;
+}
+
+.ng-ideas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ng-idea-card {
+  background: rgba(20, 28, 45, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  padding: 1.25rem 1.25rem 1rem;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: default;
+}
+
+.ng-idea-card:hover {
+  border-color: rgba(249, 115, 22, 0.28);
+  background: rgba(26, 34, 55, 0.75);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+.ng-idea-card.picked {
+  border-color: rgba(249, 115, 22, 0.55);
+  background: rgba(249, 115, 22, 0.07);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.14);
+}
+
+.ng-idea-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+
+.ng-idea-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #f97316;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ng-idea-focus {
+  font-size: 0.7rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: #64748b;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+}
+
+.ng-idea-text {
+  font-size: 0.95rem;
+  color: #e2e8f0;
+  line-height: 1.55;
+  font-style: italic;
+  margin-bottom: 1rem;
+}
+
+.ng-btn-pick {
+  width: 100%;
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.28);
+  color: #fb923c;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+  letter-spacing: 0.01em;
+}
+
+.ng-btn-pick:hover {
+  background: linear-gradient(135deg, #f97316, #fbbf24);
+  color: #1a0a00;
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
+}
+
+.ng-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #334155;
+  font-size: 0.8rem;
+  margin: 0.35rem 0;
+}
+
+.ng-divider::before,
+.ng-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.ng-btn-write-own {
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  color: #64748b;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 46px;
+  width: 100%;
+  font-family: inherit;
+}
+
+.ng-btn-write-own:hover {
+  border-color: rgba(249, 115, 22, 0.3);
+  color: #94a3b8;
+}
+
+/* ── EDITOR ────────────────────────────────────────────────────────────────── */
+.ng-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.ng-char-pill {
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.07);
+  color: #64748b;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+}
+
+.ng-textarea-wrap {
+  margin-bottom: 0.85rem;
+}
+
+.ng-textarea {
+  width: 100%;
+  background: rgba(10, 14, 24, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  color: #f1f5f9;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit;
+}
+
+.ng-textarea:focus {
+  border-color: rgba(249, 115, 22, 0.45);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.ng-textarea::placeholder {
+  color: #2d3748;
+}
+
+.ng-editor-tools {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.ng-btn-tool {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+  font-family: inherit;
+}
+
+.ng-btn-tool:hover:not(:disabled) {
+  background: rgba(249, 115, 22, 0.1);
+  border-color: rgba(249, 115, 22, 0.25);
+  color: #fb923c;
+}
+
+.ng-btn-tool:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ng-google-notice {
+  text-align: center;
+  font-size: 0.78rem;
+  color: #475569;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(249, 115, 22, 0.06);
+  border: 1px solid rgba(249, 115, 22, 0.12);
+  border-radius: 8px;
+}
+
+.ng-private-prompt {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #475569;
+  margin-top: 1.25rem;
+}
+
+.ng-link-btn {
+  background: none;
+  border: none;
+  color: #f97316;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-family: inherit;
+}
+
+/* ── MODALS ────────────────────────────────────────────────────────────────── */
+.ng-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+}
+
+@media (min-height: 600px) {
+  .ng-modal-backdrop {
+    align-items: center;
+  }
+}
+
+.ng-modal {
+  background: rgba(13, 18, 30, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 2rem 1.75rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7);
+}
+
+.ng-modal-bounce {
+  animation: ngModalIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ngModalIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ng-modal-icon {
+  text-align: center;
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+  line-height: 1;
+}
+
+.ng-modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.ng-modal-body {
+  font-size: 0.88rem;
+  color: #64748b;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.ng-modal-body strong {
+  color: #cbd5e1;
+}
+
+.ng-modal-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.ng-modal-step {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+  color: #cbd5e1;
+}
+
+.ng-modal-step strong {
+  color: #f1f5f9;
+}
+
+.ng-modal-step-num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  background: linear-gradient(135deg, #f97316, #fbbf24);
+  color: #1a0a00;
+  font-weight: 700;
+  font-size: 0.78rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ng-preview-text {
+  background: rgba(10, 14, 24, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-style: italic;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+  max-height: 90px;
+  overflow-y: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ng-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ng-private-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.ng-private-success {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.ng-private-success h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.ng-private-success p {
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+/* ── CUSTOMER REVIEW LEGACY STYLES (kept for OwnerPortal preview compat) ─── */
+.customer-page-wrapper {
+  max-width: 480px;
+  width: 100%;
+  margin: 1.5rem auto 3rem;
+  padding: 0 1rem;
+}
+
+.preview-top-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.28);
+  color: #fb923c;
+  padding: 0.55rem 1rem;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.preview-exit-btn {
+  background: transparent;
+  border: none;
+  color: #fb923c;
+  text-decoration: underline;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+@keyframes pulseRotate {
+  0% { transform: scale(1) rotate(0deg); opacity: 0.8; }
+  50% { transform: scale(1.15) rotate(180deg); opacity: 1; }
+  100% { transform: scale(1) rotate(360deg); opacity: 0.8; }
+}
+
 
 .customer-page-wrapper {
   max-width: 480px;
