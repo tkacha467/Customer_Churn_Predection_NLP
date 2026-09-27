@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Nasta Ghar — Google Review Auto-Paste",
+  "version": "1.0.0",
+  "description": "Automatically pastes your selected Nasta Ghar review and sets star rating in Google Reviews.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://localhost/*",
+    "*://127.0.0.1/*",
+    "*://*.google.com/*",
+    "*://search.google.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:5173/*",
+        "http://127.0.0.1:5173/*",
+        "http://localhost:8000/*",
+        "http://127.0.0.1:8000/*"
+      ],
+      "js": ["content_app.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://*.google.com/maps/*",
+        "https://search.google.com/local/writereview*"
+      ],
+      "js": ["content_google.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

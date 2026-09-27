@@ -1,7 +1,7 @@
 """
 Review Assistant Orchestrator Service for ChurnLens.
-Manages rate limiting, automatic regeneration loops, sentiment validation,
-session persistence, private manager resolution, and hospitality analytics.
+Manages candidate idea generation, humanized review drafting,
+sentiment validation, session tracking, and simplified restaurant owner analytics.
 """
 
 import time
@@ -10,6 +10,9 @@ from typing import Dict, Any, List, Optional
 from collections import defaultdict
 
 from api.review_assistant.schemas import (
+    ReviewIdeasRequest,
+    ReviewIdeasResponse,
+    ReviewIdeaItem,
     ReviewGenerateRequest,
     ReviewGenerateResponse,
     ReviewValidateRequest,
@@ -28,7 +31,7 @@ class ReviewService:
         self._analytics_events: List[Dict[str, Any]] = []
         self._private_tickets: List[Dict[str, Any]] = []
 
-    def check_rate_limit(self, client_key: str, max_per_minute: int = 25) -> bool:
+    def check_rate_limit(self, client_key: str, max_per_minute: int = 30) -> bool:
         """Sliding-window rate limiter per client IP."""
         now = time.time()
         window_start = now - 60.0
@@ -40,7 +43,12 @@ class ReviewService:
         self._rate_limits[client_key].append(now)
         return True
 
-    def record_event(self, event_name: str, session_id: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None):
+    def record_event(
+        self,
+        event_name: str,
+        session_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ):
         event_record = {
             "event_id": str(uuid.uuid4()),
             "event_name": event_name,
@@ -49,8 +57,24 @@ class ReviewService:
             "metadata": metadata or {}
         }
         self._analytics_events.append(event_record)
-        if len(self._analytics_events) > 1000:
-            self._analytics_events = self._analytics_events[-1000:]
+        if len(self._analytics_events) > 2000:
+            self._analytics_events = self._analytics_events[-2000:]
+
+    def generate_ideas(self, req: ReviewIdeasRequest) -> ReviewIdeasResponse:
+        """Generates 3 distinct, customer-grounded review candidate ideas."""
+        raw_ideas = review_generator.generate_ideas(
+            rating=req.rating,
+            aspects=req.aspects or [],
+            user_note=req.user_note or "",
+            business_name=req.business_id
+        )
+        ideas = [ReviewIdeaItem(**item) for item in raw_ideas]
+        self.record_event("review_ideas_generated", metadata={
+            "rating": req.rating,
+            "aspects": req.aspects or [],
+            "has_note": bool(req.user_note)
+        })
+        return ReviewIdeasResponse(ideas=ideas)
 
     def generate_review(
         self, req: ReviewGenerateRequest, client_key: str = "default_client"
@@ -63,6 +87,7 @@ class ReviewService:
             "table_number": req.table_number,
             "aspects_count": len(req.aspects or []),
             "has_note": bool(req.user_note),
+            "has_idea": bool(req.selected_idea),
             "tone": req.tone
         })
 
@@ -78,9 +103,12 @@ class ReviewService:
                 rating=req.rating,
                 aspects=req.aspects or [],
                 user_note=req.user_note or "",
+                selected_idea=req.selected_idea,
                 tone=req.tone or "natural",
                 length=req.length or "medium",
-                dining_type=req.dining_type or "dine_in"
+                dining_type=req.dining_type or "dine_in",
+                emoji_preference=req.emoji_preference or "light",
+                business_name=req.business_id
             )
             draft = gen_res["review"]
             provider = gen_res["provider"]
@@ -143,12 +171,12 @@ class ReviewService:
         )
 
     def submit_private_feedback(self, req: PrivateFeedbackRequest) -> PrivateFeedbackResponse:
-        """Stores internal guest complaints for GM direct resolution (preventing public 1-star blowups)."""
+        """Stores optional direct diner notes for restaurant management without rating manipulation."""
         ticket_id = f"TICK-{uuid.uuid4().hex[:6].upper()}"
         ticket = {
             "ticket_id": ticket_id,
             "business_id": req.business_id,
-            "table_number": req.table_number or "Bar/Counter",
+            "table_number": req.table_number or "General",
             "rating": req.rating,
             "diner_note": req.diner_note,
             "aspects": req.aspects,
@@ -157,12 +185,12 @@ class ReviewService:
             "status": "OPEN"
         }
         self._private_tickets.append(ticket)
-        self.record_event("private_manager_ticket_created", metadata={"ticket_id": ticket_id, "rating": req.rating})
+        self.record_event("private_feedback_submitted", metadata={"ticket_id": ticket_id, "rating": req.rating})
         
         return PrivateFeedbackResponse(
             status="escalated",
             ticket_id=ticket_id,
-            message="Your feedback has been routed directly to our General Manager. We value your honesty and will reach out promptly."
+            message="Your feedback has been shared with the restaurant team. Thank you for helping us improve!"
         )
 
     def get_private_tickets(self) -> List[Dict[str, Any]]:
@@ -180,7 +208,7 @@ class ReviewService:
             tone=req.tone or "gracious"
         )
         
-        action = "Send standard appreciation" if req.rating >= 4 else "Urgent GM follow-up required"
+        action = "Send appreciation" if req.rating >= 4 else "Management follow-up"
         return ManagerReplyResponse(
             reply=res["reply"],
             detected_sentiment=sentiment,
@@ -188,55 +216,65 @@ class ReviewService:
         )
 
     def get_analytics_summary(self) -> Dict[str, Any]:
-        """Calculates hospitality KPIs for cafe/restaurant owners."""
+        """Calculates authentic, non-faked activity metrics for the restaurant owner."""
         event_counts = defaultdict(int)
         ratings_count = defaultdict(int)
         sentiment_breakdown = defaultdict(int)
-        aspect_breakdown = defaultdict(lambda: {"total": 0, "positive": 0, "negative": 0})
+        topic_counts = defaultdict(int)
         
         for ev in self._analytics_events:
-            event_counts[ev["event_name"]] += 1
+            ev_name = ev["event_name"]
+            event_counts[ev_name] += 1
             meta = ev.get("metadata", {})
             if "rating" in meta:
                 ratings_count[str(meta["rating"])] += 1
             if "sentiment" in meta:
                 sentiment_breakdown[meta["sentiment"].lower()] += 1
+            if "aspects" in meta and isinstance(meta["aspects"], list):
+                for asp in meta["aspects"]:
+                    topic_counts[asp] += 1
 
         total_generations = event_counts.get("review_generation_completed", 0)
-        google_clicks = event_counts.get("google_review_link_clicked", 0)
-        conversion_rate = (
-            round((google_clicks / total_generations) * 100, 1)
-            if total_generations > 0 else 0.0
+        # Support both new and legacy event names for Google link clicks
+        google_clicks = (
+            event_counts.get("google_review_link_opened", 0) +
+            event_counts.get("google_review_link_clicked", 0)
         )
+        reviews_copied = event_counts.get("review_copied", 0)
 
-        # Baseline hospitality aspect health indicators
-        aspect_health = [
-            {"aspect": "Coffee & Drinks", "satisfaction": 96, "volume": 142},
-            {"aspect": "Food & Flavor", "satisfaction": 92, "volume": 128},
-            {"aspect": "Staff & Hospitality", "satisfaction": 94, "volume": 115},
-            {"aspect": "Table Wait Time", "satisfaction": 84, "volume": 89},
-            {"aspect": "Vibe & Playlist", "satisfaction": 95, "volume": 104},
-            {"aspect": "Cleanliness", "satisfaction": 98, "volume": 97}
-        ]
+        # Build clean recent activity feed
+        recent_activity = []
+        for ev in reversed(self._analytics_events[-20:]):
+            name = ev["event_name"]
+            meta = ev.get("metadata", {})
+            t_str = time.strftime("%H:%M", time.localtime(ev["timestamp"]))
+            
+            if name == "review_generation_completed":
+                table = meta.get("table_number") or "Table"
+                r = meta.get("rating", 5)
+                recent_activity.append(f"{t_str} • {table} created a {r}-star draft")
+            elif name in ["google_review_link_opened", "google_review_link_clicked"]:
+                recent_activity.append(f"{t_str} • Customer opened Google review link")
+            elif name == "review_copied":
+                recent_activity.append(f"{t_str} • Customer copied review draft")
+            elif name == "private_feedback_submitted":
+                recent_activity.append(f"{t_str} • Private feedback submitted")
 
-        # Calculate estimated Guest Satisfaction Score (CSAT)
-        total_rated = sum(ratings_count.values())
-        high_ratings = ratings_count.get("4", 0) + ratings_count.get("5", 0)
-        csat_score = round((high_ratings / total_rated) * 100, 1) if total_rated > 0 else 94.2
+        # Top topics
+        top_topics = sorted(topic_counts.items(), key=lambda x: x[1], reverse=True)[:6]
+        top_topics_formatted = [{"topic": k, "count": v} for k, v in top_topics]
 
         return {
             "total_generations": total_generations,
             "google_clicks": google_clicks,
-            "conversion_rate_percent": conversion_rate,
-            "csat_score": csat_score,
-            "regenerations": event_counts.get("review_regenerated", 0),
-            "manual_edits": event_counts.get("review_edited", 0),
-            "validations_passed": event_counts.get("review_validation_passed", 0),
-            "private_tickets_count": len(self._private_tickets),
-            "private_tickets": self._private_tickets[-5:],
-            "aspect_health": aspect_health,
+            "reviews_copied": reviews_copied,
             "rating_distribution": dict(ratings_count),
             "sentiment_distribution": dict(sentiment_breakdown),
+            "top_topics": top_topics_formatted,
+            "recent_activity": recent_activity[:10],
+            "private_tickets_count": len(self._private_tickets),
+            # Backwards compatibility fields
+            "conversion_rate_percent": round((google_clicks / total_generations) * 100, 1) if total_generations > 0 else 0.0,
             "recent_events": self._analytics_events[-15:]
         }
 

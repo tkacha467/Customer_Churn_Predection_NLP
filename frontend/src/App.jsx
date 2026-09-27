@@ -1,105 +1,97 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './index.css';
-import ReviewAssistant from './components/ReviewAssistant';
-import IntegrityPlayground from './components/IntegrityPlayground';
-import BusinessConsole from './components/BusinessConsole';
+import CustomerReview from './components/CustomerReview';
+import OwnerPortal from './components/OwnerPortal';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('assistant'); // 'assistant' | 'business' | 'integrity'
-  const [selectedBranch, setSelectedBranch] = useState('flagship');
+  // Route detection: customers get clean review page; owners access /owner
+  const getInitialView = () => {
+    const path = window.location.pathname.toLowerCase();
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    if (path.startsWith('/owner') || view === 'owner') return 'owner';
+    return 'customer';
+  };
+
+  const [activeView, setActiveView] = useState(getInitialView);
+  const [isPreviewMode, setIsPreviewMode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('preview') === 'true';
+  });
+
   const businessId = 'default_business';
 
+  // Handle browser back/forward
+  useEffect(() => {
+    const handlePopState = () => setActiveView(getInitialView());
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateToView = (view, preview = false) => {
+    setActiveView(view);
+    setIsPreviewMode(preview);
+    const newPath = view === 'owner' ? '/owner' : '/review';
+    const params = new URLSearchParams(window.location.search);
+    if (view === 'owner') params.delete('preview');
+    else if (preview) params.set('preview', 'true');
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    window.history.pushState({}, '', `${newPath}${queryString}`);
+  };
+
+  // Customer QR experience: full-screen, no top bar
+  if (activeView === 'customer') {
+    return (
+      <div className="ng-app-root">
+        <CustomerReview
+          businessId={businessId}
+          isPreview={isPreviewMode}
+          onSwitchToOwner={() => navigateToView('owner')}
+        />
+        <footer className="ng-footer">
+          <span>Powered by ChurnLens • Google Review Assistant</span>
+        </footer>
+      </div>
+    );
+  }
+
+  // Owner portal: branded top bar + full dashboard
   return (
-    <div className="app-container">
-      {/* Top Enterprise Brand Bar */}
-      <header className="enterprise-header">
-        <div className="header-top-row">
-          <div className="brand-group">
-            <span className="brand-icon">☕</span>
-            <div>
-              <div className="brand-title">ChurnLens <span className="highlight-gold">Hospitality</span></div>
-              <div className="brand-subtext">AI Guest Reviews & Reputation Intelligence for Cafes & Restaurants</div>
-            </div>
-          </div>
-
-          <div className="header-right-controls">
-            <div className="branch-selector-pill">
-              <span style={{ fontSize: '0.85rem' }}>📍</span>
-              <select
-                value={selectedBranch}
-                onChange={(e) => setSelectedBranch(e.target.value)}
-                className="branch-select"
-              >
-                <option value="flagship">Cuore Roastery • Downtown Flagship</option>
-                <option value="uptown">Cuore Bistro • Uptown West</option>
-                <option value="airport">Cuore Express • Terminal 2</option>
-              </select>
-            </div>
-
-            <div className="system-status-pill">
-              <span className="live-dot">●</span>
-              <span>NLP Engine Live</span>
-            </div>
-          </div>
+    <div className="product-layout">
+      <div className="app-mode-bar">
+        <div className="mode-bar-brand">
+          <span className="mode-logo">🍳</span>
+          <span className="mode-title">Nasta Ghar</span>
+          <span className="mode-badge">Owner Dashboard</span>
         </div>
-      </header>
+        <div className="mode-toggle-group">
+          <button
+            type="button"
+            className="mode-btn"
+            onClick={() => navigateToView('customer', true)}
+          >
+            👁️ Preview Guest Experience
+          </button>
+          <button
+            type="button"
+            className="mode-btn active"
+          >
+            💼 Owner Portal
+          </button>
+        </div>
+      </div>
 
-      {/* Main SaaS Navigation Tabs */}
-      <nav className="nav-tab-container">
-        <button
-          type="button"
-          className={`nav-tab-btn ${activeTab === 'assistant' ? 'active' : ''}`}
-          onClick={() => setActiveTab('assistant')}
-        >
-          <span>☕</span>
-          <span>Guest Table Review</span>
-        </button>
-
-        <button
-          type="button"
-          className={`nav-tab-btn ${activeTab === 'business' ? 'active' : ''}`}
-          onClick={() => setActiveTab('business')}
-        >
-          <span>📊</span>
-          <span>General Manager Portal</span>
-        </button>
-
-        <button
-          type="button"
-          className={`nav-tab-btn ${activeTab === 'integrity' ? 'active' : ''}`}
-          onClick={() => setActiveTab('integrity')}
-        >
-          <span>🛡️</span>
-          <span>NLP Integrity Lab</span>
-        </button>
-      </nav>
-
-      {/* Main Workspace View */}
-      <main>
-        {activeTab === 'assistant' && (
-          <ReviewAssistant businessId={businessId} />
-        )}
-
-        {activeTab === 'business' && (
-          <BusinessConsole businessId={businessId} />
-        )}
-
-        {activeTab === 'integrity' && (
-          <IntegrityPlayground />
-        )}
+      <main className="product-main-content">
+        <OwnerPortal
+          businessId={businessId}
+          onPreviewCustomer={() => navigateToView('customer', true)}
+        />
       </main>
 
-      {/* Enterprise Hospitality Footer */}
-      <footer className="enterprise-footer">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <strong>ChurnLens Hospitality AI Platform</strong> • Enterprise Guest Experience & Google Review Handoff
-          </div>
-          <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)' }}>
-            <span>Compliant with Google Business Profile Policies</span>
-            <span>Zero Hallucination Guaranteed</span>
-            <span>Table QR Deep-linking Enabled</span>
-          </div>
+      <footer className="product-footer">
+        <div className="footer-content">
+          <span>Nasta Ghar • ChurnLens AI Review Assistant</span>
+          <span>Google Business Profile Compliant • Zero Fabrication</span>
         </div>
       </footer>
     </div>
