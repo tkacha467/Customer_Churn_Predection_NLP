@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import RestaurantWorld from './RestaurantWorld';
 
 // ─── NASTA GHAR BRAND CONSTANTS ──────────────────────────────────────────────
 // These are hardcoded. The API enriches config but NEVER overrides the name.
@@ -371,6 +372,8 @@ export default function CustomerReview({
           )}
         </div>
       )}
+
+      <RestaurantWorld />
 
       <div className="ng-card">
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
