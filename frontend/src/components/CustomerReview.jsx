@@ -260,6 +260,16 @@ export default function CustomerReview({
     logEvent('idea_selected', { idea_id: idea.id });
     logEvent('review_approved', { length: idea.text.length, direct_post: true });
 
+    // Notify Chrome Extension (if installed) for automatic pasting & star selection
+    window.postMessage({
+      type: 'NASTA_GHAR_REVIEW_SELECTED',
+      payload: {
+        reviewText: idea.text,
+        rating: rating,
+        timestamp: Date.now()
+      }
+    }, '*');
+
     const ok = await copyTextToClipboard(idea.text);
     setCopied(ok);
     setShowCopyToast(true);
@@ -302,6 +312,17 @@ export default function CustomerReview({
   const handleContinueToGoogle = async () => {
     if (!draftReview.trim()) return;
     logEvent('review_approved', { length: draftReview.length });
+
+    // Notify Chrome Extension (if installed) for automatic pasting & star selection
+    window.postMessage({
+      type: 'NASTA_GHAR_REVIEW_SELECTED',
+      payload: {
+        reviewText: draftReview,
+        rating: rating,
+        timestamp: Date.now()
+      }
+    }, '*');
+
     const ok = await copyTextToClipboard(draftReview);
     setCopied(ok);
     setShowCopyToast(true);
