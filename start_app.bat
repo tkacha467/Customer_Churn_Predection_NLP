@@ -1,10 +1,11 @@
 @echo off
-title Nasta Ghar — Review Assistant Launcher
+chcp 65001 >nul
+title Nasta Ghar - Review Assistant Launcher
 color 0E
 
 echo.
 echo  ==========================================
-echo   NASTA GHAR — Google Review Assistant
+echo   NASTA GHAR - Google Review Assistant
 echo   Breakfast ^& Snacks . Rajkot
 echo  ==========================================
 echo.
@@ -14,7 +15,7 @@ cd /d "%~dp0"
 set PYTHONPATH=%cd%
 
 :: Kill anything already on port 8000 or 5173 to avoid conflicts
-echo  [1/2] Checking for port conflicts...
+echo  [1/3] Checking and clearing port conflicts (8000, 5173)...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000 " ^| findstr "LISTENING" 2^>nul') do (
     taskkill /F /PID %%a >nul 2>&1
 )
@@ -22,28 +23,27 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173 " ^| findstr "LISTENIN
     taskkill /F /PID %%a >nul 2>&1
 )
 
-:: Start FastAPI backend
-echo  [1/2] Starting FastAPI backend on http://127.0.0.1:8000 ...
-if exist .venv\Scripts\activate.bat (
-    start "Nasta Ghar — API Backend" cmd /k "title Nasta Ghar API ^& color 02 ^& echo. ^& echo  Nasta Ghar — FastAPI Backend ^& echo  http://127.0.0.1:8000 ^& echo. ^& call .venv\Scripts\activate.bat ^& python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload"
+:: Select Python Executable
+if exist "%~dp0.venv\Scripts\python.exe" (
+    set "PY_CMD=%~dp0.venv\Scripts\python.exe"
 ) else (
-    start "Nasta Ghar — API Backend" cmd /k "title Nasta Ghar API ^& color 02 ^& echo. ^& echo  Nasta Ghar — FastAPI Backend ^& echo  http://127.0.0.1:8000 ^& echo. ^& python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload"
+    set "PY_CMD=python"
 )
 
-:: Wait for backend to initialize
-echo  Waiting for backend to load models...
-timeout /t 4 /nobreak >nul
+:: Start FastAPI backend in a new dedicated window
+echo  [2/3] Starting FastAPI Backend on http://127.0.0.1:8000 ...
+start "Nasta Ghar API Backend" cmd /k "cd /d "%~dp0" && set PYTHONPATH=%cd% && "%PY_CMD%" -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload"
 
-:: Start React frontend
-echo  [2/2] Starting React frontend on http://localhost:5173 ...
-cd frontend
-start "Nasta Ghar — Customer UI" cmd /k "title Nasta Ghar Frontend ^& color 06 ^& echo. ^& echo  Nasta Ghar — React Frontend ^& echo  http://localhost:5173 ^& echo. ^& npm run dev"
-cd ..
+:: Start React Frontend in a new dedicated window
+echo  [3/3] Starting React Frontend on http://localhost:5173 ...
+start "Nasta Ghar React Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev"
 
-:: Wait for frontend to spin up
-timeout /t 4 /nobreak >nul
+:: Wait for servers to initialize
+echo.
+echo  Waiting for backend models and frontend to initialize...
+timeout /t 5 /nobreak >nul
 
-:: Detect Google Chrome executable to ensure opening in Chrome (not Edge)
+:: Detect Google Chrome executable
 set "CHROME_EXE="
 if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" (
     set "CHROME_EXE=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
@@ -63,8 +63,8 @@ if defined CHROME_EXE (
 )
 
 echo.
-echo  ==========================================
-echo   Both servers are running!
+echo  ======================================================
+echo   ALL SERVERS RUNNING SUCCESSFULLY!
 echo.
 echo   Customer Review Page:
 echo   http://localhost:5173/review
@@ -72,8 +72,10 @@ echo.
 echo   Owner Dashboard:
 echo   http://localhost:5173/owner
 echo.
-echo   API Docs:
+echo   API Docs (FastAPI):
 echo   http://127.0.0.1:8000/docs
-echo  ==========================================
+echo  ======================================================
+echo.
+echo  Keep the server windows open while using the app.
 echo.
 pause
