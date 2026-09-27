@@ -64,7 +64,7 @@ export default function RestaurantWorld() {
       </div>
 
       <div className="ng-scene-shell">
-        <svg className="ng-scene-svg" viewBox="0 0 1000 560" role="img" aria-label="A lively Gujarati snack restaurant with a working kitchen, diners, servers, and Babalal Ni Chai stall">
+        <svg className="ng-scene-svg" viewBox="0 0 1000 560" preserveAspectRatio="none" role="img" aria-label="A lively Gujarati snack restaurant with a working kitchen, diners, servers, and Babalal Ni Chai stall">
           <defs>
             <linearGradient id="ngWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff1cb"/><stop offset="1" stopColor="#e9c58a"/></linearGradient>
             <linearGradient id="ngFloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#bd8650"/><stop offset="1" stopColor="#805033"/></linearGradient>
