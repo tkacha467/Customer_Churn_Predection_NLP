@@ -16,3 +16,21 @@
 @keyframes ngPulse{50%{opacity:.5;box-shadow:0 0 0 7px #c9ff0010}}@keyframes ngFlicker{to{transform:translateY(-3px) scale(1.08)}}@keyframes ngSteam{0%{opacity:0;transform:translateY(8px)}40%{opacity:.8}100%{opacity:0;transform:translateY(-16px)}}@keyframes ngGuest{0%,100%{translate:0 0}50%{translate:0 -2px}}@keyframes ngWalk{0%,100%{translate:-5px 0}50%{translate:7px -1px}}@keyframes ngTray{50%{rotate:5deg}}@keyframes ngPour{to{rotate:20deg}}@keyframes ngPop{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:600px){.ng-world-sky{border-radius:14px}.ng-world-header{padding:10px 12px}.ng-world-brand strong{font-size:13px}.ng-world-live{font-size:8px}.ng-world-scene{height:390px;min-height:390px}.ng-kitchen{left:1%;width:29%;top:39%;height:46%}.ng-dining{left:29%;right:23%;top:39%;height:46%;inset:39% 23% 8% 29%}.ng-tea-stall{right:1%;width:21%;top:39%;height:46%}.ng-area-sign{font-size:6px;letter-spacing:0;padding:3px 4px}.ng-wall-sign{left:25%;width:50%;top:8%;font-size:15px}.ng-wall-sign small{font-size:6px}.ng-speech{left:28%;top:24%;max-width:68%;font-size:12px;padding:8px}.ng-char-name{font-size:6px}.ng-floor{font-size:7px;letter-spacing:0}.ng-world-hint{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.ng-world *, .ng-world *::before,.ng-world *::after{animation:none!important;transition:none!important}}
+
+/* Make the scene a real page-level experience, while keeping review controls readable. */
+.ng-page:has(.ng-world){width:min(100% - 28px,1100px);max-width:1100px;margin:0 auto;padding:18px 0 28px;display:flex;flex-direction:column;gap:0}
+.ng-page:has(.ng-world) .ng-card{width:min(100%,620px);max-width:620px;margin:0 auto;background:#fff8e8;color:#173b20;border:2px solid #d8c49a;box-shadow:0 12px 30px #10261918}
+.ng-page:has(.ng-world) .ng-brand-name{color:#173b20!important;background:none!important;-webkit-text-fill-color:#173b20!important}
+.ng-page:has(.ng-world) .ng-brand-sub,.ng-page:has(.ng-world) .ng-step-sub{color:#64735a}
+.ng-page:has(.ng-world) .ng-step-title{color:#173b20}
+.ng-page:has(.ng-world) .ng-chip{background:#fffdf5;color:#34523a;border-color:#d5ddc6}
+.ng-page:has(.ng-world) .ng-chip.selected{background:#e8f3c9;color:#173b20;border-color:#73943c}
+.ng-page:has(.ng-world) .ng-btn-primary{background:#173b20;color:#fff8e8;box-shadow:0 5px 0 #0d2815}
+.ng-page:has(.ng-world) .ng-btn-primary:hover{background:#24552e}
+.ng-page:has(.ng-world) .ng-btn-secondary{background:#f0e5ce;color:#173b20;border-color:#c8b58f}
+.ng-page:has(.ng-world) .ng-star.lit{color:#e6ad18;text-shadow:0 0 10px #f4d46a80}
+.ng-page:has(.ng-world) .ng-idea-card{background:#fffdf5;border-color:#d8c49a;color:#173b20}
+.ng-page:has(.ng-world) .ng-idea-text{color:#344d36}
+.ng-page:has(.ng-world) .ng-step-dot.done{background:#73943c}
+.ng-page:has(.ng-world) .ng-step-dot.active{background:#c9ff00;border-color:#173b20}
+@media(max-width:600px){.ng-page:has(.ng-world){width:calc(100% - 16px);padding-top:8px}.ng-page:has(.ng-world) .ng-card{border-radius:16px;padding:18px 16px}}
