@@ -7,7 +7,7 @@ const BRAND = {
   emoji: '🍳',
   category: 'Breakfast & Snacks · Rajkot',
   googleMapUrl:
-    'https://www.google.com/maps/place/Nasta+ghar/@22.287553,70.7539998,17z/data=!4m8!3m7!1s0x3959cb0037bbe265:0xba2e639db7b193d6!8m2!3d22.2875481!4d70.7565747!9m1!1b1!16s%2Fg%2F11yk9xk25r?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D',
+    'https://search.google.com/local/writereview?placeid=ChIJEGXiuzcAy1k51pOxt51jLro',
 };
 
 const DEFAULT_TOPICS = [
@@ -78,6 +78,24 @@ export default function CustomerReview({
   const [privateNote, setPrivateNote] = useState('');
   const [privateContact, setPrivateContact] = useState('');
   const [privateSent, setPrivateSent] = useState(false);
+
+  // Cookie & Auto-Paste Consent
+  const [cookieConsent, setCookieConsent] = useState(() => {
+    try {
+      return localStorage.getItem('ng_auto_paste_consent') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleAcceptConsent = () => {
+    try {
+      localStorage.setItem('ng_auto_paste_consent', 'true');
+    } catch {}
+    setCookieConsent(true);
+    setShowCopyToast(true);
+    setTimeout(() => setShowCopyToast(false), 2500);
+  };
 
   // ─── FETCH CONFIG (optional enrichment, never overrides brand name) ─────────
   useEffect(() => {
@@ -690,6 +708,25 @@ export default function CustomerReview({
               </form>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ════════ COOKIE & AUTO-PASTE PERMISSION BANNER ════════ */}
+      {!cookieConsent && (
+        <div className="ng-cookie-bar" role="region" aria-label="Auto-paste permission">
+          <div className="ng-cookie-content">
+            <span className="ng-cookie-emoji">🍪</span>
+            <div className="ng-cookie-msg">
+              <strong>Auto-Paste Enabled</strong>: Allow cookies & clipboard to automatically load your selected review so you can paste into Google with 1 tap.
+            </div>
+          </div>
+          <button
+            type="button"
+            className="ng-cookie-btn"
+            onClick={handleAcceptConsent}
+          >
+            Allow Auto-Paste ✓
+          </button>
         </div>
       )}
     </div>

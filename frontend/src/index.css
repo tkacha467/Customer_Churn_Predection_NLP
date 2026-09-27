@@ -3697,3 +3697,93 @@ body:has(.ng-app-root) {
   color: #fdba74;
 }
 
+/* ── COOKIE & AUTO-PASTE BAR ───────────────────────────────────────────────── */
+.ng-cookie-bar {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2.5rem);
+  max-width: 520px;
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 18px;
+  padding: 0.85rem 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(249, 115, 22, 0.15);
+  z-index: 9999;
+  animation: ngCookieUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ngCookieUp {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.ng-cookie-content {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1;
+}
+
+.ng-cookie-emoji {
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ng-cookie-msg {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.ng-cookie-msg strong {
+  color: #fb923c;
+}
+
+.ng-cookie-btn {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.35);
+}
+
+.ng-cookie-btn:hover {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.5);
+}
+
+@media (max-width: 480px) {
+  .ng-cookie-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    bottom: 0.85rem;
+    padding: 0.85rem 1rem;
+  }
+  .ng-cookie-btn {
+    text-align: center;
+    width: 100%;
+    padding: 0.6rem;
+  }
+}
+
+
