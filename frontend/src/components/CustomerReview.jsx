@@ -28,6 +28,11 @@ const RATING_LABELS = {
   1: { text: 'Not good', emoji: '😞' },
 };
 
+const API_BASE =
+  typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+    ? `http://${window.location.hostname}:8000`
+    : 'http://127.0.0.1:8000';
+
 export default function CustomerReview({
   businessId = 'default_business',
   onSwitchToOwner = null,
@@ -189,7 +194,7 @@ export default function CustomerReview({
 
   // ─── FETCH CONFIG (optional enrichment, never overrides brand name) ─────────
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/api/businesses/${businessId}/review-link`)
+    fetch(`${API_BASE}/api/businesses/${businessId}/review-link`)
       .then((r) => r.json())
       .then((d) => {
         if (d.topics && d.topics.length > 0) {
@@ -204,7 +209,7 @@ export default function CustomerReview({
       .catch(() => {/* use defaults */});
 
     // Initialize session
-    fetch('http://127.0.0.1:8000/api/reviews/session', {
+    fetch(`${API_BASE}/api/reviews/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -235,7 +240,7 @@ export default function CustomerReview({
   // ─── ANALYTICS ──────────────────────────────────────────────────────────────
   const logEvent = (name, meta = {}) => {
     if (!sessionId) return;
-    fetch('http://127.0.0.1:8000/api/reviews/events', {
+    fetch(`${API_BASE}/api/reviews/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -293,7 +298,7 @@ export default function CustomerReview({
     setCurrentCardIndex(0);
     logEvent('aspects_selected', { aspects: selectedTopics });
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/reviews/ideas', {
+      const res = await fetch(`${API_BASE}/api/reviews/ideas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -339,7 +344,7 @@ export default function CustomerReview({
   const handleMakeNatural = async () => {
     setIsRegenerating(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/reviews/generate', {
+      const res = await fetch(`${API_BASE}/api/reviews/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -376,7 +381,7 @@ export default function CustomerReview({
     e.preventDefault();
     if (!privateNote.trim()) return;
     try {
-      await fetch('http://127.0.0.1:8000/api/reviews/private-feedback', {
+      await fetch(`${API_BASE}/api/reviews/private-feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

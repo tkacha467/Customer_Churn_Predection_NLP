@@ -31,12 +31,12 @@ if exist "%~dp0.venv\Scripts\python.exe" (
 )
 
 :: Start FastAPI backend in a new dedicated window
-echo  [2/3] Starting FastAPI Backend on http://127.0.0.1:8000 ...
-start "Nasta Ghar API Backend" cmd /k "cd /d "%~dp0" && set PYTHONPATH=%cd% && "%PY_CMD%" -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload"
+echo  [2/3] Starting FastAPI Backend on http://0.0.0.0:8000 ...
+start "Nasta Ghar API Backend" cmd /k "cd /d "%~dp0" && set PYTHONPATH=%cd% && "%PY_CMD%" -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
 
 :: Start React Frontend in a new dedicated window
-echo  [3/3] Starting React Frontend on http://localhost:5173 ...
-start "Nasta Ghar React Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev"
+echo  [3/3] Starting React Frontend on http://0.0.0.0:5173 ...
+start "Nasta Ghar React Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev -- --host 0.0.0.0"
 
 :: Wait for servers to initialize
 echo.
