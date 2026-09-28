@@ -24,12 +24,14 @@ from api.review_assistant.schemas import (
 )
 from api.review_assistant.generator import review_generator
 from api.review_assistant.validator import review_validator
+from api.review_assistant.storage import ReviewStore
 
 class ReviewService:
     def __init__(self):
         self._rate_limits: Dict[str, List[float]] = defaultdict(list)
-        self._analytics_events: List[Dict[str, Any]] = []
-        self._private_tickets: List[Dict[str, Any]] = []
+        self._store = ReviewStore()
+        self._analytics_events: List[Dict[str, Any]] = self._store.list_events()
+        self._private_tickets: List[Dict[str, Any]] = self._store.list_tickets(limit=5000)
 
     def check_rate_limit(self, client_key: str, max_per_minute: int = 30) -> bool:
         """Sliding-window rate limiter per client IP."""
@@ -56,6 +58,7 @@ class ReviewService:
             "timestamp": time.time(),
             "metadata": metadata or {}
         }
+        self._store.add_event(event_record)
         self._analytics_events.append(event_record)
         if len(self._analytics_events) > 2000:
             self._analytics_events = self._analytics_events[-2000:]
@@ -185,6 +188,7 @@ class ReviewService:
             "status": "OPEN"
         }
         self._private_tickets.append(ticket)
+        self._store.add_ticket(ticket)
         self.record_event("private_feedback_submitted", metadata={"ticket_id": ticket_id, "rating": req.rating})
         
         return PrivateFeedbackResponse(
@@ -194,7 +198,7 @@ class ReviewService:
         )
 
     def get_private_tickets(self) -> List[Dict[str, Any]]:
-        return self._private_tickets[-20:]
+        return self._store.list_tickets(limit=20)
 
     def generate_manager_reply(self, req: ManagerReplyRequest) -> ManagerReplyResponse:
         val_res = review_validator.validate(rating=req.rating, review_text=req.guest_review)
@@ -217,6 +221,7 @@ class ReviewService:
 
     def get_analytics_summary(self) -> Dict[str, Any]:
         """Calculates authentic, non-faked activity metrics for the restaurant owner."""
+        self._analytics_events = self._store.list_events()
         event_counts = defaultdict(int)
         ratings_count = defaultdict(int)
         sentiment_breakdown = defaultdict(int)
@@ -272,7 +277,7 @@ class ReviewService:
             "sentiment_distribution": dict(sentiment_breakdown),
             "top_topics": top_topics_formatted,
             "recent_activity": recent_activity[:10],
-            "private_tickets_count": len(self._private_tickets),
+            "private_tickets_count": self._store.ticket_count(),
             # Backwards compatibility fields
             "conversion_rate_percent": round((google_clicks / total_generations) * 100, 1) if total_generations > 0 else 0.0,
             "recent_events": self._analytics_events[-15:]

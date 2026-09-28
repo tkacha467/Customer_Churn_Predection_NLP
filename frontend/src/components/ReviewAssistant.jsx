@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 
+import { apiFetch } from '../lib/api';
 const DINING_OCCASIONS = [
   { id: 'coffee_break', label: 'Coffee & Work', icon: '☕' },
   { id: 'brunch', label: 'Brunch & Pastries', icon: '🥐' },
@@ -66,7 +67,7 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
 
   useEffect(() => {
     // Fetch business details
-    fetch(`http://127.0.0.1:8000/api/businesses/${businessId}/review-link`)
+    apiFetch(`/api/businesses/${businessId}/review-link`)
       .then(res => res.json())
       .then(data => {
         setGoogleReviewUrl(data.review_url);
@@ -76,7 +77,7 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
       .catch(err => console.error('Error fetching Google review link:', err));
 
     // Initialize session
-    fetch('http://127.0.0.1:8000/api/reviews/session', {
+    apiFetch('/api/reviews/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -104,7 +105,7 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
     setWarnings([]);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/reviews/generate', {
+      const response = await apiFetch('/api/reviews/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -145,7 +146,7 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
     setIsValidating(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/reviews/validate', {
+      const response = await apiFetch('/api/reviews/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating, review: draftReview })
@@ -169,7 +170,7 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
 
     setIsSubmittingPrivate(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/reviews/private-feedback', {
+      const response = await apiFetch('/api/reviews/private-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -200,7 +201,7 @@ export default function ReviewAssistant({ businessId = 'default_business' }) {
   };
 
   const handleOpenGoogle = () => {
-    fetch('http://127.0.0.1:8000/api/reviews/events', {
+    apiFetch('/api/reviews/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

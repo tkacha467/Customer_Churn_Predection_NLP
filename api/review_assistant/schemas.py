@@ -7,20 +7,20 @@ class ReviewIdeaItem(BaseModel):
     text: str
 
 class ReviewIdeasRequest(BaseModel):
-    business_id: str = Field(default="default_business", description="Unique cafe/restaurant identifier")
+    business_id: str = Field(default="default_business", min_length=1, max_length=100, description="Unique cafe/restaurant identifier")
     rating: int = Field(..., ge=1, le=5, description="Guest star rating from 1 to 5")
-    aspects: Optional[List[str]] = Field(default_factory=list, description="Hospitality aspects experienced (e.g. food, drinks, service, vibe)")
-    user_note: Optional[str] = Field(default="", description="Guest freeform notes or mentioned dishes/drinks")
+    aspects: Optional[List[str]] = Field(default_factory=list, max_length=20, description="Hospitality aspects experienced (e.g. food, drinks, service, vibe)")
+    user_note: Optional[str] = Field(default="", max_length=2000, description="Guest freeform notes or mentioned dishes/drinks")
 
 class ReviewIdeasResponse(BaseModel):
     ideas: List[ReviewIdeaItem]
 
 class ReviewGenerateRequest(BaseModel):
-    business_id: str = Field(default="default_business", description="Unique cafe/restaurant identifier")
+    business_id: str = Field(default="default_business", min_length=1, max_length=100, description="Unique cafe/restaurant identifier")
     rating: int = Field(..., ge=1, le=5, description="Guest star rating from 1 to 5")
-    aspects: Optional[List[str]] = Field(default_factory=list, description="Hospitality aspects experienced (e.g. coffee, food, service, vibe)")
-    user_note: Optional[str] = Field(default="", description="Guest freeform notes or mentioned dishes/drinks")
-    selected_idea: Optional[str] = Field(default=None, description="Starting idea card text selected by customer")
+    aspects: Optional[List[str]] = Field(default_factory=list, max_length=20, description="Hospitality aspects experienced (e.g. coffee, food, service, vibe)")
+    user_note: Optional[str] = Field(default="", max_length=2000, description="Guest freeform notes or mentioned dishes/drinks")
+    selected_idea: Optional[str] = Field(default=None, max_length=5000, description="Starting idea card text selected by customer")
     tone: Optional[str] = Field(default="natural", description="Tone: natural, casual, foodie, professional, short, detailed")
     length: Optional[str] = Field(default="medium", description="Length: short, medium, detailed")
     dining_type: Optional[str] = Field(default="dine_in", description="Context: dine_in, coffee_break, brunch, lunch_dinner, takeaway")
@@ -41,7 +41,7 @@ class ReviewGenerateResponse(BaseModel):
 
 class ReviewValidateRequest(BaseModel):
     rating: int = Field(..., ge=1, le=5, description="Star rating to compare against")
-    review: str = Field(..., min_length=1, description="Draft review text to validate")
+    review: str = Field(..., min_length=1, max_length=10000, description="Draft review text to validate")
 
 class ReviewValidateResponse(BaseModel):
     sentiment: str
@@ -93,7 +93,7 @@ class AnalyticsEventRequest(BaseModel):
 
 # Manager reply & private feedback for backwards compatibility
 class ManagerReplyRequest(BaseModel):
-    guest_review: str = Field(..., description="The guest review from Google or in-house")
+    guest_review: str = Field(..., min_length=1, max_length=10000, description="The guest review from Google or in-house")
     rating: int = Field(..., ge=1, le=5, description="Star rating given by guest")
     guest_name: Optional[str] = Field(default="Valued Guest", description="Name of the guest if available")
     manager_name: Optional[str] = Field(default="The General Management Team", description="Signing authority")
@@ -105,14 +105,17 @@ class ManagerReplyResponse(BaseModel):
     recommended_action: str
 
 class PrivateFeedbackRequest(BaseModel):
-    business_id: str = "default_business"
-    table_number: Optional[str] = None
+    business_id: str = Field(default="default_business", min_length=1, max_length=100)
+    table_number: Optional[str] = Field(default=None, max_length=80)
     rating: int = Field(..., ge=1, le=5)
-    diner_note: str = Field(..., description="Direct guest feedback")
-    aspects: Optional[List[str]] = Field(default_factory=list)
-    guest_contact: Optional[str] = Field(default="", description="Email or phone for GM follow-up")
+    diner_note: str = Field(..., min_length=1, max_length=5000, description="Direct guest feedback")
+    aspects: Optional[List[str]] = Field(default_factory=list, max_length=20)
+    guest_contact: Optional[str] = Field(default="", max_length=256, description="Email or phone for GM follow-up")
 
 class PrivateFeedbackResponse(BaseModel):
     status: str = "received"
     ticket_id: str
     message: str
+
+class OwnerLoginRequest(BaseModel):
+    password: str = Field(..., min_length=1, max_length=256)

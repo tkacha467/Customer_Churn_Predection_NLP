@@ -3,6 +3,58 @@ from fastapi.testclient import TestClient
 from api.main import app
 
 client = TestClient(app)
+login = client.post("/api/auth/login", json={"password": "test-only-owner-password"})
+assert login.status_code == 200
+
+def test_owner_data_and_mutations_require_authentication():
+    anonymous = TestClient(app)
+    assert anonymous.get("/api/reviews/analytics").status_code == 401
+    assert anonymous.get("/api/reviews/private-tickets").status_code == 401
+    assert anonymous.post("/api/businesses/test_cafe/config", json={
+        "google_review_url": "https://g.page/r/test/review"
+    }).status_code == 401
+
+def test_owner_session_is_signed_http_only_and_logout_works():
+    cookie = login.cookies.get("nasta_owner_session")
+    assert cookie
+    assert "httponly" in login.headers.get("set-cookie", "").lower()
+    assert client.get("/api/auth/session").status_code == 200
+    assert client.post("/api/auth/logout").status_code == 200
+    assert client.get("/api/auth/session").status_code == 401
+    assert client.post("/api/auth/login", json={"password": "test-only-owner-password"}).status_code == 200
+
+def test_health_and_cors_allowlist():
+    assert client.get("/healthz").json() == {"status": "ok"}
+    response = client.options(
+        "/api/auth/session",
+        headers={"Origin": "https://attacker.invalid", "Access-Control-Request-Method": "GET"},
+    )
+    assert "access-control-allow-origin" not in response.headers
+
+def test_review_store_persists_events_and_private_tickets(tmp_path):
+    from api.review_assistant.storage import ReviewStore
+
+    path = tmp_path / "reviews.sqlite3"
+    first = ReviewStore(str(path))
+    first.add_event({"event_id": "event-1", "timestamp": 1, "event_name": "review_selected"})
+    first.add_ticket({"ticket_id": "ticket-1", "timestamp": 1, "diner_note": "private note"})
+
+    restarted = ReviewStore(str(path))
+    assert restarted.list_events()[0]["event_id"] == "event-1"
+    assert restarted.list_tickets()[0]["diner_note"] == "private note"
+
+def test_business_configuration_persists_atomically():
+    from api.review_assistant.google_reviews import GoogleReviewManager
+
+    manager = GoogleReviewManager()
+    manager.update_business_config(
+        "persistence-check",
+        "https://g.page/r/persistence-check/review",
+        business_name="Persistence Check",
+    )
+    reloaded = GoogleReviewManager().get_review_url("persistence-check")
+    assert reloaded["business_name"] == "Persistence Check"
+    assert reloaded["review_url"] == "https://g.page/r/persistence-check/review"
 
 def test_get_business_review_link():
     res = client.get("/api/businesses/test_cafe/review-link")

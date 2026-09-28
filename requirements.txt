@@ -2,11 +2,12 @@
 fastapi
 uvicorn
 pydantic
+python-dotenv>=1.0,<2
 emoji
 contractions
 torch
-transformers
-huggingface-hub>=0.34.0,<1.0.0
+transformers>=5.17.0,<6.0.0
+huggingface-hub>=1.0.0,<2.0.0
 streamlit
 pandas
 plotly

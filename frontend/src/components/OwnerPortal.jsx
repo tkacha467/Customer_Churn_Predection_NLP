@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import NastaGharRestaurantScene from './NastaGharRestaurantScene';
+import { apiFetch } from '../lib/api';
 
 export default function OwnerPortal({
   businessId = 'default_business',
   onPreviewCustomer = null
 }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [ownerPassword, setOwnerPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [isSigningIn, setIsSigningIn] = useState(false);
   // Navigation tabs: 'home' | 'setup' | 'qr' | 'activity' | 'settings'
   const [activeTab, setActiveTab] = useState('home');
 
@@ -42,10 +48,49 @@ export default function OwnerPortal({
   const [qrBaseUrl, setQrBaseUrl] = useState(window.location.origin);
   const [generatedQrDataUrl, setGeneratedQrDataUrl] = useState('');
 
+  useEffect(() => {
+    let active = true;
+    apiFetch('/api/auth/session')
+      .then((res) => { if (active) setIsAuthenticated(res.ok); })
+      .catch(() => { if (active) setIsAuthenticated(false); })
+      .finally(() => { if (active) setIsCheckingSession(false); });
+    return () => { active = false; };
+  }, []);
+
+  const handleOwnerLogin = async (event) => {
+    event.preventDefault();
+    setAuthError('');
+    setIsSigningIn(true);
+    try {
+      const res = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: ownerPassword }),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Sign-in failed. Please try again.');
+      }
+      setOwnerPassword('');
+      setIsAuthenticated(true);
+    } catch (error) {
+      setAuthError(error.message || 'Could not sign in. Check the API connection and try again.');
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const handleOwnerLogout = async () => {
+    try { await apiFetch('/api/auth/logout', { method: 'POST' }); }
+    finally { setIsAuthenticated(false); }
+  };
+
   // Fetch business config
   const fetchConfig = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/businesses/${businessId}/review-link`);
+      const res = await apiFetch(`/api/businesses/${businessId}/review-link`);
+      if (res.status === 401) setIsAuthenticated(false);
+      if (!res.ok) throw new Error('Could not load restaurant configuration');
       const data = await res.json();
       if (data.business_name) setBusinessName(data.business_name);
       if (data.branch) setBranch(data.branch);
@@ -64,7 +109,9 @@ export default function OwnerPortal({
   const fetchAnalytics = async () => {
     setIsLoadingAnalytics(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/reviews/analytics');
+      const res = await apiFetch('/api/reviews/analytics');
+      if (res.status === 401) setIsAuthenticated(false);
+      if (!res.ok) throw new Error('Could not load restaurant activity');
       const data = await res.json();
       setAnalytics(data);
     } catch (err) {
@@ -75,10 +122,11 @@ export default function OwnerPortal({
   };
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     fetchConfig();
     fetchAnalytics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [businessId]);
+  }, [businessId, isAuthenticated]);
 
   // Generate QR Code dynamically
   useEffect(() => {
@@ -108,7 +156,7 @@ export default function OwnerPortal({
     setSaveSuccessMsg('');
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/businesses/${businessId}/config`, {
+      const res = await apiFetch(`/api/businesses/${businessId}/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -121,6 +169,8 @@ export default function OwnerPortal({
           primary_accent: primaryAccent
         })
       });
+      if (res.status === 401) setIsAuthenticated(false);
+      if (!res.ok) throw new Error('Could not save configuration');
       const data = await res.json();
       setIsUrlConfigured(Boolean(data.is_configured));
       setSaveSuccessMsg('✓ Restaurant setup saved successfully!');
@@ -158,6 +208,34 @@ export default function OwnerPortal({
     document.body.removeChild(a);
   };
 
+  if (isCheckingSession) {
+    return <section className="owner-login-panel" role="status">Checking owner session…</section>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <section className="owner-login-panel">
+        <form className="owner-login-card" onSubmit={handleOwnerLogin}>
+          <h1>Owner sign-in</h1>
+          <p>Sign in to manage the review link and view restaurant activity.</p>
+          <label htmlFor="owner-password">Owner password</label>
+          <input
+            id="owner-password"
+            type="password"
+            autoComplete="current-password"
+            value={ownerPassword}
+            onChange={(event) => setOwnerPassword(event.target.value)}
+            required
+          />
+          {authError && <p className="warning-box" role="alert">{authError}</p>}
+          <button type="submit" disabled={isSigningIn}>
+            {isSigningIn ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+      </section>
+    );
+  }
+
   return (
     <div className="owner-portal-wrapper">
       {/* Top Owner Header */}
@@ -180,6 +258,9 @@ export default function OwnerPortal({
             title="Experience the review flow as a guest"
           >
             👁️ Preview Customer Experience
+          </button>
+          <button type="button" className="btn-owner-secondary" onClick={handleOwnerLogout}>
+            Sign out
           </button>
         </div>
       </header>

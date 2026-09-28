@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import RestaurantWorld from './RestaurantWorld';
+import { apiFetch } from '../lib/api';
 
 // ─── NASTA GHAR BRAND CONSTANTS ──────────────────────────────────────────────
 // These are hardcoded. The API enriches config but NEVER overrides the name.
 const BRAND = {
   name: 'Nasta Ghar',
   googleMapUrl:
-    'https://www.google.com/maps/place/Nasta+ghar/@22.2876495,70.7565735,15z/data=!4m17!1m8!3m7!1s0x3959cb0037bbe265:0xba2e639db7b193d6!2sNasta+ghar!8m2!3d22.2875481!4d70.7565747!10e5!16s%2Fg%2F11yk9xk25r!3m7!1s0x3959cb0037bbe265:0xba2e639db7b193d6!8m2!3d22.2875481!4d70.7565747!9m1!1b1!16s%2Fg%2F11yk9xk25r?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D',
+    'https://www.google.com/maps/place/Nasta+ghar/@22.2876495,70.7565735,15z/data=!4m8!3m7!1s0x3959cb0037bbe265:0xba2e639db7b193d6!8m2!3d22.2875481!4d70.7565747!9m1!1b1!16s%2Fg%2F11yk9xk25r?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D',
 };
 
 const DEFAULT_TOPICS = [
@@ -27,11 +28,6 @@ const RATING_LABELS = {
   2: { text: 'Disappointed', emoji: '😕' },
   1: { text: 'Not good', emoji: '😞' },
 };
-
-const API_BASE =
-  typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
-    ? `http://${window.location.hostname}:8000`
-    : 'http://127.0.0.1:8000';
 
 export default function CustomerReview({
   businessId = 'default_business',
@@ -54,7 +50,14 @@ export default function CustomerReview({
   }, [step]);
 
   // Rating
-  const [rating, setRating] = useState(5);
+  const [rating, setRating] = useState(() => {
+    try {
+      const savedRating = Number(sessionStorage.getItem('nastaGharSelectedRating'));
+      return savedRating >= 1 && savedRating <= 5 ? savedRating : 5;
+    } catch {
+      return 5;
+    }
+  });
   const [hoverRating, setHoverRating] = useState(0);
 
   // Topics
@@ -64,7 +67,7 @@ export default function CustomerReview({
   const [personalNote, setPersonalNote] = useState('');
 
   // Keep Google Maps pointed at the restaurant's selected destination.
-  const googleReviewUrl = BRAND.googleMapUrl;
+  const [googleReviewUrl, setGoogleReviewUrl] = useState(BRAND.googleMapUrl);
 
   // Ideas
   const [ideas, setIdeas] = useState([]);
@@ -167,6 +170,7 @@ export default function CustomerReview({
   // Handoff
   const [handoffOpen, setHandoffOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyingReview, setCopyingReview] = useState(false);
   const [showCopyToast, setShowCopyToast] = useState(false);
   const [copyAgainSuccess, setCopyAgainSuccess] = useState(false);
 
@@ -175,6 +179,22 @@ export default function CustomerReview({
   const [privateNote, setPrivateNote] = useState('');
   const [privateContact, setPrivateContact] = useState('');
   const [privateSent, setPrivateSent] = useState(false);
+  const [privateError, setPrivateError] = useState('');
+
+  useEffect(() => {
+    try {
+      const savedReview = sessionStorage.getItem('nastaGharSelectedReview');
+      const savedBusinessId = sessionStorage.getItem('nastaGharBusinessId');
+      if (!savedReview || savedBusinessId !== businessId) return;
+      setDraftReview(savedReview);
+      setSelectedIdeaId(sessionStorage.getItem('nastaGharSelectedReviewId'));
+      setRating(Number(sessionStorage.getItem('nastaGharSelectedRating')) || 5);
+      setCopied(sessionStorage.getItem('nastaGharClipboardCopied') === 'true');
+      setHandoffOpen(true);
+    } catch {
+      // Session storage can be unavailable in restricted browser contexts.
+    }
+  }, [businessId]);
 
   // Acknowledgement for the clipboard handoff instructions.
   const [cookieConsent, setCookieConsent] = useState(() => {
@@ -194,9 +214,10 @@ export default function CustomerReview({
 
   // ─── FETCH CONFIG (optional enrichment, never overrides brand name) ─────────
   useEffect(() => {
-    fetch(`${API_BASE}/api/businesses/${businessId}/review-link`)
+    apiFetch(`/api/businesses/${businessId}/review-link`)
       .then((r) => r.json())
       .then((d) => {
+        if (d.review_url && d.is_configured) setGoogleReviewUrl(d.review_url);
         if (d.topics && d.topics.length > 0) {
           const enriched = d.topics.map((t) => ({
             label: t,
@@ -209,7 +230,7 @@ export default function CustomerReview({
       .catch(() => {/* use defaults */});
 
     // Initialize session
-    fetch(`${API_BASE}/api/reviews/session`, {
+    apiFetch(`/api/reviews/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -240,9 +261,10 @@ export default function CustomerReview({
   // ─── ANALYTICS ──────────────────────────────────────────────────────────────
   const logEvent = (name, meta = {}) => {
     if (!sessionId) return;
-    fetch(`${API_BASE}/api/reviews/events`, {
+    apiFetch(`/api/reviews/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
       body: JSON.stringify({
         session_id: sessionId,
         event_name: name,
@@ -264,8 +286,9 @@ export default function CustomerReview({
       }
     }
     if (!ok) {
+      let ta;
       try {
-        const ta = document.createElement('textarea');
+        ta = document.createElement('textarea');
         ta.value = text;
         ta.style.position = 'fixed';
         ta.style.left = '-9999px';
@@ -274,16 +297,21 @@ export default function CustomerReview({
         ta.focus();
         ta.select();
         ok = document.execCommand('copy');
-        document.body.removeChild(ta);
       } catch (e) {
         console.error('execCommand copy failed:', e);
+      } finally {
+        ta?.remove();
       }
     }
     return ok;
   };
 
   // ─── HANDLERS ───────────────────────────────────────────────────────────────
-  const handleRating = (s) => { setRating(s); logEvent('rating_selected', { rating: s }); };
+  const handleRating = (s) => {
+    setRating(s);
+    try { sessionStorage.setItem('nastaGharSelectedRating', String(s)); } catch {}
+    logEvent('rating_selected', { rating: s });
+  };
 
   const toggleTopic = (label) => {
     setNothingSpecific(false);
@@ -298,7 +326,7 @@ export default function CustomerReview({
     setCurrentCardIndex(0);
     logEvent('aspects_selected', { aspects: selectedTopics });
     try {
-      const res = await fetch(`${API_BASE}/api/reviews/ideas`, {
+      const res = await apiFetch(`/api/reviews/ideas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -321,30 +349,57 @@ export default function CustomerReview({
     }
   };
 
-  // Copy the selected review, then hand off to Google Maps for customer posting.
+  // Begin the handoff from the customer's tap; clipboard access is requested immediately.
   const handlePostDirectly = async (idea) => {
-    setSelectedIdeaId(idea.id);
-    setDraftReview(idea.text);
-    logEvent('idea_selected', { idea_id: idea.id });
-    logEvent('review_approved', { length: idea.text.length, direct_post: true });
-
-    const copyRequest = copyTextToClipboard(idea.text);
-    window.open(googleReviewUrl, '_blank', 'noopener,noreferrer');
-    const ok = await copyRequest;
-    setCopied(ok);
-    setShowCopyToast(true);
-    setTimeout(() => setShowCopyToast(false), 3500);
-
-    logEvent('google_review_link_opened');
-    setHandoffOpen(true);
+    await startReviewHandoff(idea.text, idea.id);
   };
 
+  const startReviewHandoff = async (reviewText, reviewId) => {
+    if (!reviewText?.trim()) return;
+    setSelectedIdeaId(reviewId);
+    setDraftReview(reviewText);
+    setHandoffOpen(true);
+    setCopyingReview(true);
+    setShowCopyToast(false);
+    logEvent('review_selected', { review_id: reviewId });
+    logEvent('idea_selected', { idea_id: reviewId });
+    logEvent('review_approved', { length: reviewText.length, direct_post: true });
+    logEvent('google_review_handoff_started', { review_id: reviewId });
 
+    try {
+      sessionStorage.setItem('nastaGharSelectedReview', reviewText);
+      sessionStorage.setItem('nastaGharSelectedRating', String(rating));
+      sessionStorage.setItem('nastaGharSelectedReviewId', String(reviewId ?? ''));
+      sessionStorage.setItem('nastaGharSelectedAt', new Date().toISOString());
+      sessionStorage.setItem('nastaGharBusinessId', businessId);
+      sessionStorage.setItem('nastaGharGoogleMapsDestination', googleReviewUrl);
+    } catch {
+      // Continue the handoff even when session storage is unavailable.
+    }
+
+    const copiedSuccessfully = await copyTextToClipboard(reviewText);
+    setCopyingReview(false);
+    setCopied(copiedSuccessfully);
+    setShowCopyToast(true);
+    setTimeout(() => setShowCopyToast(false), 3500);
+    try { sessionStorage.setItem('nastaGharClipboardCopied', String(copiedSuccessfully)); } catch {}
+    logEvent(copiedSuccessfully ? 'review_clipboard_success' : 'review_clipboard_failed', { review_id: reviewId });
+
+    if (copiedSuccessfully) {
+      logEvent('google_maps_redirect', { destination: googleReviewUrl });
+      logEvent('google_review_link_opened');
+      window.location.href = googleReviewUrl;
+      return;
+    }
+
+    // Keep the exact review visible with a retry and an explicit Maps fallback CTA.
+    setHandoffOpen(true);
+  };
 
   const handleMakeNatural = async () => {
     setIsRegenerating(true);
     try {
-      const res = await fetch(`${API_BASE}/api/reviews/generate`, {
+      const res = await apiFetch(`/api/reviews/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -364,24 +419,15 @@ export default function CustomerReview({
 
   const handleContinueToGoogle = async () => {
     if (!draftReview.trim()) return;
-    logEvent('review_approved', { length: draftReview.length });
-
-    const copyRequest = copyTextToClipboard(draftReview);
-    window.open(googleReviewUrl, '_blank', 'noopener,noreferrer');
-    const ok = await copyRequest;
-    setCopied(ok);
-    setShowCopyToast(true);
-    setTimeout(() => setShowCopyToast(false), 3500);
-
-    logEvent('google_review_link_opened');
-    setHandoffOpen(true);
+    await startReviewHandoff(draftReview, selectedIdeaId);
   };
 
   const handlePrivateFeedback = async (e) => {
     e.preventDefault();
     if (!privateNote.trim()) return;
+    setPrivateError('');
     try {
-      await fetch(`${API_BASE}/api/reviews/private-feedback`, {
+      const response = await apiFetch(`/api/reviews/private-feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -393,9 +439,12 @@ export default function CustomerReview({
           guest_contact: privateContact,
         }),
       });
+      if (!response.ok) throw new Error('Feedback request failed');
       setPrivateSent(true);
       logEvent('private_feedback_sent');
-    } catch { setPrivateSent(true); }
+    } catch {
+      setPrivateError('We couldn’t send your message right now. Please try again.');
+    }
   };
 
   const activeRating = hoverRating || rating;
@@ -688,7 +737,11 @@ export default function CustomerReview({
       {showCopyToast && (
         <div className="ng-toast" role="alert">
           <span className="ng-toast-icon">📋</span>
-          <span className="ng-toast-msg">Review copied to clipboard! Paste it on Google & tap Post.</span>
+          <span className="ng-toast-msg">
+            {copied
+                ? "તમારો review તૈયાર છે ✓ Google Maps માં 'Write a review' tap કરો, same stars select કરીને Paste કરો."
+                : 'Review copy na thayu. Tap Copy Review to try again.'}
+          </span>
         </div>
       )}
 
@@ -698,25 +751,28 @@ export default function CustomerReview({
           <div className="ng-modal ng-modal-bounce">
             <div className="ng-modal-icon">📋</div>
             <h3 className="ng-modal-title">
-              {copied ? 'Review Copied to Clipboard!' : 'Google Review Ready!'}
+              {copyingReview ? 'Preparing your review…' : copied ? 'Review Copied to Clipboard' : 'Copy Your Review to Continue'}
             </h3>
             <p className="ng-modal-body">
-              Google Maps is opening for <strong>{BRAND.name}</strong>.
-              Your review is copied — just paste and tap Post!
+              {copyingReview
+                ? <>તમારો review તૈયાર છે. Copy કરી રહ્યા છીએ અને Google Maps ખોલી રહ્યા છીએ…</>
+                : copied
+                ? <>તમારો review તૈયાર છે ✓ You selected {rating}★ here. On Google Maps, tap <strong>Write a review</strong>, select the same rating, then paste your review.</>
+                : <>Review copy na thayu. Your selected review is saved for this browser session; copy it below and try again. You selected {rating}★ here, so choose the same rating on Google Maps.</>}
             </p>
 
             <div className="ng-modal-steps">
               <div className="ng-modal-step">
                 <span className="ng-modal-step-num">1</span>
-                <span>Select <strong>{rating} stars</strong> on Google</span>
+                <span>Choose the rating that reflects your visit on Google (you selected <strong>{rating} stars</strong> here)</span>
               </div>
               <div className="ng-modal-step">
                 <span className="ng-modal-step-num">2</span>
-                <span><strong>Paste</strong> your review (Right-Click ➔ Paste or Ctrl+V)</span>
+                <span>{copyingReview ? 'Copying selected review…' : copied ? <><strong>Paste</strong> the copied review (use your device's Paste command, or long-press → Paste on mobile)</> : <>Copy the review below, then <strong>paste</strong> it into Google</>}</span>
               </div>
               <div className="ng-modal-step">
                 <span className="ng-modal-step-num">3</span>
-                <span>Tap <strong>Post</strong> — done in seconds! 🎊</span>
+                <span>Review it, then tap Google's <strong>Post</strong> button when you're ready.</span>
               </div>
             </div>
 
@@ -725,13 +781,17 @@ export default function CustomerReview({
               <button
                 type="button"
                 className="ng-btn-copy-mini"
+                disabled={copyingReview}
                 onClick={async () => {
-                  await copyTextToClipboard(draftReview);
-                  setCopyAgainSuccess(true);
-                  setTimeout(() => setCopyAgainSuccess(false), 2000);
+                  const ok = await copyTextToClipboard(draftReview);
+                  setCopied(ok);
+                  setCopyAgainSuccess(ok);
+                  try { sessionStorage.setItem('nastaGharClipboardCopied', String(ok)); } catch {}
+                  logEvent(ok ? 'review_clipboard_success' : 'review_clipboard_failed', { review_id: selectedIdeaId });
+                  if (ok) setTimeout(() => setCopyAgainSuccess(false), 2000);
                 }}
               >
-                {copyAgainSuccess ? '✓ Copied!' : '📋 Copy Again'}
+                {copyAgainSuccess ? '✓ Copied!' : copied ? '📋 Copy Again' : '📋 Copy Review'}
               </button>
             </div>
 
@@ -739,9 +799,14 @@ export default function CustomerReview({
               <button
                 type="button"
                 className="ng-btn-primary"
-                onClick={() => window.open(googleReviewUrl, '_blank', 'noopener,noreferrer')}
+                disabled={copyingReview}
+                onClick={() => {
+                  logEvent('google_maps_redirect', { destination: googleReviewUrl });
+                  logEvent('google_review_link_opened');
+                  window.location.href = googleReviewUrl;
+                }}
               >
-                ↗ Re-open Google Maps
+                ↗ Continue to Google Maps
               </button>
               <button
                 type="button"
@@ -778,6 +843,7 @@ export default function CustomerReview({
               </div>
             ) : (
               <form onSubmit={handlePrivateFeedback} className="ng-private-form">
+                {privateError && <p className="warning-box" role="alert">{privateError}</p>}
                 <textarea
                   className="ng-textarea"
                   rows={4}

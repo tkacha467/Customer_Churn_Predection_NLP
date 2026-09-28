@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 
+import { apiFetch } from '../lib/api';
 const DINING_PRESETS = [
   {
     label: '☕ Genuine 5-Star Cafe Visit',
@@ -31,7 +32,7 @@ export default function IntegrityPlayground() {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/stats')
+    apiFetch('/api/stats')
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(err => console.error("Failed to load stats:", err));
@@ -48,7 +49,7 @@ export default function IntegrityPlayground() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/predict', {
+      const response = await apiFetch('/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ review: reviewText, rating })

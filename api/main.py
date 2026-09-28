@@ -1,4 +1,9 @@
-from fastapi import FastAPI, HTTPException
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import time
@@ -12,19 +17,47 @@ from api.fusion.engine import fusion_engine
 from api.fusion.explainer import explainer
 
 from api.review_assistant import review_router
+from api.review_assistant.auth import require_owner
+from api.review_assistant.routes import get_client_ip
+from api.review_assistant.service import review_service
 
 app = FastAPI(title="NLP Integrity API", description="Modular Context-Aware Sentiment Pipeline")
 
+_environment = os.getenv("ENVIRONMENT", "development").lower()
+_cors_origins = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173",
+    ).split(",")
+    if origin.strip()
+]
+if _environment == "production":
+    if len(os.getenv("OWNER_PASSWORD", "")) < 20:
+        raise RuntimeError("OWNER_PASSWORD must contain at least 20 characters in production")
+    if len(os.getenv("OWNER_SESSION_SECRET", "")) < 32:
+        raise RuntimeError("OWNER_SESSION_SECRET must contain at least 32 characters in production")
+    if not _cors_origins or "*" in _cors_origins:
+        raise RuntimeError("CORS_ORIGINS must list exact trusted HTTPS origins in production")
+    if any(not origin.startswith("https://") for origin in _cors_origins):
+        raise RuntimeError("Production CORS_ORIGINS must use HTTPS")
+    if not os.getenv("REVIEW_DB_PATH") or not os.getenv("BUSINESS_LINKS_PATH"):
+        raise RuntimeError("Production must configure persistent REVIEW_DB_PATH and BUSINESS_LINKS_PATH")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 # Register Review Assistant endpoints
 app.include_router(review_router, prefix="/api", tags=["review_assistant"])
+
+@app.get("/healthz")
+def health_check():
+    return {"status": "ok"}
 
 import threading
 
@@ -168,11 +201,13 @@ def get_stats():
     }
 
 @app.post("/api/predict")
-def predict_integrity(req: ReviewRequest):
+def predict_integrity(req: ReviewRequest, request: Request):
+    if not review_service.check_rate_limit(f"predict:{get_client_ip(request)}", max_per_minute=30):
+        raise HTTPException(status_code=429, detail="Rate limit reached. Please wait a moment.")
     return run_inference_pipeline(req, debug=False)
 
 @app.post("/api/debug")
-def debug_inference(req: ReviewRequest):
+def debug_inference(req: ReviewRequest, _: None = Depends(require_owner)):
     return run_inference_pipeline(req, debug=True)
 
 if __name__ == "__main__":

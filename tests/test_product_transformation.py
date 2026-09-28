@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 from api.main import app
 
 client = TestClient(app)
+login = client.post("/api/auth/login", json={"password": "test-only-owner-password"})
+assert login.status_code == 200
 
 def test_review_ideas_generation_5_star():
     payload = {

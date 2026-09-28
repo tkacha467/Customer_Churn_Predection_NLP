@@ -7,10 +7,12 @@ the customer performs the final review submission.
 
 import os
 import json
+import copy
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-CONFIG_FILE = Path(__file__).parent / "business_links.json"
+SOURCE_CONFIG_FILE = Path(__file__).parent / "business_links.json"
+CONFIG_FILE = Path(os.getenv("BUSINESS_LINKS_PATH", str(SOURCE_CONFIG_FILE))).expanduser()
 
 DEFAULT_TOPICS = [
     "Breakfast",
@@ -29,9 +31,10 @@ class GoogleReviewManager:
         self._load_links()
 
     def _load_links(self):
-        if CONFIG_FILE.exists():
+        source = CONFIG_FILE if CONFIG_FILE.exists() else SOURCE_CONFIG_FILE
+        if source.exists():
             try:
-                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                with open(source, "r", encoding="utf-8") as f:
                     self._links = json.load(f)
             except Exception as e:
                 print(f"[GoogleReviewManager] Error loading links: {e}")
@@ -53,10 +56,13 @@ class GoogleReviewManager:
 
     def _save_links(self):
         try:
-            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+            temporary = CONFIG_FILE.with_suffix(f"{CONFIG_FILE.suffix}.tmp")
+            with open(temporary, "w", encoding="utf-8") as f:
                 json.dump(self._links, f, indent=2)
+            temporary.replace(CONFIG_FILE)
         except Exception as e:
-            print(f"[GoogleReviewManager] Error saving links: {e}")
+            raise RuntimeError("Could not persist restaurant configuration") from e
 
     def get_review_url(self, business_id: str) -> Dict[str, Any]:
         info = self._links.get(business_id) or self._links.get("default_business", {})
@@ -90,6 +96,8 @@ class GoogleReviewManager:
         topics: Optional[List[str]] = None,
         primary_accent: Optional[str] = None
     ) -> Dict[str, Any]:
+        previous_links = self._links
+        self._links = copy.deepcopy(self._links)
         if business_id not in self._links:
             self._links[business_id] = {
                 "platform": "google",
@@ -110,7 +118,11 @@ class GoogleReviewManager:
         if primary_accent is not None:
             self._links[business_id]["primary_accent"] = primary_accent.strip()
         
-        self._save_links()
+        try:
+            self._save_links()
+        except Exception:
+            self._links = previous_links
+            raise
         return self.get_review_url(business_id)
 
 google_review_manager = GoogleReviewManager()

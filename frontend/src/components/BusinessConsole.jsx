@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 
+import { apiFetch } from '../lib/api';
 export default function BusinessConsole({ businessId = 'default_business' }) {
   // Navigation Sub-tab inside Management Portal
   const [subTab, setSubTab] = useState('overview'); // 'overview' | 'qr_studio' | 'reply_studio' | 'tickets' | 'settings'
@@ -36,7 +37,7 @@ export default function BusinessConsole({ businessId = 'default_business' }) {
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/businesses/${businessId}/review-link`);
+      const res = await apiFetch(`/api/businesses/${businessId}/review-link`);
       const data = await res.json();
       setGoogleUrl(data.review_url);
       setIsConfigured(data.is_configured);
@@ -50,7 +51,7 @@ export default function BusinessConsole({ businessId = 'default_business' }) {
   const fetchAnalytics = async () => {
     setLoadingAnalytics(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/reviews/analytics');
+      const res = await apiFetch('/api/reviews/analytics');
       const data = await res.json();
       setAnalytics(data);
     } catch (err) {
@@ -62,7 +63,7 @@ export default function BusinessConsole({ businessId = 'default_business' }) {
 
   const fetchTickets = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/reviews/private-tickets');
+      const res = await apiFetch('/api/reviews/private-tickets');
       const data = await res.json();
       setPrivateTickets(data);
     } catch (err) {
@@ -98,7 +99,7 @@ export default function BusinessConsole({ businessId = 'default_business' }) {
     setSaveStatus('');
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/businesses/${businessId}/config`, {
+      const res = await apiFetch(`/api/businesses/${businessId}/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -129,7 +130,7 @@ export default function BusinessConsole({ businessId = 'default_business' }) {
 
     setIsGeneratingReply(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/reviews/manager-reply', {
+      const res = await apiFetch('/api/reviews/manager-reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

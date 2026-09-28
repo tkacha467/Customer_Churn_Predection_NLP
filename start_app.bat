@@ -14,14 +14,7 @@ echo.
 cd /d "%~dp0"
 set PYTHONPATH=%cd%
 
-:: Kill anything already on port 8000 or 5173 to avoid conflicts
-echo  [1/3] Checking and clearing port conflicts (8000, 5173)...
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000 " ^| findstr "LISTENING" 2^>nul') do (
-    taskkill /F /PID %%a >nul 2>&1
-)
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173 " ^| findstr "LISTENING" 2^>nul') do (
-    taskkill /F /PID %%a >nul 2>&1
-)
+echo  [1/3] Preparing local development servers...
 
 :: Select Python Executable
 if exist "%~dp0.venv\Scripts\python.exe" (

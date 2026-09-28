@@ -4144,3 +4144,43 @@ body:has(.ng-app-root) {
 
 
 
+.owner-login-panel {
+  min-height: 55vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.owner-login-card {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  color: #f8fafc;
+  background: #172033;
+}
+
+.owner-login-card h1,
+.owner-login-card p { margin: 0; }
+.owner-login-card p { color: #cbd5e1; }
+.owner-login-card input {
+  min-height: 44px;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #64748b;
+  border-radius: 8px;
+  color: #0f172a;
+  background: #fff;
+}
+.owner-login-card button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: #c2410c;
+  font-weight: 700;
+  cursor: pointer;
+}
+.owner-login-card button:disabled { opacity: 0.65; cursor: wait; }
+
