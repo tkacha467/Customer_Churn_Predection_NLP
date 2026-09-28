@@ -6,7 +6,7 @@ import RestaurantWorld from './RestaurantWorld';
 const BRAND = {
   name: 'Nasta Ghar',
   googleMapUrl:
-    'https://search.google.com/local/writereview?placeid=ChIJEGXiuzcAy1k51pOxt51jLro',
+    'https://search.google.com/local/writereview?placeid=ChIJZe_7NwDLsTkR1pOx29tjLro',
 };
 
 const DEFAULT_TOPICS = [
