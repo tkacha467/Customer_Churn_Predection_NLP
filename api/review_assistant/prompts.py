@@ -100,13 +100,10 @@ def generate_candidate_ideas(
     rating: int,
     aspects: List[str],
     user_note: str = "",
-    business_name: str = "the restaurant"
+    business_name: str = "Nasta Ghar"
 ) -> List[Dict[str, str]]:
     """
-    Generates 3 distinct, human-sounding review candidate ideas based strictly on user input.
-    Idea 1: Taste / Product focus
-    Idea 2: Atmosphere / Staff focus
-    Idea 3: Overall experience / balanced
+    Generates 10 distinct, human-sounding review candidate ideas based on user input.
     """
     cleaned_aspects = [a.lower().strip() for a in aspects if a.strip()]
     has_chai = any("chai" in a or "drink" in a or "beverage" in a or "coffee" in a for a in cleaned_aspects)
@@ -125,82 +122,73 @@ def generate_candidate_ideas(
         n = user_note.strip().rstrip(".!")
         note_fragment = f" {n}."
 
-    ideas = []
-
     if rating == 5:
-        # Idea 1: Breakfast / Food / Chai Focus
-        if has_breakfast and has_chai:
-            idea_1 = f"Best breakfast spot in town! The food was fresh and the chai was perfect.{note_fragment} Absolutely loved it 🍳☕"
-        elif has_breakfast:
-            idea_1 = f"Fantastic breakfast! Everything was fresh, flavourful, and served hot.{note_fragment} Already planning my next visit 🍳"
-        elif has_chai and not has_food and not has_breakfast:
-            idea_1 = f"Really enjoyed the chai here! Perfectly made and the staff were super welcoming.{note_fragment} Definitely coming back ☕😊"
-        elif has_food or has_snacks:
-            idea_1 = f"Really enjoyed the food and the friendly service. Everything tasted fresh and delicious.{note_fragment} Highly recommend! 😊"
-        else:
-            idea_1 = f"Had a fantastic time here! Everything was top quality and the team made us feel right at home.{note_fragment} Loved it ❤️"
-
-        # Idea 2: Vibe / Service Focus
-        if has_vibe and has_service:
-            idea_2 = f"Such a lovely atmosphere and really friendly staff. It's a great place to sit, relax, and enjoy yourself.{note_fragment} ✨"
-        elif has_service:
-            idea_2 = f"The staff were so friendly and helpful from the moment we walked in. Great energy and wonderful service!{note_fragment} 😊"
-        elif has_vibe:
-            idea_2 = f"Loved the vibe here! Very cozy, comfortable space with great service.{note_fragment} Would happily come back ✨"
-        else:
-            idea_2 = f"Great experience from start to finish. Friendly staff, relaxed environment, and quick service!{note_fragment} 😊"
-
-        # Idea 3: Overall / Return Visit
-        if has_value:
-            idea_3 = f"Great value and a wonderful visit! Fresh food, great chai, and attentive staff.{note_fragment} Will definitely be back ❤️"
-        else:
-            idea_3 = f"Had a wonderful visit! The food, drinks, and service were all spot on.{note_fragment} Will definitely be back again soon ❤️"
-
+        ideas = [
+            {"id": "idea_1", "focus": "Fresh Breakfast", "text": f"Best breakfast spot in town! The food was fresh, hot, and the chai was perfect.{note_fragment} Absolutely loved it 🍳☕"},
+            {"id": "idea_2", "focus": "Babalal Ni Chai", "text": f"Babalal Ni Chai is truly unbeatable! Steaming hot tea paired with fresh snacks made our morning.{note_fragment} Highly recommended ☕😋"},
+            {"id": "idea_3", "focus": "Hospitality & Staff", "text": f"Incredible hospitality and welcoming service! The team makes you feel right at home.{note_fragment} Loved the positive vibe ❤️"},
+            {"id": "idea_4", "focus": "Atmosphere & Service", "text": f"Great experience from start to finish. Friendly staff, relaxed traditional environment, and super fast service!{note_fragment} 😊✨"},
+            {"id": "idea_5", "focus": "Authentic Taste", "text": f"Authentic Gujarati homestyle taste! Everything is made fresh with genuine care and top ingredients.{note_fragment} 🍲👌"},
+            {"id": "idea_6", "focus": "Cleanliness & Hygiene", "text": f"Extremely neat, clean, and hygienic place with an open kitchen. Delicious food and great peace of mind!{note_fragment} ✨🍽️"},
+            {"id": "idea_7", "focus": "Value for Money", "text": f"Wonderful quality at very reasonable prices. Generous portions and rich taste.{note_fragment} Best value breakfast around 💰👍"},
+            {"id": "idea_8", "focus": "Family Dining", "text": f"Lovely place to visit with family and friends. Everyone from kids to elders thoroughly enjoyed the food.{note_fragment} Will visit again 👨‍👩‍👧‍👦❤️"},
+            {"id": "idea_9", "focus": "Evening Snacks", "text": f"Perfect place for evening snacks and hot beverages. Freshly prepared items and prompt service!{note_fragment} 🥪⚡"},
+            {"id": "idea_10", "focus": "Overall Visit", "text": f"Had a fantastic time at {business_name}! Outstanding taste, courteous staff, and great ambiance.{note_fragment} 10/10 recommended! 🌟"}
+        ]
     elif rating == 4:
-        # Idea 1: Good food/breakfast/chai
-        if has_breakfast:
-            idea_1 = f"Really good breakfast here! Fresh food and a friendly team.{note_fragment} Nice start to the day 🍳"
-        elif has_chai:
-            idea_1 = f"Solid spot with really good chai and friendly service.{note_fragment} Nice place to relax for a bit ☕"
-        elif has_food or has_snacks:
-            idea_1 = f"Had a really good time here. The food was tasty and the service was friendly.{note_fragment} Nice place to relax and eat 😊"
-        else:
-            idea_1 = f"Really good experience overall. Friendly team and good quality throughout.{note_fragment} Would recommend!"
-
-        # Idea 2: Atmosphere & Service
-        if has_vibe:
-            idea_2 = f"Nice, comfortable atmosphere with friendly staff.{note_fragment} A great spot to grab a bite with friends ✨"
-        elif has_speed:
-            idea_2 = f"Good service and quick turnaround.{note_fragment} Everything went smoothly and we enjoyed our visit."
-        else:
-            idea_2 = f"Good service and a welcoming team.{note_fragment} Everything went smoothly and we enjoyed our time."
-
-        # Idea 3: Overall
-        if has_value:
-            idea_3 = f"Very pleasant visit! Great food, nice staff, and brilliant value.{note_fragment} Happy to come back again."
-        else:
-            idea_3 = f"Very pleasant visit! Good food, nice staff, and fair value.{note_fragment} Happy to come back again."
-
+        ideas = [
+            {"id": "idea_1", "focus": "Breakfast", "text": f"Really good breakfast! Fresh food and tasty chai.{note_fragment} A great start to the day 🍳"},
+            {"id": "idea_2", "focus": "Chai & Snacks", "text": f"Delicious snacks and lovely chai. Friendly staff and pleasant atmosphere.{note_fragment} ☕"},
+            {"id": "idea_3", "focus": "Service & Seating", "text": f"Good food, quick service, and clean seating. Would definitely come back again.{note_fragment} 👍"},
+            {"id": "idea_4", "focus": "Family Visit", "text": f"Tasty food and prompt service. Enjoyed the breakfast with family.{note_fragment} 😊"},
+            {"id": "idea_5", "focus": "Taste & Quality", "text": f"Nice authentic taste and reasonable prices. Worth a visit!{note_fragment} 🍲"},
+            {"id": "idea_6", "focus": "Cleanliness", "text": f"Good hygienic place with welcoming staff. Chai was especially nice.{note_fragment} ✨"},
+            {"id": "idea_7", "focus": "Value", "text": f"Great value for money. Fresh items and decent service speed.{note_fragment} 💰"},
+            {"id": "idea_8", "focus": "Hospitality", "text": f"Pleasant dining experience. Good portions and warm hospitality.{note_fragment} 🍽️"},
+            {"id": "idea_9", "focus": "Quick Bite", "text": f"Satisfying snacks and refreshing tea. A reliable spot for breakfast.{note_fragment} 🥪"},
+            {"id": "idea_10", "focus": "Overall", "text": f"Overall a very positive experience. Clean place and good food!{note_fragment} 🌟"}
+        ]
     elif rating == 3:
-        idea_1 = f"Overall a decent experience. The food was good, though service was a bit slow today.{note_fragment} An okay visit."
-        idea_2 = f"Nice place and comfortable seating, but the wait took a little longer than expected.{note_fragment} Average experience overall."
-        idea_3 = f"The place has potential. Friendly staff and okay food, but there's some room for improvement.{note_fragment}"
-
+        ideas = [
+            {"id": "idea_1", "focus": "Service Speed", "text": f"Overall a decent experience. The food was good, though service was a bit slow today.{note_fragment}"},
+            {"id": "idea_2", "focus": "Seating & Wait", "text": f"Nice place and comfortable seating, but the wait took a little longer than expected.{note_fragment}"},
+            {"id": "idea_3", "focus": "Potential", "text": f"The place has potential. Friendly staff and okay food, but there's room for improvement.{note_fragment}"},
+            {"id": "idea_4", "focus": "Food Temperature", "text": f"Chai was good, but some snacks could have been served hotter.{note_fragment}"},
+            {"id": "idea_5", "focus": "Overall", "text": f"Average visit today. Hope service gets a bit faster next time.{note_fragment}"},
+            {"id": "idea_6", "focus": "Atmosphere", "text": f"Decent atmosphere, though it got quite crowded during peak morning hours.{note_fragment}"},
+            {"id": "idea_7", "focus": "Snacks", "text": f"Standard snacks and tea. Fair pricing, but expected slightly better taste.{note_fragment}"},
+            {"id": "idea_8", "focus": "Staff", "text": f"Polite staff, but took a while to get our order delivered.{note_fragment}"},
+            {"id": "idea_9", "focus": "Cleanliness", "text": f"Cleanliness was okay, but tables could be cleared a bit quicker.{note_fragment}"},
+            {"id": "idea_10", "focus": "Experience", "text": f"Fair experience overall. Good tea, but food was average.{note_fragment}"}
+        ]
     elif rating == 2:
-        idea_1 = f"The food was okay, but the wait was quite long today.{note_fragment} Hopefully the service gets a little quicker next time."
-        idea_2 = f"A bit disappointed with the visit. The staff were polite, but the wait time and orders were mixed up.{note_fragment}"
-        idea_3 = f"Not the best visit today. The place was crowded and the service was inattentive.{note_fragment} Hope things improve."
-
+        ideas = [
+            {"id": "idea_1", "focus": "Wait Time", "text": f"The food was okay, but the wait was quite long today.{note_fragment}"},
+            {"id": "idea_2", "focus": "Order Mixup", "text": f"A bit disappointed with the visit. The staff were polite, but order service was mixed up.{note_fragment}"},
+            {"id": "idea_3", "focus": "Crowded", "text": f"Not the best visit today. The place was crowded and service was inattentive.{note_fragment}"},
+            {"id": "idea_4", "focus": "Food Quality", "text": f"Expected better quality. The food was lukewarm and took too long.{note_fragment}"},
+            {"id": "idea_5", "focus": "Overall", "text": f"Disappointing experience today. Hope management looks into faster service.{note_fragment}"},
+            {"id": "idea_6", "focus": "Service", "text": f"Slow service and staff seemed overwhelmed.{note_fragment}"},
+            {"id": "idea_7", "focus": "Chai", "text": f"Chai was okay, but the snack items were below expectations.{note_fragment}"},
+            {"id": "idea_8", "focus": "Hygiene", "text": f"Tables took too long to get cleaned. Needs better table turnover.{note_fragment}"},
+            {"id": "idea_9", "focus": "Value", "text": f"Didn't feel worth the wait today. Hopefully improves.{note_fragment}"},
+            {"id": "idea_10", "focus": "Experience", "text": f"Subpar visit today. Lots of room for operational improvement.{note_fragment}"}
+        ]
     else: # 1 star
-        idea_1 = f"Unfortunately, my experience wasn't great today. The service took quite a while and the food wasn't what I expected.{note_fragment}"
-        idea_2 = f"Really disappointed with our visit. The wait was excessive and the staff seemed unorganized.{note_fragment}"
-        idea_3 = f"Subpar experience today. Cold food and slow service.{note_fragment} I hope management takes note and addresses this."
+        ideas = [
+            {"id": "idea_1", "focus": "Long Wait", "text": f"Unfortunately, my experience wasn't great today. The service took very long and food was cold.{note_fragment}"},
+            {"id": "idea_2", "focus": "Staff Management", "text": f"Really disappointed with our visit. The wait was excessive and staff seemed unorganized.{note_fragment}"},
+            {"id": "idea_3", "focus": "Poor Quality", "text": f"Subpar experience today. Cold food and slow service. I hope management addresses this.{note_fragment}"},
+            {"id": "idea_4", "focus": "Service Failure", "text": f"Very frustrating visit. Orders were delayed and items were missing.{note_fragment}"},
+            {"id": "idea_5", "focus": "Quality Issue", "text": f"Food quality was unacceptable today. Did not enjoy the meal.{note_fragment}"},
+            {"id": "idea_6", "focus": "Cleanliness", "text": f"Cleanliness was not up to mark and staff did not attend properly.{note_fragment}"},
+            {"id": "idea_7", "focus": "Customer Service", "text": f"Very poor customer service and long waiting times.{note_fragment}"},
+            {"id": "idea_8", "focus": "Disappointing", "text": f"Had high hopes but completely let down by the service and food.{note_fragment}"},
+            {"id": "idea_9", "focus": "Management", "text": f"Need urgent improvement in food preparation and table service.{note_fragment}"},
+            {"id": "idea_10", "focus": "Overall", "text": f"Extremely disappointing visit today. Would not recommend based on this experience.{note_fragment}"}
+        ]
 
-    return [
-        {"id": "idea_1", "focus": "Food & Quality", "text": idea_1.strip()},
-        {"id": "idea_2", "focus": "Atmosphere & Service", "text": idea_2.strip()},
-        {"id": "idea_3", "focus": "Overall Visit", "text": idea_3.strip()}
-    ]
+    return ideas
 
 
 def humanize_review_draft(

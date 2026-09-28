@@ -6,7 +6,7 @@ import RestaurantWorld from './RestaurantWorld';
 const BRAND = {
   name: 'Nasta Ghar',
   googleMapUrl:
-    'https://maps.app.goo.gl/jDbCXPggNMLoF59K6',
+    'https://www.google.com/maps/place/Nasta+ghar/@22.2876495,70.7565735,15z/data=!4m17!1m8!3m7!1s0x3959cb0037bbe265:0xba2e639db7b193d6!2sNasta+ghar!8m2!3d22.2875481!4d70.7565747!10e5!16s%2Fg%2F11yk9xk25r!3m7!1s0x3959cb0037bbe265:0xba2e639db7b193d6!8m2!3d22.2875481!4d70.7565747!9m1!1b1!16s%2Fg%2F11yk9xk25r?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D',
 };
 
 const DEFAULT_TOPICS = [
@@ -65,6 +65,92 @@ export default function CustomerReview({
   const [ideas, setIdeas] = useState([]);
   const [loadingIdeas, setLoadingIdeas] = useState(false);
   const [selectedIdeaId, setSelectedIdeaId] = useState(null);
+  const carouselRef = useRef(null);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+
+  const handleCarouselScroll = () => {
+    if (!carouselRef.current) return;
+    const { scrollLeft } = carouselRef.current;
+    const cardWidth = 320;
+    const idx = Math.min(ideas.length - 1, Math.max(0, Math.round(scrollLeft / cardWidth)));
+    setCurrentCardIndex(idx);
+  };
+
+  const scrollCarousel = (direction) => {
+    if (!carouselRef.current) return;
+    const offset = direction === 'left' ? -320 : 320;
+    carouselRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+  };
+
+  const getFallbackIdeas = (r, note) => {
+    const noteText = note && note.trim() ? ` ${note.trim().replace(/[.!]+$/, '')}.` : '';
+    if (r === 5) {
+      return [
+        { id: 'opt1', focus: 'Fresh Breakfast', text: `Best breakfast spot in town! The food was fresh, hot, and the chai was perfect.${noteText} Absolutely loved it 🍳☕` },
+        { id: 'opt2', focus: 'Babalal Ni Chai', text: `Babalal Ni Chai is truly unbeatable! Steaming hot tea paired with fresh snacks made our morning.${noteText} Highly recommended ☕😋` },
+        { id: 'opt3', focus: 'Hospitality & Staff', text: `Incredible hospitality and welcoming service! Darshan Bhai and the team make you feel right at home.${noteText} Loved the positive vibe ❤️` },
+        { id: 'opt4', focus: 'Atmosphere & Service', text: `Great experience from start to finish. Friendly staff, relaxed traditional environment, and super fast service!${noteText} 😊✨` },
+        { id: 'opt5', focus: 'Authentic Taste', text: `Authentic Gujarati homestyle taste! Everything is made fresh with genuine care and top ingredients.${noteText} 🍲👌` },
+        { id: 'opt6', focus: 'Cleanliness & Hygiene', text: `Extremely neat, clean, and hygienic place with an open kitchen. Delicious food and great peace of mind!${noteText} ✨🍽️` },
+        { id: 'opt7', focus: 'Value for Money', text: `Wonderful quality at very reasonable prices. Generous portions and rich authentic taste.${noteText} Best value breakfast around 💰👍` },
+        { id: 'opt8', focus: 'Family Dining', text: `Lovely place to visit with family and friends. Everyone from kids to elders thoroughly enjoyed the food.${noteText} Will visit again 👨‍👩‍👧‍👦❤️` },
+        { id: 'opt9', focus: 'Evening Snacks', text: `Perfect place for evening snacks and hot beverages. Freshly prepared items and prompt service!${noteText} 🥪⚡` },
+        { id: 'opt10', focus: 'Overall Visit', text: `Had a fantastic time at ${BRAND.name}! Outstanding taste, courteous staff, and great ambiance.${noteText} 10/10 recommended! 🌟` },
+      ];
+    } else if (r === 4) {
+      return [
+        { id: 'opt1', focus: 'Breakfast', text: `Really good breakfast! Fresh food and tasty chai.${noteText} A great start to the day 🍳` },
+        { id: 'opt2', focus: 'Chai & Snacks', text: `Delicious snacks and lovely chai. Friendly staff and pleasant atmosphere.${noteText} ☕` },
+        { id: 'opt3', focus: 'Service & Seating', text: `Good food, quick service, and clean seating. Would definitely come back again.${noteText} 👍` },
+        { id: 'opt4', focus: 'Family Visit', text: `Tasty food and prompt service. Enjoyed the breakfast with family.${noteText} 😊` },
+        { id: 'opt5', focus: 'Taste & Quality', text: `Nice authentic taste and reasonable prices. Worth a visit!${noteText} 🍲` },
+        { id: 'opt6', focus: 'Cleanliness', text: `Good hygienic place with welcoming staff. Chai was especially nice.${noteText} ✨` },
+        { id: 'opt7', focus: 'Value', text: `Great value for money. Fresh items and decent service speed.${noteText} 💰` },
+        { id: 'opt8', focus: 'Hospitality', text: `Pleasant dining experience. Good portions and warm hospitality.${noteText} 🍽️` },
+        { id: 'opt9', focus: 'Quick Bite', text: `Satisfying snacks and refreshing tea. A reliable spot for breakfast.${noteText} 🥪` },
+        { id: 'opt10', focus: 'Overall', text: `Overall a very positive experience. Clean place and good food!${noteText} 🌟` },
+      ];
+    } else if (r === 3) {
+      return [
+        { id: 'opt1', focus: 'Service Speed', text: `Overall a decent experience. The food was good, though service was a bit slow today.${noteText}` },
+        { id: 'opt2', focus: 'Seating & Wait', text: `Nice place and comfortable seating, but the wait took a little longer than expected.${noteText}` },
+        { id: 'opt3', focus: 'Potential', text: `The place has potential. Friendly staff and okay food, but there's room for improvement.${noteText}` },
+        { id: 'opt4', focus: 'Food Temperature', text: `Chai was good, but some snacks could have been served hotter.${noteText}` },
+        { id: 'opt5', focus: 'Overall', text: `Average visit today. Hope service gets a bit faster next time.${noteText}` },
+        { id: 'opt6', focus: 'Atmosphere', text: `Decent atmosphere, though it got quite crowded during peak morning hours.${noteText}` },
+        { id: 'opt7', focus: 'Snacks', text: `Standard snacks and tea. Fair pricing, but expected slightly better taste.${noteText}` },
+        { id: 'opt8', focus: 'Staff', text: `Polite staff, but took a while to get our order delivered.${noteText}` },
+        { id: 'opt9', focus: 'Cleanliness', text: `Cleanliness was okay, but tables could be cleared a bit quicker.${noteText}` },
+        { id: 'opt10', focus: 'Experience', text: `Fair experience overall. Good tea, but food was average.${noteText}` },
+      ];
+    } else if (r === 2) {
+      return [
+        { id: 'opt1', focus: 'Wait Time', text: `The food was okay, but the wait was quite long today.${noteText}` },
+        { id: 'opt2', focus: 'Order Mixup', text: `A bit disappointed with the visit. The staff were polite, but order service was mixed up.${noteText}` },
+        { id: 'opt3', focus: 'Crowded', text: `Not the best visit today. The place was crowded and service was inattentive.${noteText}` },
+        { id: 'opt4', focus: 'Food Quality', text: `Expected better quality. The food was lukewarm and took too long.${noteText}` },
+        { id: 'opt5', focus: 'Overall', text: `Disappointing experience today. Hope management looks into faster service.${noteText}` },
+        { id: 'opt6', focus: 'Service', text: `Slow service and staff seemed overwhelmed.${noteText}` },
+        { id: 'opt7', focus: 'Chai', text: `Chai was okay, but the snack items were below expectations.${noteText}` },
+        { id: 'opt8', focus: 'Hygiene', text: `Tables took too long to get cleaned. Needs better table turnover.${noteText}` },
+        { id: 'opt9', focus: 'Value', text: `Didn't feel worth the wait today. Hopefully improves.${noteText}` },
+        { id: 'opt10', focus: 'Experience', text: `Subpar visit today. Lots of room for operational improvement.${noteText}` },
+      ];
+    } else {
+      return [
+        { id: 'opt1', focus: 'Long Wait', text: `Unfortunately, my experience wasn't great today. The service took very long and food was cold.${noteText}` },
+        { id: 'opt2', focus: 'Staff Management', text: `Really disappointed with our visit. The wait was excessive and staff seemed unorganized.${noteText}` },
+        { id: 'opt3', focus: 'Poor Quality', text: `Subpar experience today. Cold food and slow service. I hope management addresses this.${noteText}` },
+        { id: 'opt4', focus: 'Service Failure', text: `Very frustrating visit. Orders were delayed and items were missing.${noteText}` },
+        { id: 'opt5', focus: 'Quality Issue', text: `Food quality was unacceptable today. Did not enjoy the meal.${noteText}` },
+        { id: 'opt6', focus: 'Cleanliness', text: `Cleanliness was not up to mark and staff did not attend properly.${noteText}` },
+        { id: 'opt7', focus: 'Customer Service', text: `Very poor customer service and long waiting times.${noteText}` },
+        { id: 'opt8', focus: 'Disappointing', text: `Had high hopes but completely let down by the service and food.${noteText}` },
+        { id: 'opt9', focus: 'Management', text: `Need urgent improvement in food preparation and table service.${noteText}` },
+        { id: 'opt10', focus: 'Overall', text: `Extremely disappointing visit today. Would not recommend based on this experience.${noteText}` },
+      ];
+    }
+  };
 
   // Editor
   const [draftReview, setDraftReview] = useState('');
@@ -106,8 +192,6 @@ export default function CustomerReview({
     fetch(`http://127.0.0.1:8000/api/businesses/${businessId}/review-link`)
       .then((r) => r.json())
       .then((d) => {
-        // Keep the restaurant's selected Google Maps destination fixed; the API may enrich topics.
-        // Update topics from API if available
         if (d.topics && d.topics.length > 0) {
           const enriched = d.topics.map((t) => ({
             label: t,
@@ -206,6 +290,7 @@ export default function CustomerReview({
   const handleProceedToIdeas = async () => {
     setLoadingIdeas(true);
     setStep(3);
+    setCurrentCardIndex(0);
     logEvent('aspects_selected', { aspects: selectedTopics });
     try {
       const res = await fetch('http://127.0.0.1:8000/api/reviews/ideas', {
@@ -219,35 +304,13 @@ export default function CustomerReview({
         }),
       });
       const data = await res.json();
-      if (data.ideas?.length) setIdeas(data.ideas);
+      if (data.ideas && data.ideas.length >= 5) {
+        setIdeas(data.ideas);
+      } else {
+        setIdeas(getFallbackIdeas(rating, personalNote));
+      }
     } catch {
-      // Fallback ideas
-      setIdeas([
-        {
-          id: 'fb1',
-          focus: 'Breakfast',
-          text:
-            rating >= 4
-              ? `Really enjoyed the breakfast at ${BRAND.name}! Fresh, hot, and full of flavour. Definitely coming back! 🍳`
-              : `Visited ${BRAND.name} for breakfast. Food was okay, hoping for a better experience next time.`,
-        },
-        {
-          id: 'fb2',
-          focus: 'Overall',
-          text:
-            rating >= 4
-              ? `Great spot for chai and snacks. The staff were friendly and service was quick! ☕`
-              : `The place has potential. Chai was good but some things could be improved.`,
-        },
-        {
-          id: 'fb3',
-          focus: 'Value',
-          text:
-            rating >= 4
-              ? `Wonderful value for money! ${BRAND.name} offers great breakfast at very reasonable prices. Loved the chai ☕`
-              : `Average experience. Could be better for the price.`,
-        },
-      ]);
+      setIdeas(getFallbackIdeas(rating, personalNote));
     } finally {
       setLoadingIdeas(false);
     }
@@ -271,13 +334,7 @@ export default function CustomerReview({
     setHandoffOpen(true);
   };
 
-  // Customize/Edit idea in Step 4
-  const handleSelectIdea = (idea) => {
-    setSelectedIdeaId(idea.id);
-    setDraftReview(idea.text);
-    logEvent('idea_selected', { idea_id: idea.id });
-    setStep(4);
-  };
+
 
   const handleMakeNatural = async () => {
     setIsRegenerating(true);
@@ -469,46 +526,76 @@ export default function CustomerReview({
         )}
 
         {/* ════════════════════════════════════════════════════════════════
-            STEP 3 — IDEA CARDS
+            STEP 3 — HORIZONTAL IDEA CAROUSEL (10 OPTIONS)
         ════════════════════════════════════════════════════════════════ */}
         {step === 3 && (
           <div className="ng-step ng-fade-in">
             <h2 className="ng-step-title">Your review ideas</h2>
-            <p className="ng-step-sub">Pick the one that feels right — you can edit it next!</p>
+            <p className="ng-step-sub">Swipe left/right (1 to 10) & tap your favourite to post on Google Maps!</p>
 
             {loadingIdeas ? (
               <div className="ng-loading-box">
                 <div className="ng-loading-spinner">🍳</div>
-                <p className="ng-loading-text">Crafting honest ideas for you...</p>
+                <p className="ng-loading-text">Crafting 10 honest ideas for you...</p>
               </div>
             ) : (
-              <div className="ng-ideas-list">
-                {ideas.map((idea, i) => (
-                  <div key={idea.id || i} className={`ng-idea-card ${selectedIdeaId === idea.id ? 'picked' : ''}`}>
-                    <div className="ng-idea-meta">
-                      <span className="ng-idea-num">Option {i + 1}</span>
-                      <span className="ng-idea-focus">{idea.focus}</span>
-                    </div>
-                    <p className="ng-idea-text">"{idea.text}"</p>
-                    <div className="ng-idea-actions">
-                      <button
-                        type="button"
-                        className="ng-btn-post-direct"
+              <>
+                <div className="ng-carousel-indicator">
+                  <span className="ng-carousel-count">
+                    Review {currentCardIndex + 1} of {ideas.length}
+                  </span>
+                </div>
+
+                <div className="ng-ideas-carousel-wrapper">
+                  <button
+                    type="button"
+                    className="ng-carousel-nav-btn ng-nav-left"
+                    onClick={() => scrollCarousel('left')}
+                    aria-label="Previous review option"
+                  >
+                    ‹
+                  </button>
+
+                  <div
+                    className="ng-ideas-carousel"
+                    ref={carouselRef}
+                    onScroll={handleCarouselScroll}
+                  >
+                    {ideas.map((idea, i) => (
+                      <div
+                        key={idea.id || i}
+                        className={`ng-idea-card ${selectedIdeaId === idea.id ? 'picked' : ''}`}
                         onClick={() => handlePostDirectly(idea)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handlePostDirectly(idea);
+                          }
+                        }}
                       >
-                        Copy & open Google Maps
-                      </button>
-                      <button
-                        type="button"
-                        className="ng-btn-edit-idea"
-                        onClick={() => handleSelectIdea(idea)}
-                        title="Customize or edit this review before posting"
-                      >
-                        ✏️ Customize
-                      </button>
-                    </div>
+                        <div className="ng-idea-meta">
+                          <span className="ng-idea-num">Option {i + 1}</span>
+                          <span className="ng-idea-stars">★★★★★</span>
+                        </div>
+                        <p className="ng-idea-text">"{idea.text}"</p>
+                        <div className="ng-idea-tap-hint">
+                          <span>📋 Tap to Copy & Open Google Maps →</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+
+                  <button
+                    type="button"
+                    className="ng-carousel-nav-btn ng-nav-right"
+                    onClick={() => scrollCarousel('right')}
+                    aria-label="Next review option"
+                  >
+                    ›
+                  </button>
+                </div>
 
                 <div className="ng-divider"><span>or</span></div>
 
@@ -517,9 +604,9 @@ export default function CustomerReview({
                   className="ng-btn-write-own"
                   onClick={() => { setSelectedIdeaId('custom'); setDraftReview(''); setStep(4); }}
                 >
-                  ✍️ Write my own review
+                  ✍️ Write my own custom review
                 </button>
-              </div>
+              </>
             )}
 
             <div style={{ marginTop: '1rem' }}>
