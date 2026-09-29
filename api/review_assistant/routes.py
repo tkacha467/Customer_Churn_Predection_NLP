@@ -105,7 +105,9 @@ async def generate_review(req: ReviewGenerateRequest, request: Request):
 
 # 3. Real-Time Review Validation Endpoint
 @router.post("/reviews/validate", response_model=ReviewValidateResponse)
-async def validate_review(req: ReviewValidateRequest):
+async def validate_review(req: ReviewValidateRequest, request: Request):
+    if not review_service.check_rate_limit(f"validate:{get_client_ip(request)}", max_per_minute=30):
+        raise HTTPException(status_code=429, detail="Rate limit reached. Please wait a moment.")
     try:
         response = review_service.validate_review(req)
         return response
@@ -143,7 +145,9 @@ async def get_private_tickets():
 
 # 7. Session Creation Endpoint (With Table & Dining Context)
 @router.post("/reviews/session", response_model=ReviewSessionResponse)
-async def create_review_session(req: ReviewSessionCreateRequest):
+async def create_review_session(req: ReviewSessionCreateRequest, request: Request):
+    if not review_service.check_rate_limit(f"session:{get_client_ip(request)}", max_per_minute=30):
+        raise HTTPException(status_code=429, detail="Rate limit reached. Please wait a moment.")
     session_id = str(uuid.uuid4())
     review_service.record_event(
         "session_created",
@@ -166,6 +170,9 @@ async def create_review_session(req: ReviewSessionCreateRequest):
 async def record_analytics_event(ev: AnalyticsEventRequest, request: Request):
     if not review_service.check_rate_limit(f"events:{get_client_ip(request)}", max_per_minute=60):
         raise HTTPException(status_code=429, detail="Rate limit reached. Please wait a moment.")
+    from api.review_assistant.schemas import ALLOWED_ANALYTICS_EVENTS
+    if ev.event_name not in ALLOWED_ANALYTICS_EVENTS:
+        raise HTTPException(status_code=422, detail="Unknown event type.")
     review_service.record_event(
         event_name=ev.event_name,
         session_id=ev.session_id,
@@ -213,10 +220,10 @@ async def update_business_config(business_id: str, cfg: BusinessConfigUpdateRequ
         platform=info.get("platform", "google"),
         review_url=info.get("review_url", ""),
         is_configured=info.get("is_configured", False),
-        business_name=info.get("business_name", "Cuore Cafe"),
-        branch=info.get("branch", "Downtown"),
-        category=info.get("category", "Cafe"),
-        description=info.get("description", "Artisan cafe and roastery"),
+        business_name=info.get("business_name", "Nasta Ghar"),
+        branch=info.get("branch", ""),
+        category=info.get("category", "Breakfast & Snacks"),
+        description=info.get("description", "Authentic homestyle breakfast, chai, and snacks in Rajkot."),
         topics=info.get("topics", []),
-        primary_accent=info.get("primary_accent", "#f59e0b")
+        primary_accent=info.get("primary_accent", "#f97316")
     )

@@ -1,3 +1,0 @@
-# notebooks
-
-Placeholder for notebooks.

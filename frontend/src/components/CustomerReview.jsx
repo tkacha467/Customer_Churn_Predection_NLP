@@ -94,68 +94,43 @@ export default function CustomerReview({
     const noteText = note && note.trim() ? ` ${note.trim().replace(/[.!]+$/, '')}.` : '';
     if (r === 5) {
       return [
-        { id: 'opt1', focus: 'Fresh Breakfast', text: `Best breakfast spot in town! The food was fresh, hot, and the chai was perfect.${noteText} Absolutely loved it 🍳☕` },
-        { id: 'opt2', focus: 'Babalal Ni Chai', text: `Babalal Ni Chai is truly unbeatable! Steaming hot tea paired with fresh snacks made our morning.${noteText} Highly recommended ☕😋` },
-        { id: 'opt3', focus: 'Hospitality & Staff', text: `Incredible hospitality and welcoming service! Darshan Bhai and the team make you feel right at home.${noteText} Loved the positive vibe ❤️` },
-        { id: 'opt4', focus: 'Atmosphere & Service', text: `Great experience from start to finish. Friendly staff, relaxed traditional environment, and super fast service!${noteText} 😊✨` },
-        { id: 'opt5', focus: 'Authentic Taste', text: `Authentic Gujarati homestyle taste! Everything is made fresh with genuine care and top ingredients.${noteText} 🍲👌` },
-        { id: 'opt6', focus: 'Cleanliness & Hygiene', text: `Extremely neat, clean, and hygienic place with an open kitchen. Delicious food and great peace of mind!${noteText} ✨🍽️` },
-        { id: 'opt7', focus: 'Value for Money', text: `Wonderful quality at very reasonable prices. Generous portions and rich authentic taste.${noteText} Best value breakfast around 💰👍` },
-        { id: 'opt8', focus: 'Family Dining', text: `Lovely place to visit with family and friends. Everyone from kids to elders thoroughly enjoyed the food.${noteText} Will visit again 👨‍👩‍👧‍👦❤️` },
-        { id: 'opt9', focus: 'Evening Snacks', text: `Perfect place for evening snacks and hot beverages. Freshly prepared items and prompt service!${noteText} 🥪⚡` },
-        { id: 'opt10', focus: 'Overall Visit', text: `Had a fantastic time at ${BRAND.name}! Outstanding taste, courteous staff, and great ambiance.${noteText} 10/10 recommended! 🌟` },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Amazing breakfast and best chai in town!${noteText} Loved it 🍳☕` },
+        { id: 'opt2', focus: 'Food & Tea', text: `The food was fresh and the tea was super tasty.${noteText} Quick service too ☕😋` },
+        { id: 'opt3', focus: 'Staff & Place', text: `Very friendly staff and clean place.${noteText} We had a great time here 😊✨` },
+        { id: 'opt4', focus: 'Taste & Value', text: `Everything was hot, fresh and full of flavour. The snacks and chai were really good and the price is also fair.${noteText} Must try 👌🍲` },
+        { id: 'opt5', focus: 'Family Visit', text: `Had a wonderful breakfast with family at ${BRAND.name}. Great food, friendly people, and relaxed vibe.${noteText} Will surely visit again! 👨‍👩‍👧‍👦❤️` },
       ];
     } else if (r === 4) {
       return [
-        { id: 'opt1', focus: 'Breakfast', text: `Really good breakfast! Fresh food and tasty chai.${noteText} A great start to the day 🍳` },
-        { id: 'opt2', focus: 'Chai & Snacks', text: `Delicious snacks and lovely chai. Friendly staff and pleasant atmosphere.${noteText} ☕` },
-        { id: 'opt3', focus: 'Service & Seating', text: `Good food, quick service, and clean seating. Would definitely come back again.${noteText} 👍` },
-        { id: 'opt4', focus: 'Family Visit', text: `Tasty food and prompt service. Enjoyed the breakfast with family.${noteText} 😊` },
-        { id: 'opt5', focus: 'Taste & Quality', text: `Nice authentic taste and reasonable prices. Worth a visit!${noteText} 🍲` },
-        { id: 'opt6', focus: 'Cleanliness', text: `Good hygienic place with welcoming staff. Chai was especially nice.${noteText} ✨` },
-        { id: 'opt7', focus: 'Value', text: `Great value for money. Fresh items and decent service speed.${noteText} 💰` },
-        { id: 'opt8', focus: 'Hospitality', text: `Pleasant dining experience. Good portions and warm hospitality.${noteText} 🍽️` },
-        { id: 'opt9', focus: 'Quick Bite', text: `Satisfying snacks and refreshing tea. A reliable spot for breakfast.${noteText} 🥪` },
-        { id: 'opt10', focus: 'Overall', text: `Overall a very positive experience. Clean place and good food!${noteText} 🌟` },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Good food and tasty chai!${noteText} Nice start to the morning 🍳` },
+        { id: 'opt2', focus: 'Food & Service', text: `Fresh breakfast and quick service.${noteText} Staff was polite and helpful 👍☕` },
+        { id: 'opt3', focus: 'Clean & Fair', text: `Clean sitting area and good food quality.${noteText} Prices are also reasonable 😊` },
+        { id: 'opt4', focus: 'Snacks & Tea', text: `Enjoyed the snacks and hot tea. Food was served quickly and tasted nice.${noteText} Worth a visit for a quick bite 🥪🍲` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Overall a very pleasant visit. Good taste, clean tables, and friendly service.${noteText} Will definitely come back again 🌟👍` },
       ];
     } else if (r === 3) {
       return [
-        { id: 'opt1', focus: 'Service Speed', text: `Overall a decent experience. The food was good, though service was a bit slow today.${noteText}` },
-        { id: 'opt2', focus: 'Seating & Wait', text: `Nice place and comfortable seating, but the wait took a little longer than expected.${noteText}` },
-        { id: 'opt3', focus: 'Potential', text: `The place has potential. Friendly staff and okay food, but there's room for improvement.${noteText}` },
-        { id: 'opt4', focus: 'Food Temperature', text: `Chai was good, but some snacks could have been served hotter.${noteText}` },
-        { id: 'opt5', focus: 'Overall', text: `Average visit today. Hope service gets a bit faster next time.${noteText}` },
-        { id: 'opt6', focus: 'Atmosphere', text: `Decent atmosphere, though it got quite crowded during peak morning hours.${noteText}` },
-        { id: 'opt7', focus: 'Snacks', text: `Standard snacks and tea. Fair pricing, but expected slightly better taste.${noteText}` },
-        { id: 'opt8', focus: 'Staff', text: `Polite staff, but took a while to get our order delivered.${noteText}` },
-        { id: 'opt9', focus: 'Cleanliness', text: `Cleanliness was okay, but tables could be cleared a bit quicker.${noteText}` },
-        { id: 'opt10', focus: 'Experience', text: `Fair experience overall. Good tea, but food was average.${noteText}` },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Decent food, but the service was a bit slow today.${noteText} 🙂` },
+        { id: 'opt2', focus: 'Food & Tea', text: `The chai was nice, but the snacks could have been hotter.${noteText} Okay experience overall 🙂☕` },
+        { id: 'opt3', focus: 'Wait Time', text: `Staff was polite, but we had to wait some time for our order.${noteText} Average visit 🙂` },
+        { id: 'opt4', focus: 'Busy Hours', text: `The place was quite crowded today. Food taste was fine, but table cleaning took longer than expected.${noteText} Hope it gets faster next time 🙂🥪` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Fair experience overall. Tea was good and seating is comfortable, but service needs a little improvement.${noteText} It was an okay visit 🙂` },
       ];
     } else if (r === 2) {
       return [
-        { id: 'opt1', focus: 'Wait Time', text: `The food was okay, but the wait was quite long today.${noteText}` },
-        { id: 'opt2', focus: 'Order Mixup', text: `A bit disappointed with the visit. The staff were polite, but order service was mixed up.${noteText}` },
-        { id: 'opt3', focus: 'Crowded', text: `Not the best visit today. The place was crowded and service was inattentive.${noteText}` },
-        { id: 'opt4', focus: 'Food Quality', text: `Expected better quality. The food was lukewarm and took too long.${noteText}` },
-        { id: 'opt5', focus: 'Overall', text: `Disappointing experience today. Hope management looks into faster service.${noteText}` },
-        { id: 'opt6', focus: 'Service', text: `Slow service and staff seemed overwhelmed.${noteText}` },
-        { id: 'opt7', focus: 'Chai', text: `Chai was okay, but the snack items were below expectations.${noteText}` },
-        { id: 'opt8', focus: 'Hygiene', text: `Tables took too long to get cleaned. Needs better table turnover.${noteText}` },
-        { id: 'opt9', focus: 'Value', text: `Didn't feel worth the wait today. Hopefully improves.${noteText}` },
-        { id: 'opt10', focus: 'Experience', text: `Subpar visit today. Lots of room for operational improvement.${noteText}` },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Food was okay, but wait time was too long today.${noteText} 😕` },
+        { id: 'opt2', focus: 'Order Delay', text: `Not satisfied with the service today.${noteText} Order was delayed and food was lukewarm 😕` },
+        { id: 'opt3', focus: 'Attention', text: `The place was noisy and staff was not paying attention.${noteText} Expected better service 😕` },
+        { id: 'opt4', focus: 'Slow Service', text: `We had to wait a long time to get our food and tables were not cleaned quickly.${noteText} Need to improve customer service 😕⏳` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Disappointing visit today. The chai was fine but snacks were not fresh and service was very slow.${noteText} Hope management fixes this 😕` },
       ];
     } else {
       return [
-        { id: 'opt1', focus: 'Long Wait', text: `Unfortunately, my experience wasn't great today. The service took very long and food was cold.${noteText}` },
-        { id: 'opt2', focus: 'Staff Management', text: `Really disappointed with our visit. The wait was excessive and staff seemed unorganized.${noteText}` },
-        { id: 'opt3', focus: 'Poor Quality', text: `Subpar experience today. Cold food and slow service. I hope management addresses this.${noteText}` },
-        { id: 'opt4', focus: 'Service Failure', text: `Very frustrating visit. Orders were delayed and items were missing.${noteText}` },
-        { id: 'opt5', focus: 'Quality Issue', text: `Food quality was unacceptable today. Did not enjoy the meal.${noteText}` },
-        { id: 'opt6', focus: 'Cleanliness', text: `Cleanliness was not up to mark and staff did not attend properly.${noteText}` },
-        { id: 'opt7', focus: 'Customer Service', text: `Very poor customer service and long waiting times.${noteText}` },
-        { id: 'opt8', focus: 'Disappointing', text: `Had high hopes but completely let down by the service and food.${noteText}` },
-        { id: 'opt9', focus: 'Management', text: `Need urgent improvement in food preparation and table service.${noteText}` },
-        { id: 'opt10', focus: 'Overall', text: `Extremely disappointing visit today. Would not recommend based on this experience.${noteText}` },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Very slow service and cold food today.{noteText} 😞` },
+        { id: 'opt2', focus: 'Order Issue', text: `Bad experience today.{noteText} Waited very long and our order was wrong 😞` },
+        { id: 'opt3', focus: 'Cleanliness', text: `Staff was unorganized and tables were not clean.{noteText} Very poor service 😞` },
+        { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Food took forever to arrive and tasted stale.{noteText} Nobody came to attend us properly 😞👎` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Extremely poor experience today. Long waiting time, cold food, and careless staff.{noteText} Needs major improvement in service 😞` },
       ];
     }
   };
@@ -580,17 +555,17 @@ export default function CustomerReview({
         )}
 
         {/* ════════════════════════════════════════════════════════════════
-            STEP 3 — HORIZONTAL IDEA CAROUSEL (10 OPTIONS)
+            STEP 3 — HORIZONTAL IDEA CAROUSEL (5 OPTIONS)
         ════════════════════════════════════════════════════════════════ */}
         {step === 3 && (
           <div className="ng-step ng-fade-in">
             <h2 className="ng-step-title">Your review ideas</h2>
-            <p className="ng-step-sub">Swipe left/right (1 to 10) & tap your favourite to post on Google Maps!</p>
+            <p className="ng-step-sub">Swipe left/right (1 to 5) & tap your favourite to post on Google Maps!</p>
 
             {loadingIdeas ? (
               <div className="ng-loading-box">
                 <div className="ng-loading-spinner">🍳</div>
-                <p className="ng-loading-text">Crafting 10 honest ideas for you...</p>
+                <p className="ng-loading-text">Crafting 5 honest ideas for you...</p>
               </div>
             ) : (
               <>
@@ -631,7 +606,7 @@ export default function CustomerReview({
                       >
                         <div className="ng-idea-meta">
                           <span className="ng-idea-num">Option {i + 1}</span>
-                          <span className="ng-idea-stars">★★★★★</span>
+                          <span className="ng-idea-stars">{'★'.repeat(rating)}{'☆'.repeat(5 - rating)}</span>
                         </div>
                         <p className="ng-idea-text">"{idea.text}"</p>
                         <div className="ng-idea-tap-hint">

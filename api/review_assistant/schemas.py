@@ -55,20 +55,20 @@ class BusinessReviewLinkResponse(BaseModel):
     platform: str = "google"
     review_url: str
     is_configured: bool
-    business_name: str = "Cuore Cafe"
-    branch: Optional[str] = "Downtown"
-    category: str = "Cafe"
-    description: Optional[str] = "Artisan cafe and roastery serving specialty coffee and fresh meals."
+    business_name: str = "Nasta Ghar"
+    branch: Optional[str] = ""
+    category: str = "Breakfast & Snacks"
+    description: Optional[str] = "Authentic homestyle breakfast, chai, and snacks in Rajkot."
     topics: Optional[List[str]] = Field(default_factory=lambda: [
-        "Food", "Coffee & Drinks", "Service", "Friendly staff", "Atmosphere", "Cleanliness", "Value", "Fast service"
+        "Breakfast", "Chai & Beverages", "Snacks", "Taste & Flavour", "Friendly Staff", "Cleanliness", "Value for Money", "Quick Service"
     ])
-    primary_accent: Optional[str] = "#f59e0b"
+    primary_accent: Optional[str] = "#f97316"
 
 class BusinessConfigUpdateRequest(BaseModel):
     business_name: Optional[str] = None
     google_review_url: str
     branch: Optional[str] = None
-    category: Optional[str] = "Cafe"
+    category: Optional[str] = "Breakfast & Snacks"
     description: Optional[str] = None
     tagline: Optional[str] = None
     topics: Optional[List[str]] = None
@@ -86,9 +86,23 @@ class ReviewSessionResponse(BaseModel):
     table_number: Optional[str] = None
     created_at: str
 
+ALLOWED_ANALYTICS_EVENTS = {
+    "session_created",
+    "review_ideas_generated",
+    "review_generation_started",
+    "review_generation_completed",
+    "review_regenerated",
+    "review_validation_passed",
+    "review_validation_failed",
+    "review_copied",
+    "google_review_link_opened",
+    "google_review_link_clicked",
+    "private_feedback_submitted",
+}
+
 class AnalyticsEventRequest(BaseModel):
-    session_id: Optional[str] = None
-    event_name: str
+    session_id: Optional[str] = Field(default=None, max_length=200)
+    event_name: str = Field(..., min_length=1, max_length=100)
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 # Manager reply & private feedback for backwards compatibility

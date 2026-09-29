@@ -1,0 +1,58 @@
+# Git and IDE
+.git/
+.gitignore
+.github/
+.vscode/
+.idea/
+
+# Local Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# Local Node.js dependencies and caches
+node_modules/
+frontend/node_modules/
+frontend/.oxlintrc.json
+
+# Offline datasets (saves 1.85 GB)
+data/
+
+# Intermediate training checkpoints & legacy models (saves 1.02 GB)
+models/checkpoints/
+models/distilbert_amazon/
+models/baseline/
+models/embeddings/
+models/multimodal/
+models/shap/
+models/*.pkl
+models/*.png
+
+# Standalone archive backups (saves 235 MB)
+distilbert_churnlens_model.zip
+
+# Jupyter notebooks and research scripts
+notebooks/
+scripts/
+showcase/
+dashboard/
+reports/
+
+# Documentation and audit reports (kept in Git, omitted from container image)
+docs/
+*.md
+!README.md
+
+# Local runtime databases and secrets
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+.env
+.env.*
+!.env.example
