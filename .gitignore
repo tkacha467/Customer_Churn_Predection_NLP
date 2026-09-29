@@ -21,6 +21,7 @@ data/
 # Node.js / Frontend
 node_modules/
 frontend/dist/
+frontend_deprecated/
 
 # Testing and IDE
 .pytest_cache/
