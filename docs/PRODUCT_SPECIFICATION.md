@@ -89,16 +89,29 @@ The ChurnLens platform evolved across five distinct architectural phases, transf
   - Michelin-standard AI Google Review Reply Studio
              │
              ▼
-[Phase 5: Real-World Restaurant Product Transformation (Current State)]
-  - Product Positioning: "The simple AI review assistant for restaurants"
-  - Stripped all ML laboratory dashboards, SHAP, and developer clutter from primary UI
+[Phase 5: Real-World Restaurant Product Transformation — Nasta Ghar (Rajkot)]
+  - Product Positioning: "The authentic AI review assistant for real restaurants"
+  - Real brand identity: Nasta Ghar (Rajkot, Gujarat) - traditional breakfast, tea, and snack establishment
   - Eliminated rating-based review gating to strictly adhere to Google Business Profile policies
   - Mobile-First Customer Flow (/review): 30-60s QR scan to Google Maps
-  - Review Idea Cards: 3 distinct multi-perspective concepts (Food, Vibe, Overall)
+  - Review Idea Cards: 10 distinct multi-perspective concepts tailored to authentic Gujarati dining
   - Humanization Engine: 15-45 words, everyday conversational English, 0-2 contextual emojis
   - ReviewLLMProvider abstraction supporting Local (zero-cost) and Cloud (Gemini/OpenAI)
   - Simplified Restaurant Owner Portal (/owner: Home, Setup, QR Codes, Activity, Settings)
-  - Clean authentic metrics: Real review drafts, Google links opened, reviews copied
+             │
+             ▼
+[Phase 6: 1-Click Zero-Typing Posting & Chrome Auto-Paste Extension]
+  - 1-Click Post Review: Review text copied to clipboard the instant customer selects an idea
+  - Direct Google Write-Review Link: Opens directly to popup review composer (`search.google.com/local/writereview?placeid=...`)
+  - Manifest V3 Chrome Extension (`chrome-extension/`): Automatically detects Google Maps review modal, auto-clicks 5 stars, and auto-pastes the review text into Google's textarea
+  - Cookie & Auto-Paste Permission Banner: Guides diners on clipboard consent
+             │
+             ▼
+[Phase 7: Gujarati Hospitality World & Mobile LAN Optimization (Current State)]
+  - Interactive Darshanbhai Gujarati Hospitality Scene (`RestaurantWorld.jsx`): Animated kitchen, chai kettle steam, and authentic greeting dialogue
+  - Horizontal 10-Review Swipe Carousel: Touch-optimized card swipe navigation
+  - Warm Golden Luxury Design System (`#f5cf8c`, `#d99547`, `#18120c` espresso obsidian)
+  - Dynamic LAN IP Resolution: Automatic `0.0.0.0` host binding allowing diners on the same restaurant Wi-Fi to test seamlessly from iPhone Safari or Android Chrome
 ```
 
 ### 1.1 Phase 1: Academic Churn Modeling & Tabular Machine Learning
@@ -120,23 +133,24 @@ The ChurnLens platform evolved across five distinct architectural phases, transf
 
 ### 1.4 Phase 4: Enterprise Hospitality Intelligence & Manager Portal
 - **Domain Specialization:** Tailored the platform for high-touch hospitality—specifically artisan cafes, specialty roasteries, bistros, and restaurants.
-- **Table QR Deep Linking:** Dynamic table binding (`?table=Table+4&dining=coffee_break`) enabling frictionless dining feedback directly from physical tables.
-- **Negative Feedback Deflection Prototype:** Attempted an in-house GM resolution channel for low ratings.
+- **Table QR Deep Linking:** Dynamic table binding (`?table=Table+4&dining=dine_in`) enabling frictionless dining feedback directly from physical tables.
+- **Negative Feedback Deflection Prototype:** In-house GM resolution channel for low ratings (1-3 stars).
 - **General Manager Business Console:** Provided executive hospitality telemetry, dining aspect health matrices, a Table QR Standee Print Studio, and an AI Google Review Reply Studio.
 
-### 1.5 Phase 5: Real-World Product Transformation — The Simple AI Review Assistant for Restaurants
-- **The Problem with Phase 4:** The product had become an overloaded technical showcase. Restaurant owners were overwhelmed by ML telemetry, confusion matrices, SHAP values, and complex enterprise sidebars. Furthermore, rating-based review deflection violated official Google Business Profile guidelines.
-- **The Transformation:**
-  1. **Positioning:** Re-positioned purely as *"The simple AI review assistant for restaurants"*.
-  2. **Information Architecture:** Reduced to two clear, intuitive experiences:
-     - **Public Customer Experience** (`/review` or `/?table=Table+4`): Fast, mobile-first, 30–60 second journey from table QR scan to Google Maps.
-     - **Restaurant Owner Portal** (`/owner`): Simple 5-tab workspace (Home, Setup, QR Codes, Activity, Settings).
-  3. **Removed from Visible UI:** General Manager Portal, NLP Integrity Lab, DistilBERT vs. RoBERTa playgrounds, churn dashboards, SHAP values, and synthetic metrics.
-  4. **Strict Google Policy Compliance:** Removed all rating-based review gating. Customers rating 1 to 5 stars have identical access to the public Google review destination. Optional private feedback is provided neutrally without gating Google.
-  5. **Review Idea Cards:** Introduced candidate review ideas (`POST /api/reviews/ideas`), giving diners 3 distinct starting perspectives (Food, Atmosphere, Overall) instead of a single wall of AI text.
-  6. **Humanization Engine:** Redesigned the generation prompt to produce simple, colloquial English (15–45 words, contractions, 0–2 contextual emojis, zero corporate jargon like "culinary excellence").
-  7. **ReviewLLMProvider Abstraction:** Unified backend provider supporting zero-cost local synthesis (`LocalLLMProvider`) and hosted/cloud models (`CloudLLMProvider`).
-  8. **Model Streamlining:** Audited CardiffNLP RoBERTa as the sole active rating consistency validator, deprecating the binary DistilBERT model from the active review path.
+### 1.5 Phase 5: Real-World Product Transformation — Nasta Ghar (Rajkot)
+- **Brand Transition:** Replaced placeholder mockups ("Cuore Cafe") with authentic Gujarati establishment **Nasta Ghar** (Rajkot, Gujarat).
+- **Menu Highlights:** Tailored prompts for traditional regional favorites: *Poha, Kadak Masala Chai, Thepla, Handvo, Ganthiya, Khaman*.
+- **Locked Brand Identity:** Hardcoded brand constants in frontend to prevent configuration drift.
+
+### 1.6 Phase 6: 1-Click Zero-Typing Posting & Chrome Auto-Paste Extension
+- **Zero-Typing Philosophy:** Diners no longer have to type on mobile keyboards.
+- **Direct Google Review Modal:** Bypasses general Google Maps place overview to pop open the 5-star review modal immediately (`search.google.com/local/writereview?placeid=ChIJEGXiuzcAy1k51pOxt51jLro`).
+- **Chrome Extension (Manifest V3):** Automatically injects review text and clicks 5 stars in the Google Review dialog.
+
+### 1.7 Phase 7: Gujarati Hospitality World & Mobile LAN Optimization
+- **Interactive Scene:** Darshanbhai animated avatar welcoming diners with authentic Gujarati dialogue (*"કેમ છો મોટા ભાઈ, શું જમવું ગમ્યું?"*).
+- **Touch Swipe Carousel:** 10 diverse review cards displayed in a mobile-first horizontal swipe container.
+- **Local Wi-Fi Testing:** Automatic resolution of server LAN IP address (`0.0.0.0`) for real in-restaurant testing from iPhone Safari and Android Chrome.
 
 ---
 
