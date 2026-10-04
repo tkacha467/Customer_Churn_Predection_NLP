@@ -87,6 +87,7 @@ class ReviewSessionResponse(BaseModel):
     created_at: str
 
 ALLOWED_ANALYTICS_EVENTS = {
+    # Server-side events (recorded internally by ReviewService)
     "session_created",
     "review_ideas_generated",
     "review_generation_started",
@@ -98,6 +99,17 @@ ALLOWED_ANALYTICS_EVENTS = {
     "google_review_link_opened",
     "google_review_link_clicked",
     "private_feedback_submitted",
+    # Client-side events (sent by CustomerReview.jsx via POST /reviews/events)
+    "rating_selected",
+    "aspects_selected",
+    "review_selected",
+    "idea_selected",
+    "review_approved",
+    "google_review_handoff_started",
+    "review_clipboard_success",
+    "review_clipboard_failed",
+    "google_maps_redirect",
+    "private_feedback_sent",
 }
 
 class AnalyticsEventRequest(BaseModel):

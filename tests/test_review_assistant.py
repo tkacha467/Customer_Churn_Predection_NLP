@@ -178,3 +178,45 @@ def test_private_feedback_escalation():
     data = res.json()
     assert data["status"] == "escalated"
     assert "ticket_id" in data
+
+def test_frontend_analytics_events_accepted():
+    """Regression: all event names emitted by CustomerReview.jsx must be accepted.
+
+    Previously these returned 422 because ALLOWED_ANALYTICS_EVENTS only
+    contained server-side event names.
+    """
+    sess = client.post("/api/reviews/session", json={"business_id": "test_cafe"})
+    sess_id = sess.json()["session_id"]
+
+    frontend_events = [
+        ("rating_selected", {"rating": 5}),
+        ("aspects_selected", {"aspects": ["Breakfast", "Chai & Tea"]}),
+        ("review_selected", {"review_id": "opt1"}),
+        ("idea_selected", {"idea_id": "opt1"}),
+        ("review_approved", {"length": 120, "direct_post": True}),
+        ("google_review_handoff_started", {"review_id": "opt1"}),
+        ("review_clipboard_success", {"review_id": "opt1"}),
+        ("review_clipboard_failed", {"review_id": "opt1"}),
+        ("google_maps_redirect", {"destination": "https://maps.google.com"}),
+        ("google_review_link_opened", {}),
+        ("private_feedback_sent", {}),
+    ]
+
+    for event_name, metadata in frontend_events:
+        res = client.post("/api/reviews/events", json={
+            "session_id": sess_id,
+            "event_name": event_name,
+            "metadata": metadata,
+        })
+        assert res.status_code == 200, (
+            f"Event '{event_name}' returned {res.status_code}: {res.text}"
+        )
+        assert res.json()["status"] == "recorded"
+
+def test_unknown_analytics_event_rejected():
+    """Unknown event names must still be rejected with 422."""
+    res = client.post("/api/reviews/events", json={
+        "event_name": "totally_made_up_event",
+        "metadata": {},
+    })
+    assert res.status_code == 422

@@ -7,7 +7,7 @@ import { apiFetch } from '../lib/api';
 const BRAND = {
   name: 'Nasta Ghar',
   googleMapUrl:
-    'https://www.google.com/maps/place/Nasta+ghar/@22.2876495,70.7565735,15z/data=!4m8!3m7!1s0x3959cb0037bbe265:0xba2e639db7b193d6!8m2!3d22.2875481!4d70.7565747!9m1!1b1!16s%2Fg%2F11yk9xk25r?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D',
+    'https://search.google.com/local/writereview?placeid=ChIJZeK7NwDLWTkR1pOxt51jLro',
 };
 
 const DEFAULT_TOPICS = [
@@ -29,6 +29,51 @@ const RATING_LABELS = {
   1: { text: 'Not good', emoji: '😞' },
 };
 
+const getFallbackIdeas = (r, note) => {
+  const noteText = note && note.trim() ? ` ${note.trim().replace(/[.!]+$/, '')}.` : '';
+  if (r === 5) {
+    return [
+      { id: 'opt1', focus: 'Short & Sweet', text: `Amazing breakfast and best chai in town!${noteText} Loved it 🍳☕` },
+      { id: 'opt2', focus: 'Food & Tea', text: `The food was fresh and the tea was super tasty.${noteText} Quick service too ☕😋` },
+      { id: 'opt3', focus: 'Staff & Place', text: `Very friendly staff and clean place.${noteText} We had a great time here 😊✨` },
+      { id: 'opt4', focus: 'Taste & Value', text: `Everything was hot, fresh and full of flavour. The snacks and chai were really good and the price is also fair.${noteText} Must try 👌🍲` },
+      { id: 'opt5', focus: 'Family Visit', text: `Had a wonderful breakfast with family at ${BRAND.name}. Great food, friendly people, and relaxed vibe.${noteText} Will surely visit again! 👨‍👩‍👧‍👦❤️` },
+    ];
+  } else if (r === 4) {
+    return [
+      { id: 'opt1', focus: 'Short & Sweet', text: `Good food and tasty chai!${noteText} Nice start to the morning 🍳` },
+      { id: 'opt2', focus: 'Food & Service', text: `Fresh breakfast and quick service.${noteText} Staff was polite and helpful 👍☕` },
+      { id: 'opt3', focus: 'Clean & Fair', text: `Clean sitting area and good food quality.${noteText} Prices are also reasonable 😊` },
+      { id: 'opt4', focus: 'Snacks & Tea', text: `Enjoyed the snacks and hot tea. Food was served quickly and tasted nice.${noteText} Worth a visit for a quick bite 🥪🍲` },
+      { id: 'opt5', focus: 'Overall Visit', text: `Overall a very pleasant visit. Good taste, clean tables, and friendly service.${noteText} Will definitely come back again 🌟👍` },
+    ];
+  } else if (r === 3) {
+    return [
+      { id: 'opt1', focus: 'Short & Sweet', text: `Decent food, but the service was a bit slow today.${noteText} 🙂` },
+      { id: 'opt2', focus: 'Food & Tea', text: `The chai was nice, but the snacks could have been hotter.${noteText} Okay experience overall 🙂☕` },
+      { id: 'opt3', focus: 'Wait Time', text: `Staff was polite, but we had to wait some time for our order.${noteText} Average visit 🙂` },
+      { id: 'opt4', focus: 'Busy Hours', text: `The place was quite crowded today. Food taste was fine, but table cleaning took longer than expected.${noteText} Hope it gets faster next time 🙂🥪` },
+      { id: 'opt5', focus: 'Overall Visit', text: `Fair experience overall. Tea was good and seating is comfortable, but service needs a little improvement.${noteText} It was an okay visit 🙂` },
+    ];
+  } else if (r === 2) {
+    return [
+      { id: 'opt1', focus: 'Short & Sweet', text: `Food was okay, but wait time was too long today.${noteText} 😕` },
+      { id: 'opt2', focus: 'Order Delay', text: `Not satisfied with the service today.${noteText} Order was delayed and food was lukewarm 😕` },
+      { id: 'opt3', focus: 'Attention', text: `The place was noisy and staff was not paying attention.${noteText} Expected better service 😕` },
+      { id: 'opt4', focus: 'Slow Service', text: `We had to wait a long time to get our food and tables were not cleaned quickly.${noteText} Need to improve customer service 😕⏳` },
+      { id: 'opt5', focus: 'Overall Visit', text: `Disappointing visit today. The chai was fine but snacks were not fresh and service was very slow.${noteText} Hope management fixes this 😕` },
+    ];
+  } else {
+    return [
+      { id: 'opt1', focus: 'Short & Sweet', text: `Very slow service and cold food today.${noteText} 😞` },
+      { id: 'opt2', focus: 'Order Issue', text: `Bad experience today.${noteText} Waited very long and our order was wrong 😞` },
+      { id: 'opt3', focus: 'Cleanliness', text: `Staff was unorganized and tables were not clean.${noteText} Very poor service 😞` },
+      { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Food took forever to arrive and tasted stale.${noteText} Nobody came to attend us properly 😞👎` },
+      { id: 'opt5', focus: 'Overall Visit', text: `Extremely poor experience today. Long waiting time, cold food, and careless staff.${noteText} Needs major improvement in service 😞` },
+    ];
+  }
+};
+
 export default function CustomerReview({
   businessId = 'default_business',
   onSwitchToOwner = null,
@@ -38,16 +83,10 @@ export default function CustomerReview({
   const tableParam = urlParams.get('table') || null;
   const isPreviewMode = isPreview || urlParams.get('preview') === 'true';
 
-  // Step state
-  const [step, setStep] = useState(1);
+  // Custom editor view toggle (inline)
+  const [showCustomEditor, setShowCustomEditor] = useState(false);
   const reviewCardRef = useRef(null);
-
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      if (step > 1) reviewCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      else document.querySelector('.ng-page')?.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  }, [step]);
+  const editorRef = useRef(null);
 
   // Rating
   const [rating, setRating] = useState(() => {
@@ -59,6 +98,8 @@ export default function CustomerReview({
     }
   });
   const [hoverRating, setHoverRating] = useState(0);
+  const [reviewStarted, setReviewStarted] = useState(false);
+  const topicsSectionRef = useRef(null);
 
   // Topics
   const [availableTopics, setAvailableTopics] = useState(DEFAULT_TOPICS);
@@ -69,71 +110,11 @@ export default function CustomerReview({
   // Keep Google Maps pointed at the restaurant's selected destination.
   const [googleReviewUrl, setGoogleReviewUrl] = useState(BRAND.googleMapUrl);
 
-  // Ideas
-  const [ideas, setIdeas] = useState([]);
+  // Ideas initialized with fallback ideas (no empty screen, instant feedback)
+  const [ideas, setIdeas] = useState(() => getFallbackIdeas(rating, ''));
   const [loadingIdeas, setLoadingIdeas] = useState(false);
   const [selectedIdeaId, setSelectedIdeaId] = useState(null);
-  const carouselRef = useRef(null);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
-
-  const handleCarouselScroll = () => {
-    if (!carouselRef.current) return;
-    const { scrollLeft } = carouselRef.current;
-    const cardWidth = 320;
-    const idx = Math.min(ideas.length - 1, Math.max(0, Math.round(scrollLeft / cardWidth)));
-    setCurrentCardIndex(idx);
-  };
-
-  const scrollCarousel = (direction) => {
-    if (!carouselRef.current) return;
-    const offset = direction === 'left' ? -320 : 320;
-    carouselRef.current.scrollBy({ left: offset, behavior: 'smooth' });
-  };
-
-  const getFallbackIdeas = (r, note) => {
-    const noteText = note && note.trim() ? ` ${note.trim().replace(/[.!]+$/, '')}.` : '';
-    if (r === 5) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Amazing breakfast and best chai in town!${noteText} Loved it 🍳☕` },
-        { id: 'opt2', focus: 'Food & Tea', text: `The food was fresh and the tea was super tasty.${noteText} Quick service too ☕😋` },
-        { id: 'opt3', focus: 'Staff & Place', text: `Very friendly staff and clean place.${noteText} We had a great time here 😊✨` },
-        { id: 'opt4', focus: 'Taste & Value', text: `Everything was hot, fresh and full of flavour. The snacks and chai were really good and the price is also fair.${noteText} Must try 👌🍲` },
-        { id: 'opt5', focus: 'Family Visit', text: `Had a wonderful breakfast with family at ${BRAND.name}. Great food, friendly people, and relaxed vibe.${noteText} Will surely visit again! 👨‍👩‍👧‍👦❤️` },
-      ];
-    } else if (r === 4) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Good food and tasty chai!${noteText} Nice start to the morning 🍳` },
-        { id: 'opt2', focus: 'Food & Service', text: `Fresh breakfast and quick service.${noteText} Staff was polite and helpful 👍☕` },
-        { id: 'opt3', focus: 'Clean & Fair', text: `Clean sitting area and good food quality.${noteText} Prices are also reasonable 😊` },
-        { id: 'opt4', focus: 'Snacks & Tea', text: `Enjoyed the snacks and hot tea. Food was served quickly and tasted nice.${noteText} Worth a visit for a quick bite 🥪🍲` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall a very pleasant visit. Good taste, clean tables, and friendly service.${noteText} Will definitely come back again 🌟👍` },
-      ];
-    } else if (r === 3) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Decent food, but the service was a bit slow today.${noteText} 🙂` },
-        { id: 'opt2', focus: 'Food & Tea', text: `The chai was nice, but the snacks could have been hotter.${noteText} Okay experience overall 🙂☕` },
-        { id: 'opt3', focus: 'Wait Time', text: `Staff was polite, but we had to wait some time for our order.${noteText} Average visit 🙂` },
-        { id: 'opt4', focus: 'Busy Hours', text: `The place was quite crowded today. Food taste was fine, but table cleaning took longer than expected.${noteText} Hope it gets faster next time 🙂🥪` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Fair experience overall. Tea was good and seating is comfortable, but service needs a little improvement.${noteText} It was an okay visit 🙂` },
-      ];
-    } else if (r === 2) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Food was okay, but wait time was too long today.${noteText} 😕` },
-        { id: 'opt2', focus: 'Order Delay', text: `Not satisfied with the service today.${noteText} Order was delayed and food was lukewarm 😕` },
-        { id: 'opt3', focus: 'Attention', text: `The place was noisy and staff was not paying attention.${noteText} Expected better service 😕` },
-        { id: 'opt4', focus: 'Slow Service', text: `We had to wait a long time to get our food and tables were not cleaned quickly.${noteText} Need to improve customer service 😕⏳` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Disappointing visit today. The chai was fine but snacks were not fresh and service was very slow.${noteText} Hope management fixes this 😕` },
-      ];
-    } else {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Very slow service and cold food today.{noteText} 😞` },
-        { id: 'opt2', focus: 'Order Issue', text: `Bad experience today.{noteText} Waited very long and our order was wrong 😞` },
-        { id: 'opt3', focus: 'Cleanliness', text: `Staff was unorganized and tables were not clean.{noteText} Very poor service 😞` },
-        { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Food took forever to arrive and tasted stale.{noteText} Nobody came to attend us properly 😞👎` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Extremely poor experience today. Long waiting time, cold food, and careless staff.{noteText} Needs major improvement in service 😞` },
-      ];
-    }
-  };
+  const fetchIdeasDebounceRef = useRef(null);
 
   // Editor
   const [draftReview, setDraftReview] = useState('');
@@ -288,41 +269,70 @@ export default function CustomerReview({
     logEvent('rating_selected', { rating: s });
   };
 
-  const toggleTopic = (label) => {
-    setNothingSpecific(false);
-    setSelectedTopics((prev) =>
-      prev.includes(label) ? prev.filter((t) => t !== label) : [...prev, label]
-    );
+  const handleContinueReview = () => {
+    setReviewStarted(true);
+    setTimeout(() => {
+      topicsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
   };
 
-  const handleProceedToIdeas = async () => {
-    setLoadingIdeas(true);
-    setStep(3);
-    setCurrentCardIndex(0);
-    logEvent('aspects_selected', { aspects: selectedTopics });
-    try {
-      const res = await apiFetch(`/api/reviews/ideas`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          business_id: businessId,
-          rating,
-          aspects: nothingSpecific ? [] : selectedTopics,
-          user_note: personalNote.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (data.ideas && data.ideas.length >= 5) {
-        setIdeas(data.ideas);
-      } else {
-        setIdeas(getFallbackIdeas(rating, personalNote));
-      }
-    } catch {
-      setIdeas(getFallbackIdeas(rating, personalNote));
-    } finally {
-      setLoadingIdeas(false);
-    }
+  const toggleTopic = (label) => {
+    setNothingSpecific(false);
+    setSelectedTopics((prev) => {
+      const next = prev.includes(label) ? prev.filter((t) => t !== label) : [...prev, label];
+      logEvent('aspects_selected', { aspects: next });
+      return next;
+    });
   };
+
+  const handleNothingSpecific = () => {
+    setNothingSpecific(true);
+    setSelectedTopics([]);
+    logEvent('aspects_selected', { aspects: [] });
+  };
+
+  // Automatically keep ideas synchronized with rating, topics, and personal note
+  useEffect(() => {
+    // 1. Instant fallback update for 0ms perceived latency
+    setIdeas(getFallbackIdeas(rating, personalNote));
+
+    // 2. Debounce background request to enrich with AI-crafted candidate ideas
+    if (fetchIdeasDebounceRef.current) {
+      clearTimeout(fetchIdeasDebounceRef.current);
+    }
+
+    fetchIdeasDebounceRef.current = setTimeout(async () => {
+      setLoadingIdeas(true);
+      try {
+        const res = await apiFetch(`/api/reviews/ideas`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            business_id: businessId,
+            rating,
+            aspects: nothingSpecific ? [] : selectedTopics,
+            user_note: personalNote.trim(),
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ideas && data.ideas.length >= 5) {
+            setIdeas(data.ideas);
+          }
+        }
+      } catch {
+        // Fallback ideas are already in place
+      } finally {
+        setLoadingIdeas(false);
+      }
+    }, 350);
+
+    return () => {
+      if (fetchIdeasDebounceRef.current) {
+        clearTimeout(fetchIdeasDebounceRef.current);
+      }
+    };
+  }, [rating, selectedTopics, nothingSpecific, personalNote, businessId]);
 
   // Begin the handoff from the customer's tap; clipboard access is requested immediately.
   const handlePostDirectly = async (idea) => {
@@ -442,220 +452,170 @@ export default function CustomerReview({
 
       <RestaurantWorld />
 
-      <div ref={reviewCardRef} className={`ng-card ${step === 1 ? 'ng-rating-card' : ''}`}>
+      <div
+        ref={reviewCardRef}
+        className={`ng-card ${!reviewStarted ? 'ng-initial-card' : 'ng-expanded-card'}`}
+      >
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <header className="ng-header">
           <h1 className="ng-brand-name">નાસ્તા ઘર</h1>
+          <p className="ng-brand-sub">Homestyle Breakfast & Chai • Rajkot</p>
           {tableParam && (
             <span className="ng-table-pill">📍 {tableParam}</span>
           )}
         </header>
 
+        {/* ── SECTION 1: RATING ─────────────────────────────────────────── */}
+        <section className="ng-section" aria-label="Rating selection">
+          <h2 className="ng-section-title">How was your visit?</h2>
+          <p className="ng-section-sub">Tap a star to rate your experience</p>
 
+          <div className="ng-stars-row" role="radiogroup" aria-label="Star rating">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`ng-star ${activeRating >= s ? 'lit' : ''}`}
+                onClick={() => handleRating(s)}
+                onMouseEnter={() => setHoverRating(s)}
+                onMouseLeave={() => setHoverRating(0)}
+                aria-label={`${s} star${s > 1 ? 's' : ''}`}
+              >
+                ★
+              </button>
+            ))}
+          </div>
 
-        {/* ── PROGRESS DOTS ──────────────────────────────────────────────── */}
-        <div className="ng-steps-row">
-          {[1, 2, 3, 4].map((s) => (
-            <div key={s} className={`ng-step-dot ${step >= s ? 'done' : ''} ${step === s ? 'active' : ''}`} />
-          ))}
-        </div>
+          <div className="ng-rating-label">
+            <span className="ng-rating-emoji">{ratingLabel.emoji}</span>
+            <span>{ratingLabel.text}</span>
+          </div>
 
-        {/* ════════════════════════════════════════════════════════════════
-            STEP 1 — RATING
-        ════════════════════════════════════════════════════════════════ */}
-        {step === 1 && (
-          <div className="ng-step ng-fade-in">
-            <h2 className="ng-step-title">How was your visit?</h2>
-            <p className="ng-step-sub">Tap a star to rate your experience</p>
+          {!reviewStarted && (
+            <button
+              type="button"
+              className="ng-btn-primary ng-btn-continue-initial"
+              onClick={handleContinueReview}
+            >
+              Continue →
+            </button>
+          )}
+        </section>
 
-            <div className="ng-stars-row" role="radiogroup" aria-label="Star rating">
-              {[1, 2, 3, 4, 5].map((s) => (
+        {reviewStarted && (
+          <>
+            <div className="ng-section-divider" aria-hidden="true" />
+
+            {/* ── SECTION 2: TOPICS / HIGHLIGHTS ────────────────────────────── */}
+            <section ref={topicsSectionRef} className="ng-section ng-fade-in" aria-label="Visit highlights">
+          <h2 className="ng-section-title">What stood out?</h2>
+          <p className="ng-section-sub">Pick anything that matched your visit</p>
+
+          <div className="ng-chips-grid">
+            {availableTopics.map(({ label, icon }) => {
+              const selected = selectedTopics.includes(label);
+              return (
                 <button
-                  key={s}
+                  key={label}
                   type="button"
-                  className={`ng-star ${activeRating >= s ? 'lit' : ''}`}
-                  onClick={() => handleRating(s)}
-                  onMouseEnter={() => setHoverRating(s)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  aria-label={`${s} star${s > 1 ? 's' : ''}`}
+                  className={`ng-chip ${selected ? 'selected' : ''}`}
+                  onClick={() => toggleTopic(label)}
                 >
-                  ★
+                  <span className="ng-chip-icon">{icon}</span>
+                  <span>{label}</span>
                 </button>
+              );
+            })}
+            <button
+              type="button"
+              className={`ng-chip ng-chip-neutral ${nothingSpecific ? 'selected' : ''}`}
+              onClick={handleNothingSpecific}
+            >
+              <span className="ng-chip-icon">—</span>
+              <span>Nothing specific</span>
+            </button>
+          </div>
+
+          <div className="ng-note-wrap">
+            <label htmlFor="ng-note" className="ng-note-label">
+              Personal note <span className="ng-optional">(optional)</span>
+            </label>
+            <input
+              id="ng-note"
+              type="text"
+              className="ng-note-input"
+              placeholder="e.g. The poha was absolutely perfect! 😋"
+              value={personalNote}
+              onChange={(e) => setPersonalNote(e.target.value)}
+              maxLength={100}
+            />
+          </div>
+        </section>
+
+        <div className="ng-section-divider" aria-hidden="true" />
+
+        {/* ── SECTION 3: REVIEW IDEAS / CUSTOM EDITOR ───────────────────── */}
+        {!showCustomEditor ? (
+          <section className="ng-section" aria-label="Review suggestions">
+            <div className="ng-ideas-header">
+              <h2 className="ng-section-title">Review ideas</h2>
+              <p className="ng-section-sub">
+                Tap your favourite to copy & open Google Review
+              </p>
+              {loadingIdeas && (
+                <div className="ng-updating-badge">
+                  <span>✨</span>
+                  <span>Refining ideas...</span>
+                </div>
+              )}
+            </div>
+
+            <div className="ng-ideas-list">
+              {ideas.map((idea, i) => (
+                <div
+                  key={idea.id || i}
+                  className={`ng-idea-card ${selectedIdeaId === idea.id ? 'picked' : ''}`}
+                  onClick={() => handlePostDirectly(idea)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Option ${i + 1}: ${idea.text}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handlePostDirectly(idea);
+                    }
+                  }}
+                >
+                  <div className="ng-idea-meta">
+                    <span className="ng-idea-num">Option {i + 1}</span>
+                  </div>
+                  <p className="ng-idea-text">"{idea.text}"</p>
+                </div>
               ))}
             </div>
 
-            <div className="ng-rating-label">
-              <span className="ng-rating-emoji">{ratingLabel.emoji}</span>
-              <span>{ratingLabel.text}</span>
-            </div>
+            <div className="ng-divider"><span>or</span></div>
 
-            <button type="button" className="ng-btn-primary" onClick={() => setStep(2)}>
-              Continue →
+            <button
+              type="button"
+              className="ng-btn-write-own"
+              onClick={() => {
+                setSelectedIdeaId('custom');
+                if (!draftReview) setDraftReview('');
+                setShowCustomEditor(true);
+                setTimeout(() => editorRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+              }}
+            >
+              ✍️ Write my own review
             </button>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════════════════════
-            STEP 2 — TOPICS
-        ════════════════════════════════════════════════════════════════ */}
-        {step === 2 && (
-          <div className="ng-step ng-fade-in">
-            <h2 className="ng-step-title">What stood out?</h2>
-            <p className="ng-step-sub">Pick anything that matched your visit</p>
-
-            <div className="ng-chips-grid">
-              {availableTopics.map(({ label, icon }) => {
-                const selected = selectedTopics.includes(label);
-                return (
-                  <button
-                    key={label}
-                    type="button"
-                    className={`ng-chip ${selected ? 'selected' : ''}`}
-                    onClick={() => toggleTopic(label)}
-                  >
-                    <span className="ng-chip-icon">{icon}</span>
-                    <span>{label}</span>
-                  </button>
-                );
-              })}
-              <button
-                type="button"
-                className={`ng-chip ng-chip-neutral ${nothingSpecific ? 'selected' : ''}`}
-                onClick={() => { setNothingSpecific(true); setSelectedTopics([]); }}
-              >
-                <span className="ng-chip-icon">—</span>
-                <span>Nothing specific</span>
-              </button>
-            </div>
-
-            <div className="ng-note-wrap">
-              <label htmlFor="ng-note" className="ng-note-label">
-                Personal note <span className="ng-optional">(optional)</span>
-              </label>
-              <input
-                id="ng-note"
-                type="text"
-                className="ng-note-input"
-                placeholder="e.g. The poha was absolutely perfect! 😋"
-                value={personalNote}
-                onChange={(e) => setPersonalNote(e.target.value)}
-                maxLength={100}
-              />
-            </div>
-
-            <div className="ng-btn-row">
-              <button type="button" className="ng-btn-secondary" onClick={() => setStep(1)}>
-                ← Back
-              </button>
-              <button type="button" className="ng-btn-primary" onClick={handleProceedToIdeas}>
-                See Review Ideas →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════════════════════
-            STEP 3 — HORIZONTAL IDEA CAROUSEL (5 OPTIONS)
-        ════════════════════════════════════════════════════════════════ */}
-        {step === 3 && (
-          <div className="ng-step ng-fade-in">
-            <h2 className="ng-step-title">Your review ideas</h2>
-            <p className="ng-step-sub">Swipe left/right (1 to 5) & tap your favourite to post on Google Maps!</p>
-
-            {loadingIdeas ? (
-              <div className="ng-loading-box">
-                <div className="ng-loading-spinner">🍳</div>
-                <p className="ng-loading-text">Crafting 5 honest ideas for you...</p>
-              </div>
-            ) : (
-              <>
-                <div className="ng-carousel-indicator">
-                  <span className="ng-carousel-count">
-                    Review {currentCardIndex + 1} of {ideas.length}
-                  </span>
-                </div>
-
-                <div className="ng-ideas-carousel-wrapper">
-                  <button
-                    type="button"
-                    className="ng-carousel-nav-btn ng-nav-left"
-                    onClick={() => scrollCarousel('left')}
-                    aria-label="Previous review option"
-                  >
-                    ‹
-                  </button>
-
-                  <div
-                    className="ng-ideas-carousel"
-                    ref={carouselRef}
-                    onScroll={handleCarouselScroll}
-                  >
-                    {ideas.map((idea, i) => (
-                      <div
-                        key={idea.id || i}
-                        className={`ng-idea-card ${selectedIdeaId === idea.id ? 'picked' : ''}`}
-                        onClick={() => handlePostDirectly(idea)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handlePostDirectly(idea);
-                          }
-                        }}
-                      >
-                        <div className="ng-idea-meta">
-                          <span className="ng-idea-num">Option {i + 1}</span>
-                          <span className="ng-idea-stars">{'★'.repeat(rating)}{'☆'.repeat(5 - rating)}</span>
-                        </div>
-                        <p className="ng-idea-text">"{idea.text}"</p>
-                        <div className="ng-idea-tap-hint">
-                          <span>📋 Tap to Copy & Open Google Maps →</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="ng-carousel-nav-btn ng-nav-right"
-                    onClick={() => scrollCarousel('right')}
-                    aria-label="Next review option"
-                  >
-                    ›
-                  </button>
-                </div>
-
-                <div className="ng-divider"><span>or</span></div>
-
-                <button
-                  type="button"
-                  className="ng-btn-write-own"
-                  onClick={() => { setSelectedIdeaId('custom'); setDraftReview(''); setStep(4); }}
-                >
-                  ✍️ Write my own custom review
-                </button>
-              </>
-            )}
-
-            <div style={{ marginTop: '1rem' }}>
-              <button type="button" className="ng-btn-secondary" onClick={() => setStep(2)}>
-                ← Change highlights
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════════════════════
-            STEP 4 — EDITOR
-        ════════════════════════════════════════════════════════════════ */}
-        {step === 4 && (
-          <div className="ng-step ng-fade-in">
+          </section>
+        ) : (
+          <section ref={editorRef} className="ng-section ng-fade-in" aria-label="Custom review editor">
             <div className="ng-editor-header">
-              <h2 className="ng-step-title" style={{ margin: 0 }}>Your review</h2>
+              <h2 className="ng-section-title" style={{ margin: 0 }}>Write your review</h2>
               <span className="ng-char-pill">{draftReview.length} chars</span>
             </div>
-            <p className="ng-step-sub">Edit anything before posting — it's your words!</p>
+            <p className="ng-section-sub">Edit anything before posting — it's your words!</p>
 
             <div className="ng-textarea-wrap">
               <textarea
@@ -679,9 +639,9 @@ export default function CustomerReview({
               <button
                 type="button"
                 className="ng-btn-tool"
-                onClick={() => setStep(3)}
+                onClick={() => setShowCustomEditor(false)}
               >
-                🔄 Try another idea
+                ← Back to review ideas
               </button>
             </div>
 
@@ -695,16 +655,19 @@ export default function CustomerReview({
               onClick={handleContinueToGoogle}
               disabled={!draftReview.trim()}
             >
-              Copy & open Google Maps
+              Copy & open Google Review
             </button>
+          </section>
+        )}
 
+            {/* ── SECTION 4: PRIVATE FEEDBACK PROMPT ────────────────────────── */}
             <div className="ng-private-prompt">
               Want to tell us privately?{' '}
               <button type="button" className="ng-link-btn" onClick={() => setShowPrivate(true)}>
                 Send private note
               </button>
             </div>
-          </div>
+          </>
         )}
       </div>
 
@@ -848,7 +811,7 @@ export default function CustomerReview({
       )}
 
       {/* ════════ CLIPBOARD INFORMATION ════════ */}
-      {!cookieConsent && step > 1 && (
+      {!cookieConsent && (
           <div className="ng-cookie-bar" role="region" aria-label="Review and clipboard information">
           <div className="ng-cookie-content">
             <span className="ng-cookie-emoji">🍪</span>

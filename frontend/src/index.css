@@ -1408,17 +1408,18 @@ textarea:focus, input:focus, select:focus {
 }
 
 .ng-star.lit {
-  color: #c9ff00;
-  text-shadow: 0 0 20px rgba(201, 255, 0, 0.6);
+  color: #f2bd65;
+  text-shadow: 0 0 18px rgba(242, 189, 101, 0.55);
 }
 
 .ng-star:hover {
   transform: scale(1.22);
-  color: #f4f66a;
+  color: #ffdda3;
 }
 
 .ng-star.lit:hover {
   transform: scale(1.18);
+  color: #f5a623;
 }
 
 .ng-rating-label {
@@ -1428,7 +1429,7 @@ textarea:focus, input:focus, select:focus {
   gap: 0.4rem;
   font-size: 1.05rem;
   font-weight: 700;
-  color: #f4f66a;
+  color: #ffdda3;
   min-height: 1.8rem;
   margin-bottom: 1.75rem;
   letter-spacing: 0.01em;
@@ -1632,170 +1633,145 @@ textarea:focus, input:focus, select:focus {
   margin-top: 0.85rem;
 }
 
-/* ─── STEP 3: HORIZONTAL IDEAS CAROUSEL ──────────────────────────────────────── */
-.ng-ideas-carousel-wrapper {
+/* ─── CONTINUOUS SINGLE-PAGE FLOW & VERTICAL IDEAS ──────────────────────────── */
+.ng-section {
   position: relative;
-  display: flex;
+  margin-bottom: 1.75rem;
+}
+
+.ng-section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 255, 0, 0.18), transparent);
+  margin: 1.75rem 0;
+}
+
+.ng-section-title {
+  font-size: 1.28rem;
+  font-weight: 700;
+  color: #fff8e8;
+  text-align: center;
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+.ng-section-sub {
+  font-size: 0.86rem;
+  color: #8da684;
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.ng-ideas-header {
+  text-align: center;
+  margin-bottom: 0.85rem;
+}
+
+.ng-updating-badge {
+  display: inline-flex;
   align-items: center;
-  width: 100%;
-  margin: 10px 0 16px;
-}
-
-.ng-ideas-carousel {
-  display: flex;
-  gap: 16px;
-  width: 100%;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  padding: 12px 6px 18px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: #d79d53 rgba(25, 18, 14, 0.5);
-}
-
-.ng-ideas-carousel::-webkit-scrollbar {
-  height: 6px;
-}
-.ng-ideas-carousel::-webkit-scrollbar-track {
-  background: rgba(25, 18, 14, 0.5);
-  border-radius: 99px;
-}
-.ng-ideas-carousel::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, #d79d53, #f5cf8c);
-  border-radius: 99px;
-}
-
-.ng-carousel-nav-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: rgba(36, 25, 19, 0.92);
-  border: 1px solid #d79d53;
-  color: #ffdda3;
-  font-size: 1.5rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
-  transition: all 0.2s ease;
-}
-.ng-carousel-nav-btn:hover {
-  background: #d79d53;
-  color: #271a11;
-  transform: translateY(-50%) scale(1.1);
-}
-.ng-nav-left { left: -14px; }
-.ng-nav-right { right: -14px; }
-
-@media (max-width: 600px) {
-  .ng-carousel-nav-btn { display: none; }
-}
-
-.ng-carousel-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.ng-carousel-count {
-  font-size: 0.82rem;
+  gap: 6px;
+  font-size: 0.76rem;
   font-weight: 700;
   color: #ffdda3;
   background: rgba(215, 157, 83, 0.18);
-  padding: 2px 10px;
-  border-radius: 99px;
   border: 1px solid rgba(215, 157, 83, 0.35);
+  border-radius: 99px;
+  padding: 2px 10px;
+  margin-top: 4px;
+}
+
+.ng-ideas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  margin: 8px 0 16px;
 }
 
 .ng-idea-card {
-  flex: 0 0 clamp(260px, 78vw, 340px);
-  scroll-snap-align: center;
+  width: 100%;
+  box-sizing: border-box;
   background: linear-gradient(145deg, rgba(38, 27, 20, 0.94), rgba(24, 16, 11, 0.96));
   border: 1px solid rgba(215, 157, 83, 0.45);
-  border-radius: 20px;
-  padding: 1.25rem 1.25rem 1.15rem;
-  transition: all 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px;
+  padding: 1rem 1.15rem 1.05rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   user-select: none;
+  outline: none;
+}
+
+.ng-idea-card:focus-visible {
+  border-color: #f2bd65;
+  box-shadow: 0 0 0 3px rgba(242, 189, 101, 0.45);
+}
+
+@media (max-width: 400px) {
+  .ng-page {
+    padding: 0 0.5rem;
+    margin: 0.5rem auto 2rem;
+  }
+  .ng-card {
+    padding: 1.25rem 0.9rem 1.5rem;
+    border-radius: 20px;
+  }
+  .ng-star {
+    font-size: 2.7rem;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.1rem;
+  }
+  .ng-stars-row {
+    gap: 0.2rem;
+  }
+  .ng-idea-card {
+    padding: 0.9rem 0.95rem 0.95rem;
+    border-radius: 14px;
+  }
 }
 
 .ng-idea-card:hover {
   border-color: #f2bd65;
   background: linear-gradient(145deg, rgba(48, 34, 24, 0.98), rgba(30, 20, 14, 0.98));
-  transform: translateY(-3px) scale(1.015);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), 0 0 20px rgba(242, 189, 101, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(242, 189, 101, 0.2);
 }
 
 .ng-idea-card:active {
-  transform: translateY(-1px) scale(0.99);
+  transform: translateY(0);
 }
 
 .ng-idea-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
+  justify-content: flex-start;
+  margin-bottom: 0.45rem;
 }
 
 .ng-idea-num {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 800;
   color: #271a11;
   background: linear-gradient(135deg, #f5cf8c, #d99547);
-  padding: 3px 9px;
+  padding: 2px 8px;
   border-radius: 99px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   box-shadow: 0 2px 6px rgba(217, 149, 71, 0.35);
 }
 
-.ng-idea-stars {
-  font-size: 0.95rem;
-  color: #f2bd65;
-  letter-spacing: 2px;
-  text-shadow: 0 0 10px rgba(242, 189, 101, 0.4);
-}
-
 .ng-idea-text {
-  font-size: 1rem;
+  font-size: 0.96rem;
   color: #fff6e8;
-  line-height: 1.55;
+  line-height: 1.52;
   font-style: italic;
   font-weight: 500;
-  margin: 0.25rem 0 1.15rem;
-  flex-grow: 1;
-}
-
-.ng-idea-tap-hint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 9px 12px;
-  background: linear-gradient(135deg, #f5cf8c, #d99547);
-  color: #271a11;
-  font-size: 0.88rem;
-  font-weight: 800;
-  border-radius: 12px;
-  text-align: center;
-  box-shadow: 0 4px 14px rgba(217, 149, 71, 0.4);
-  transition: all 0.2s ease;
-}
-.ng-idea-card:hover .ng-idea-tap-hint {
-  background: linear-gradient(135deg, #ffdda0, #e5a352);
-  box-shadow: 0 6px 18px rgba(217, 149, 71, 0.55);
+  margin: 0.15rem 0 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .ng-btn-edit-idea:hover {
