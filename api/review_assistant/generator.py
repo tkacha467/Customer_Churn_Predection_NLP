@@ -18,14 +18,18 @@ class ReviewGenerator:
         rating: int,
         aspects: List[str],
         user_note: str = "",
-        business_name: str = "the restaurant"
+        business_name: str = "the restaurant",
+        language: str = "english",
+        business_category: Optional[str] = None,
     ) -> List[Dict[str, str]]:
-        """Generates 3 distinct candidate review ideas."""
+        """Generates 3-5 distinct candidate review ideas in the selected language."""
         return self.provider.generate_review_ideas(
             rating=rating,
             aspects=aspects,
             user_note=user_note,
-            business_name=business_name
+            business_name=business_name,
+            language=language,
+            business_category=business_category,
         )
 
     def generate(
@@ -38,7 +42,9 @@ class ReviewGenerator:
         length: str = "medium",
         dining_type: str = "dine_in",
         emoji_preference: str = "light",
-        business_name: str = "the restaurant"
+        business_name: str = "the restaurant",
+        language: str = "english",
+        business_category: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Generates humanized, grounded review draft adhering to zero-fabrication standards."""
         cleaned_aspects = [a.strip() for a in aspects if a.strip()]
@@ -53,7 +59,9 @@ class ReviewGenerator:
             length=length,
             dining_type=dining_type,
             emoji_preference=emoji_preference,
-            business_name=business_name
+            business_name=business_name,
+            language=language,
+            business_category=business_category,
         )
 
     def generate_manager_reply(

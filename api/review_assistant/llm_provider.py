@@ -23,7 +23,9 @@ class ReviewLLMProvider(ABC):
         length: str = "medium",
         dining_type: str = "dine_in",
         emoji_preference: str = "light",
-        business_name: str = "the restaurant"
+        business_name: str = "the restaurant",
+        language: str = "english",
+        business_category: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Generates a humanized, customer-grounded review draft."""
         pass
@@ -34,9 +36,11 @@ class ReviewLLMProvider(ABC):
         rating: int,
         aspects: List[str],
         user_note: str = "",
-        business_name: str = "the restaurant"
+        business_name: str = "the restaurant",
+        language: str = "english",
+        business_category: Optional[str] = None,
     ) -> List[Dict[str, str]]:
-        """Generates 3 distinct, natural review candidate ideas."""
+        """Generates 3-5 distinct, natural review candidate ideas in the chosen language."""
         pass
 
 
@@ -45,6 +49,7 @@ class LocalLLMProvider(ReviewLLMProvider):
     Local High-Precision Hospitality Synthesis & Humanization Engine.
     Executes entirely on-premise without external network dependency.
     Enforces strict zero-fabrication, 15-45 word length, and 0-2 contextual emojis.
+    Supports English, Roman Hinglish, and Roman Gujlish.
     """
 
     def generate_review_ideas(
@@ -52,10 +57,19 @@ class LocalLLMProvider(ReviewLLMProvider):
         rating: int,
         aspects: List[str],
         user_note: str = "",
-        business_name: str = "the restaurant"
+        business_name: str = "the restaurant",
+        language: str = "english",
+        business_category: Optional[str] = None,
     ) -> List[Dict[str, str]]:
         from api.review_assistant.prompts import generate_candidate_ideas
-        return generate_candidate_ideas(rating, aspects, user_note, business_name)
+        return generate_candidate_ideas(
+            rating=rating,
+            aspects=aspects,
+            user_note=user_note,
+            business_name=business_name,
+            language=language,
+            business_category=business_category,
+        )
 
     def generate_review(
         self,
@@ -67,7 +81,9 @@ class LocalLLMProvider(ReviewLLMProvider):
         length: str = "medium",
         dining_type: str = "dine_in",
         emoji_preference: str = "light",
-        business_name: str = "the restaurant"
+        business_name: str = "the restaurant",
+        language: str = "english",
+        business_category: Optional[str] = None,
     ) -> Dict[str, Any]:
         from api.review_assistant.prompts import humanize_review_draft
         review_text = humanize_review_draft(
@@ -79,7 +95,9 @@ class LocalLLMProvider(ReviewLLMProvider):
             length=length,
             dining_type=dining_type,
             emoji_preference=emoji_preference,
-            business_name=business_name
+            business_name=business_name,
+            language=language,
+            business_category=business_category,
         )
         return {
             "review": review_text,
@@ -103,10 +121,19 @@ class CloudLLMProvider(ReviewLLMProvider):
         rating: int,
         aspects: List[str],
         user_note: str = "",
-        business_name: str = "the restaurant"
+        business_name: str = "the restaurant",
+        language: str = "english",
+        business_category: Optional[str] = None,
     ) -> List[Dict[str, str]]:
         # Fast, deterministic ideas are consistent and instant
-        return self.local_fallback.generate_review_ideas(rating, aspects, user_note, business_name)
+        return self.local_fallback.generate_review_ideas(
+            rating=rating,
+            aspects=aspects,
+            user_note=user_note,
+            business_name=business_name,
+            language=language,
+            business_category=business_category,
+        )
 
     def generate_review(
         self,
@@ -118,7 +145,9 @@ class CloudLLMProvider(ReviewLLMProvider):
         length: str = "medium",
         dining_type: str = "dine_in",
         emoji_preference: str = "light",
-        business_name: str = "the restaurant"
+        business_name: str = "the restaurant",
+        language: str = "english",
+        business_category: Optional[str] = None,
     ) -> Dict[str, Any]:
         from api.review_assistant.prompts import build_humanized_prompt, SYSTEM_HUMANIZED_PROMPT
 
@@ -131,7 +160,9 @@ class CloudLLMProvider(ReviewLLMProvider):
             length=length,
             dining_type=dining_type,
             emoji_preference=emoji_preference,
-            business_name=business_name
+            business_name=business_name,
+            language=language,
+            business_category=business_category,
         )
 
         # 1. Attempt Gemini if key present
@@ -198,7 +229,9 @@ class CloudLLMProvider(ReviewLLMProvider):
             length=length,
             dining_type=dining_type,
             emoji_preference=emoji_preference,
-            business_name=business_name
+            business_name=business_name,
+            language=language,
+            business_category=business_category,
         )
 
 

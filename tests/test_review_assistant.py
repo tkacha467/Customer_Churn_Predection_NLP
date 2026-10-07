@@ -190,6 +190,7 @@ def test_frontend_analytics_events_accepted():
 
     frontend_events = [
         ("rating_selected", {"rating": 5}),
+        ("language_selected", {"language": "gujarati"}),
         ("aspects_selected", {"aspects": ["Breakfast", "Chai & Tea"]}),
         ("review_selected", {"review_id": "opt1"}),
         ("idea_selected", {"idea_id": "opt1"}),
@@ -220,3 +221,115 @@ def test_unknown_analytics_event_rejected():
         "metadata": {},
     })
     assert res.status_code == 422
+
+def test_trilingual_ideas_generation():
+    """Verify English, Roman Hinglish, and Roman Gujlish review ideas."""
+    import re
+    devanagari_pattern = re.compile(r'[\u0900-\u097F]')
+    gujarati_script_pattern = re.compile(r'[\u0A80-\u0AFF]')
+
+    # 1. English
+    res_en = client.post("/api/reviews/ideas", json={
+        "rating": 5,
+        "aspects": ["Food", "Staff"],
+        "language": "english"
+    })
+    assert res_en.status_code == 200
+    ideas_en = res_en.json()["ideas"]
+    assert len(ideas_en) >= 3
+    assert any("loved" in i["text"].lower() or "amazing" in i["text"].lower() or "great" in i["text"].lower() for i in ideas_en)
+
+    # 2. Hindi (Roman Hinglish)
+    res_hi = client.post("/api/reviews/ideas", json={
+        "rating": 5,
+        "aspects": ["Food", "Service"],
+        "language": "hindi"
+    })
+    assert res_hi.status_code == 200
+    ideas_hi = res_hi.json()["ideas"]
+    assert len(ideas_hi) >= 3
+    hi_text = " ".join(i["text"] for i in ideas_hi)
+    # Strictly NO Devanagari
+    assert not devanagari_pattern.search(hi_text), "Hindi ideas must NOT contain Devanagari script"
+    # Contains natural Hinglish
+    assert any("khana" in t.lower() or "bahut" in t.lower() or "accha" in t.lower() or "badhiya" in t.lower() for t in [i["text"] for i in ideas_hi])
+
+    # 3. Gujarati (Roman Gujlish)
+    res_gu = client.post("/api/reviews/ideas", json={
+        "rating": 5,
+        "aspects": ["Breakfast", "Chai"],
+        "language": "gujarati"
+    })
+    assert res_gu.status_code == 200
+    ideas_gu = res_gu.json()["ideas"]
+    assert len(ideas_gu) >= 3
+    gu_text = " ".join(i["text"] for i in ideas_gu)
+    # Strictly NO Gujarati native script
+    assert not gujarati_script_pattern.search(gu_text), "Gujarati ideas must NOT contain Gujarati native script"
+    # Contains natural Gujlish
+    assert any("ahiya" in t.lower() or "mast" in t.lower() or "saras" in t.lower() or "maza" in t.lower() for t in [i["text"] for i in ideas_gu])
+
+def test_trilingual_review_generation():
+    """Verify direct review generation in English, Roman Hinglish, and Roman Gujlish."""
+    import re
+    devanagari_pattern = re.compile(r'[\u0900-\u097F]')
+    gujarati_script_pattern = re.compile(r'[\u0A80-\u0AFF]')
+
+    # 1. Hindi (Roman Hinglish)
+    res_hi = client.post("/api/reviews/generate", json={
+        "rating": 5,
+        "aspects": ["food", "service"],
+        "user_note": "Garam samosa",
+        "language": "hindi"
+    })
+    assert res_hi.status_code == 200
+    draft_hi = res_hi.json()["review"]
+    assert not devanagari_pattern.search(draft_hi), "Generated Hindi review must be Roman script, not Devanagari"
+    assert "samosa" in draft_hi.lower()
+    assert res_hi.json()["language"] == "hindi"
+
+    # 2. Gujarati (Roman Gujlish)
+    res_gu = client.post("/api/reviews/generate", json={
+        "rating": 5,
+        "aspects": ["food", "staff"],
+        "user_note": "Fafda jalebi",
+        "language": "gujarati"
+    })
+    assert res_gu.status_code == 200
+    draft_gu = res_gu.json()["review"]
+    assert not gujarati_script_pattern.search(draft_gu), "Generated Gujarati review must be Roman script, not Gujarati script"
+    assert "fafda" in draft_gu.lower()
+    assert res_gu.json()["language"] == "gujarati"
+
+def test_backward_compatibility_defaults():
+    """Verify legacy requests without language default safely to English and invalid language handled gracefully."""
+    # Omitted language
+    res_no_lang = client.post("/api/reviews/ideas", json={
+        "rating": 5,
+        "aspects": ["Food"]
+    })
+    assert res_no_lang.status_code == 200
+    assert len(res_no_lang.json()["ideas"]) >= 3
+
+    # Unknown language string falls back to English
+    res_unknown = client.post("/api/reviews/generate", json={
+        "rating": 4,
+        "aspects": ["Food"],
+        "language": "esperanto_dialect_xyz"
+    })
+    assert res_unknown.status_code == 200
+    assert res_unknown.json()["rating_consistent"] is True
+
+def test_hospitality_category_topics():
+    """Verify hospitality category topic mapping and resolution."""
+    from api.review_assistant.prompts import get_category_topics
+
+    cafe_topics = get_category_topics("Café & Bakery")
+    assert "Chai / Coffee" in cafe_topics or "Food & Taste" in cafe_topics
+
+    hotel_topics = get_category_topics("Boutique Hotel")
+    assert "Room" in hotel_topics
+    assert "Cleanliness" in hotel_topics
+
+    salon_topics = get_category_topics("Hair Salon & Spa")
+    assert "Results" in salon_topics or "Service" in salon_topics

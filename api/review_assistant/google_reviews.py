@@ -72,6 +72,10 @@ class GoogleReviewManager:
         if not url.strip():
             url = "https://maps.google.com"
 
+        category = info.get("category", "Breakfast & Snacks")
+        from api.review_assistant.prompts import get_category_topics
+        topics = info.get("topics") if info.get("topics") else get_category_topics(category)
+
         return {
             "business_id": business_id,
             "platform": "google",
@@ -79,9 +83,9 @@ class GoogleReviewManager:
             "is_configured": is_configured,
             "business_name": info.get("business_name", "Nasta Ghar"),
             "branch": info.get("branch", ""),
-            "category": info.get("category", "Breakfast & Snacks"),
+            "category": category,
             "description": info.get("description", "Authentic homestyle breakfast, chai, and snacks in Rajkot."),
-            "topics": info.get("topics", DEFAULT_TOPICS),
+            "topics": topics,
             "primary_accent": info.get("primary_accent", "#f97316")
         }
 
