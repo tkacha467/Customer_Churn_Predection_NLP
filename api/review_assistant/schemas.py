@@ -5,15 +5,14 @@ class ReviewIdeaItem(BaseModel):
     id: str
     focus: str = "General"
     text: str
-    language: Optional[str] = "english"
 
 class ReviewIdeasRequest(BaseModel):
     business_id: str = Field(default="default_business", min_length=1, max_length=100, description="Unique cafe/restaurant identifier")
     rating: int = Field(..., ge=1, le=5, description="Guest star rating from 1 to 5")
     aspects: Optional[List[str]] = Field(default_factory=list, max_length=20, description="Hospitality aspects experienced (e.g. food, drinks, service, vibe)")
     user_note: Optional[str] = Field(default="", max_length=2000, description="Guest freeform notes or mentioned dishes/drinks")
-    language: Optional[str] = Field(default="english", description="Language: english, hindi, gujarati")
-    business_category: Optional[str] = Field(default=None, description="Hospitality category: cafe, restaurant, hotel, salon, breakfast, etc.")
+    language: Optional[str] = Field(default="english", description="Customer language: english, hindi, gujarati")
+    category: Optional[str] = Field(default=None, description="Hospitality category, e.g. Cafe, Restaurant, Hotel, Salon")
 
 class ReviewIdeasResponse(BaseModel):
     ideas: List[ReviewIdeaItem]
@@ -30,8 +29,8 @@ class ReviewGenerateRequest(BaseModel):
     emoji_preference: Optional[str] = Field(default="light", description="Emoji preference: light, none, tasteful")
     table_number: Optional[str] = Field(default=None, description="Table identifier if scanned via table QR")
     session_id: Optional[str] = Field(default=None, description="Session tracker")
-    language: Optional[str] = Field(default="english", description="Language: english, hindi, gujarati")
-    business_category: Optional[str] = Field(default=None, description="Hospitality category: cafe, restaurant, hotel, salon, breakfast, etc.")
+    language: Optional[str] = Field(default="english", description="Customer language: english, hindi, gujarati")
+    category: Optional[str] = Field(default=None, description="Hospitality category, e.g. Cafe, Restaurant, Hotel, Salon")
 
 class ReviewGenerateResponse(BaseModel):
     review: str
@@ -43,7 +42,6 @@ class ReviewGenerateResponse(BaseModel):
     dining_type: str = "dine_in"
     table_number: Optional[str] = None
     generation_provider: str = "hospitality_engine"
-    language: str = "english"
 
 class ReviewValidateRequest(BaseModel):
     rating: int = Field(..., ge=1, le=5, description="Star rating to compare against")
@@ -106,8 +104,8 @@ ALLOWED_ANALYTICS_EVENTS = {
     "google_review_link_clicked",
     "private_feedback_submitted",
     # Client-side events (sent by CustomerReview.jsx via POST /reviews/events)
-    "rating_selected",
     "language_selected",
+    "rating_selected",
     "aspects_selected",
     "review_selected",
     "idea_selected",

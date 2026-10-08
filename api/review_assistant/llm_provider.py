@@ -25,7 +25,7 @@ class ReviewLLMProvider(ABC):
         emoji_preference: str = "light",
         business_name: str = "the restaurant",
         language: str = "english",
-        business_category: Optional[str] = None,
+        category: Optional[str] = None
     ) -> Dict[str, Any]:
         """Generates a humanized, customer-grounded review draft."""
         pass
@@ -38,9 +38,9 @@ class ReviewLLMProvider(ABC):
         user_note: str = "",
         business_name: str = "the restaurant",
         language: str = "english",
-        business_category: Optional[str] = None,
+        category: Optional[str] = None
     ) -> List[Dict[str, str]]:
-        """Generates 3-5 distinct, natural review candidate ideas in the chosen language."""
+        """Generates 3-5 distinct, natural review candidate ideas."""
         pass
 
 
@@ -49,7 +49,6 @@ class LocalLLMProvider(ReviewLLMProvider):
     Local High-Precision Hospitality Synthesis & Humanization Engine.
     Executes entirely on-premise without external network dependency.
     Enforces strict zero-fabrication, 15-45 word length, and 0-2 contextual emojis.
-    Supports English, Roman Hinglish, and Roman Gujlish.
     """
 
     def generate_review_ideas(
@@ -59,7 +58,7 @@ class LocalLLMProvider(ReviewLLMProvider):
         user_note: str = "",
         business_name: str = "the restaurant",
         language: str = "english",
-        business_category: Optional[str] = None,
+        category: Optional[str] = None
     ) -> List[Dict[str, str]]:
         from api.review_assistant.prompts import generate_candidate_ideas
         return generate_candidate_ideas(
@@ -68,7 +67,7 @@ class LocalLLMProvider(ReviewLLMProvider):
             user_note=user_note,
             business_name=business_name,
             language=language,
-            business_category=business_category,
+            category=category
         )
 
     def generate_review(
@@ -83,7 +82,7 @@ class LocalLLMProvider(ReviewLLMProvider):
         emoji_preference: str = "light",
         business_name: str = "the restaurant",
         language: str = "english",
-        business_category: Optional[str] = None,
+        category: Optional[str] = None
     ) -> Dict[str, Any]:
         from api.review_assistant.prompts import humanize_review_draft
         review_text = humanize_review_draft(
@@ -97,7 +96,7 @@ class LocalLLMProvider(ReviewLLMProvider):
             emoji_preference=emoji_preference,
             business_name=business_name,
             language=language,
-            business_category=business_category,
+            category=category
         )
         return {
             "review": review_text,
@@ -123,7 +122,7 @@ class CloudLLMProvider(ReviewLLMProvider):
         user_note: str = "",
         business_name: str = "the restaurant",
         language: str = "english",
-        business_category: Optional[str] = None,
+        category: Optional[str] = None
     ) -> List[Dict[str, str]]:
         # Fast, deterministic ideas are consistent and instant
         return self.local_fallback.generate_review_ideas(
@@ -132,7 +131,7 @@ class CloudLLMProvider(ReviewLLMProvider):
             user_note=user_note,
             business_name=business_name,
             language=language,
-            business_category=business_category,
+            category=category
         )
 
     def generate_review(
@@ -147,7 +146,7 @@ class CloudLLMProvider(ReviewLLMProvider):
         emoji_preference: str = "light",
         business_name: str = "the restaurant",
         language: str = "english",
-        business_category: Optional[str] = None,
+        category: Optional[str] = None
     ) -> Dict[str, Any]:
         from api.review_assistant.prompts import build_humanized_prompt, SYSTEM_HUMANIZED_PROMPT
 
@@ -162,7 +161,7 @@ class CloudLLMProvider(ReviewLLMProvider):
             emoji_preference=emoji_preference,
             business_name=business_name,
             language=language,
-            business_category=business_category,
+            category=category
         )
 
         # 1. Attempt Gemini if key present
@@ -231,7 +230,7 @@ class CloudLLMProvider(ReviewLLMProvider):
             emoji_preference=emoji_preference,
             business_name=business_name,
             language=language,
-            business_category=business_category,
+            category=category
         )
 
 

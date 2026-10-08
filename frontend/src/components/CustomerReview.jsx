@@ -10,74 +10,16 @@ const BRAND = {
     'https://search.google.com/local/writereview?placeid=ChIJZeK7NwDLWTkR1pOxt51jLro',
 };
 
-// ─── TRILINGUAL CHOICES ──────────────────────────────────────────────────────
-const LANGUAGES = [
-  { id: 'english', label: 'English', sub: 'English' },
-  { id: 'hindi', label: 'Hindi', sub: 'Hinglish (Roman)' },
-  { id: 'gujarati', label: 'Gujarati', sub: 'Gujlish (Roman)' },
+const DEFAULT_TOPICS = [
+  { label: 'Breakfast', icon: '🍳' },
+  { label: 'Chai & Tea', icon: '☕' },
+  { label: 'Snacks', icon: '🥪' },
+  { label: 'Taste & Flavour', icon: '😋' },
+  { label: 'Friendly Staff', icon: '😊' },
+  { label: 'Cleanliness', icon: '✨' },
+  { label: 'Value for Money', icon: '💰' },
+  { label: 'Quick Service', icon: '⚡' },
 ];
-
-// ─── HOSPITALITY TOPICS BY CATEGORY ──────────────────────────────────────────
-const CATEGORY_TOPICS = {
-  cafe: [
-    { label: 'Food & Taste', icon: '😋' },
-    { label: 'Chai / Coffee', icon: '☕' },
-    { label: 'Staff', icon: '😊' },
-    { label: 'Service', icon: '⚡' },
-    { label: 'Ambience', icon: '🌟' },
-    { label: 'Cleanliness', icon: '✨' },
-    { label: 'Value for Money', icon: '💰' },
-  ],
-  restaurant: [
-    { label: 'Food & Taste', icon: '😋' },
-    { label: 'Service', icon: '⚡' },
-    { label: 'Staff', icon: '😊' },
-    { label: 'Ambience', icon: '🌟' },
-    { label: 'Cleanliness', icon: '✨' },
-    { label: 'Portion Size', icon: '🍽️' },
-    { label: 'Value for Money', icon: '💰' },
-  ],
-  hotel: [
-    { label: 'Room', icon: '🛏️' },
-    { label: 'Cleanliness', icon: '✨' },
-    { label: 'Staff', icon: '😊' },
-    { label: 'Service', icon: '⚡' },
-    { label: 'Breakfast', icon: '🍳' },
-    { label: 'Location', icon: '📍' },
-    { label: 'Comfort', icon: '✨' },
-    { label: 'Ambience', icon: '🌟' },
-  ],
-  salon: [
-    { label: 'Service', icon: '⚡' },
-    { label: 'Staff', icon: '😊' },
-    { label: 'Cleanliness', icon: '✨' },
-    { label: 'Experience', icon: '🌟' },
-    { label: 'Results', icon: '✨' },
-    { label: 'Ambience', icon: '🌟' },
-  ],
-  breakfast: [
-    { label: 'Breakfast', icon: '🍳' },
-    { label: 'Chai & Tea', icon: '☕' },
-    { label: 'Snacks', icon: '🥪' },
-    { label: 'Taste & Flavour', icon: '😋' },
-    { label: 'Friendly Staff', icon: '😊' },
-    { label: 'Cleanliness', icon: '✨' },
-    { label: 'Value for Money', icon: '💰' },
-    { label: 'Quick Service', icon: '⚡' },
-  ],
-};
-
-const DEFAULT_TOPICS = CATEGORY_TOPICS.breakfast;
-
-function resolveCategoryTopics(category) {
-  if (!category) return CATEGORY_TOPICS.breakfast;
-  const c = category.toLowerCase();
-  if (c.includes('cafe') || c.includes('coffee')) return CATEGORY_TOPICS.cafe;
-  if (c.includes('hotel') || c.includes('stay') || c.includes('resort')) return CATEGORY_TOPICS.hotel;
-  if (c.includes('salon') || c.includes('spa') || c.includes('parlour')) return CATEGORY_TOPICS.salon;
-  if (c.includes('restaurant') || c.includes('dining') || c.includes('bistro')) return CATEGORY_TOPICS.restaurant;
-  return CATEGORY_TOPICS.breakfast;
-}
 
 const RATING_LABELS = {
   5: { text: 'Loved it!', emoji: '🤩' },
@@ -87,142 +29,147 @@ const RATING_LABELS = {
   1: { text: 'Not good', emoji: '😞' },
 };
 
-function getFallbackIdeas(r, note, lang = 'english') {
+const getLanguageLabel = (l) => {
+  if (l === 'hindi') return 'Hindi';
+  if (l === 'gujarati') return 'Gujarati';
+  return 'English';
+};
+
+const getFallbackIdeas = (r, note, lang = 'english') => {
   const noteText = note && note.trim() ? ` ${note.trim().replace(/[.!]+$/, '')}.` : '';
+  const l = (lang || 'english').toLowerCase();
 
-  if (lang === 'hindi') {
-    // ─── HINDI (ROMAN SCRIPT / HINGLISH) ──────────────────────────────
+  if (l.includes('hin')) {
     if (r === 5) {
       return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Bahut accha experience raha aur khana sach me lajawab tha!${noteText} Loved it 😊👌`, language: 'hindi' },
-        { id: 'opt2', focus: 'Taste & Service', text: `Food ekdum fresh tha aur staff ka nature bhi kaafi polite tha.${noteText} Quick service mili 😋👍`, language: 'hindi' },
-        { id: 'opt3', focus: 'Staff & Ambience', text: `Staff ka behaviour bahut friendly tha aur jagah bilkul clean thi.${noteText} Bohot achha time spend hua ✨😊`, language: 'hindi' },
-        { id: 'opt4', focus: 'Taste & Value', text: `Har cheez garam aur fresh serve hui. Taste badhiya tha aur price bhi reasonable hai.${noteText} Jarur try karein 👌🍽️`, language: 'hindi' },
-        { id: 'opt5', focus: 'Overall Visit', text: `Hamara visit ${BRAND.name} par bohot accha raha. Badhiya service, fresh taste aur welcoming log.${noteText} Definitely wapas aayenge! ❤️🌟`, language: 'hindi' },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Bahut hi tasty khana aur best chai!${noteText} Maza aa gaya 🍳☕` },
+        { id: 'opt2', focus: 'Food & Taste', text: `Khana ekdum fresh aur lajawab tha.${noteText} Quick service too ☕😋` },
+        { id: 'opt3', focus: 'Staff & Ambience', text: `Staff bahut polite hai aur safai ka pura dhyan rakha hai.${noteText} Family ke sath visit ke liye best jagah 😊✨` },
+        { id: 'opt4', focus: 'Taste & Value', text: `Har cheez garam aur fresh mili. Snacks aur chai bahut acche the aur price bhi sahi hai.${noteText} Zaroor try karein 👌🍲` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Overall experience bahut shandar raha at ${BRAND.name}. Khana aur service dono top notch the.${noteText} Phir zaroor aayenge! 👨‍👩‍👧‍👦❤️` },
       ];
     } else if (r === 4) {
       return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Accha khana aur pleasant atmosphere.${noteText} Ek badhiya visit rahi 👍😊`, language: 'hindi' },
-        { id: 'opt2', focus: 'Taste & Service', text: `Khana fresh tha aur staff ne bhi achhe se attend kiya.${noteText} Service time par mili 👍☕`, language: 'hindi' },
-        { id: 'opt3', focus: 'Clean & Fair', text: `Saaf-suthri jagah hai aur pricing bhi fair hai.{noteText} Food quality acchi lagi 😊`, language: 'hindi' },
-        { id: 'opt4', focus: 'Staff & Ambience', text: `Staff helpful tha aur seating comfortable thi. Taste bhi accha tha.${noteText} Ek baar aane layak jagah hai 🌟👍`, language: 'hindi' },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall kaafi accha experience raha. Taste aur service dono satisfactory the.${noteText} Fir se visit karenge 😊`, language: 'hindi' },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Accha khana aur tasty chai!${noteText} Morning ke liye badhiya choice 🍳` },
+        { id: 'opt2', focus: 'Food & Service', text: `Breakfast fresh tha aur service bhi fast thi.${noteText} Staff ka behaviour kaafi polite tha 👍☕` },
+        { id: 'opt3', focus: 'Clean & Fair', text: `Clean sitting area aur achhi food quality.${noteText} Rates bhi pocket friendly hain 😊` },
+        { id: 'opt4', focus: 'Snacks & Tea', text: `Snacks aur garam chai enjoy kiya. Food time pe serve hua aur taste accha tha.${noteText} Quick bite ke liye acchi jagah 🥪🍲` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Kaafi accha visit raha. Good taste, clean tables aur friendly service.${noteText} Definitely visit karne jaisa hai 🌟👍` },
       ];
     } else if (r === 3) {
       return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Khana theek tha, lekin aaj service thodi slow lagi.${noteText} Average visit 🙂`, language: 'hindi' },
-        { id: 'opt2', focus: 'Taste & Wait', text: `Taste decent tha, par order aane me thoda zyada time lag gaya.${noteText} Theek-thaak raha 🙂☕`, language: 'hindi' },
-        { id: 'opt3', focus: 'Ambience & Service', text: `Staff polite tha par thoda rush zyada tha.${noteText} Service me thoda improvement ho sakta hai 🙂`, language: 'hindi' },
-        { id: 'opt4', focus: 'Food & Prep', text: `Food theek-thaak tha, thoda garam hota toh aur accha lagta.${noteText} Average experience 🙂`, language: 'hindi' },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall thik-thak visit raha. Jagah achhi hai par order delay hua.${noteText} Umeed hai agli baar behtar hoga 🙂`, language: 'hindi' },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Khana theek tha, lekin service thodi slow lagi aaj.${noteText} 🙂` },
+        { id: 'opt2', focus: 'Food & Wait', text: `Chai acchi thi par snacks thode thande the.${noteText} Average experience raha 🙂☕` },
+        { id: 'opt3', focus: 'Service Pace', text: `Staff polite tha par order ke liye wait karna pada.${noteText} Decent visit 🙂` },
+        { id: 'opt4', focus: 'Crowd & Cleaning', text: `Aaj bheed kaafi thi. Food taste theek tha lekin table cleaning mein thoda time lag gaya.${noteText} Hope agli baar fast service mile 🙂🥪` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Overall theek experience tha. Seating comfortable hai par service mein thoda improvement chahiye.${noteText} Okay visit 🙂` },
       ];
     } else if (r === 2) {
       return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Khana average tha aur wait time kaafi lamba ho gaya.${noteText} Thoda disappointed 😕`, language: 'hindi' },
-        { id: 'opt2', focus: 'Service Issue', text: `Aaj service se satisfaction nahi mila. Order late aaya aur khana lukewarm tha.${noteText} 😕`, language: 'hindi' },
-        { id: 'opt3', focus: 'Cleanliness & Attention', text: `Staff ka dhyan nahi tha aur table safai me time laga.${noteText} Better service expect ki thi 😕`, language: 'hindi' },
-        { id: 'opt4', focus: 'Taste & Delay', text: `Taste khas nahi tha aur order aane me kaafi der hui.${noteText} Management ko thoda dhyan dena chahiye 😕`, language: 'hindi' },
-        { id: 'opt5', focus: 'Overall Visit', text: `Aaj ka visit disappointing raha. Service kaafi unorganized thi aur wait karna pada.{noteText} Hope this improves 😕`, language: 'hindi' },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Khana theek tha par wait time bahut zyada tha aaj.${noteText} 😕` },
+        { id: 'opt2', focus: 'Order Delay', text: `Aaj service se khush nahi huye.${noteText} Order kaafi late aaya aur khana bhi lukewarm tha 😕` },
+        { id: 'opt3', focus: 'Staff Attention', text: `Staff ka dhyaan nahi tha aur service kaafi slow thi.{noteText} Better service expected thi 😕` },
+        { id: 'opt4', focus: 'Slow Service', text: `Khaane ke liye kaafi wait karna pada aur tables quickly clean nahi huye.{noteText} Service improve karni chahiye 😕⏳` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Disappointing visit raha. Chai theek thi par snacks fresh nahi the aur service slow thi.{noteText} Umeed hai agle baar sudhar hoga 😕` },
       ];
     } else {
       return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Bahut slow service aur khana bhi thanda tha.${noteText} Kaafi bura experience raha 😞`, language: 'hindi' },
-        { id: 'opt2', focus: 'Order Delay', text: `Aaj ka experience bilkul accha nahi raha. Lamba wait karwaya aur order galat aaya.${noteText} 😞`, language: 'hindi' },
-        { id: 'opt3', focus: 'Staff & Cleanliness', text: `Tables saaf nahi thi aur staff careless laga.${noteText} Service me kaafi kami hai 😞`, language: 'hindi' },
-        { id: 'opt4', focus: 'Food & Attention', text: `Khana fresh nahi tha aur koi attend karne wala bhi nahi tha.${noteText} Total disappointment 😞`, language: 'hindi' },
-        { id: 'opt5', focus: 'Overall Visit', text: `Bohot kharab experience raha aaj. Slow service aur thanda khana.{noteText} Management needs major improvement 😞`, language: 'hindi' },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Bahut slow service aur khana bhi thanda mila aaj.${noteText} 😞` },
+        { id: 'opt2', focus: 'Order Issue', text: `Kharab experience raha aaj.${noteText} Bahut der wait kiya aur order bhi galat aaya 😞` },
+        { id: 'opt3', focus: 'Cleanliness', text: `Staff unorganized tha aur tables bilkul clean nahi the.${noteText} Poor service 😞` },
+        { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Khaana aane mein bahut time laga aur taste fresh nahi tha.${noteText} Koi theek se attend nahi kar raha tha 😞👎` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Kaafi poor experience raha. Long waiting time, cold food aur careless staff.{noteText} Major improvement ki zaroorat hai 😞` },
       ];
     }
   }
 
-  if (lang === 'gujarati') {
-    // ─── GUJARATI (ROMAN SCRIPT / GUJLISH) ────────────────────────────
+  if (l.includes('guj')) {
     if (r === 5) {
       return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Ahiya nu food ekdum mast hatu ane service pan jordar.${noteText} Bahu maza aavi! 🍳☕😋`, language: 'gujarati' },
-        { id: 'opt2', focus: 'Taste & Service', text: `Food khub fresh ane tasty hatu. Staff pan ekdum polite ane helpful hato.${noteText} Quick service mali 👌😊`, language: 'gujarati' },
-        { id: 'opt3', focus: 'Staff & Ambience', text: `Staff no swabhav bahu saras hato ane jagya ekdum chokhi hati.${noteText} Khub gamyu ahiya aavi ne ✨😊`, language: 'gujarati' },
-        { id: 'opt4', focus: 'Taste & Value', text: `Badhu garam ane fresh hatu. Taste ekdum authentic ane rates pan reasonable che.${noteText} Must try 👌🍲`, language: 'gujarati' },
-        { id: 'opt5', focus: 'Overall Visit', text: `{BRAND.name} ni visit ekdum saras rahi. Food mast, staff premal ane relaxed vatavaran.${noteText} Fari thi chokkas aavishu! ❤️👍`, language: 'gujarati' },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Ahiya nu food ekdum mast hatu ane chai pan jordar!${noteText} Khub majja aavi 🍳☕` },
+        { id: 'opt2', focus: 'Food & Taste', text: `Nasto ekdum fresh ane taste lajawab hato.${noteText} Quick service too ☕😋` },
+        { id: 'opt3', focus: 'Staff & Ambience', text: `Staff khub polite chhe ane chokkhai pan saras chhe.${noteText} Family sathe aavva mate best jagya 😊✨` },
+        { id: 'opt4', focus: 'Taste & Value', text: `Badhu garam ane fresh malyu. Snacks ane chai bahu saras hata ane bhav pan fair chhe.${noteText} Jarur try karva jevu chhe 👌🍲` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Overall experience bahu j saras rahyo at ${BRAND.name}. Food ane service banne top class.{noteText} Fari thi jarur aavishu! 👨‍👩‍👧‍👦❤️` },
       ];
     } else if (r === 4) {
       return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Food saras hatu ane vatavaran pan acchu hatu.${noteText} Ek vaar javay evo anubhav 🍳👍`, language: 'gujarati' },
-        { id: 'opt2', focus: 'Taste & Service', text: `Nasto ekdum garam ane tasty hato. Staff no response pan quick hato.${noteText} Saras service mali 😊☕`, language: 'gujarati' },
-        { id: 'opt3', focus: 'Clean & Fair', text: `Chokkhai sarasi hati ane price pan yogya che.{noteText} Food quality acchi lagi 👍😊`, language: 'gujarati' },
-        { id: 'opt4', focus: 'Staff & Ambience', text: `Staff helpful hato ane besvani vyavastha sari che.{noteText} Khub anand aavyo 🌟👍`, language: 'gujarati' },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall visit khub sari rahi. Badhu vyavasthit hatu ane taste pan gamyu.{noteText} Fari mulakat laishu 😊`, language: 'gujarati' },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Saras khavanu ane kadak chai!${noteText} Savarni saras sharuat 🍳` },
+        { id: 'opt2', focus: 'Food & Service', text: `Breakfast fresh hatu ane quick service mali.${noteText} Staff no swabhav pan vinamra hato 👍☕` },
+        { id: 'opt3', focus: 'Clean & Fair', text: `Clean sitting area ane sari food quality.${noteText} Rates pan reasonable chhe 😊` },
+        { id: 'opt4', focus: 'Snacks & Tea', text: `Snacks ane garam chai ni maja aavi. Food jaldi aavyu ane taste saro hato.${noteText} Quick bite mate saras jagya 🥪🍲` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Samagra mulakat khub sari rahi. Saro taste, clean tables ane friendly service.${noteText} Fari aavva jevu chhe 🌟👍` },
       ];
     } else if (r === 3) {
       return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Food theek hatu, pan aaje service thodi dhimi lagi.${noteText} Average anubhav 🙂`, language: 'gujarati' },
-        { id: 'opt2', focus: 'Taste & Wait', text: `Taste barabar hato, pan order aavta vaar lagi.{noteText} Theek-thaak rahya aaje 🙂☕`, language: 'gujarati' },
-        { id: 'opt3', focus: 'Ambience & Service', text: `Staff polite hato pan rush lidhe order delay thayo.{noteText} Service sudharvani jarur che 🙂`, language: 'gujarati' },
-        { id: 'opt4', focus: 'Food & Prep', text: `Food thodu thandu hatu, thodu garam hoy to vadhare maza aave.{noteText} Average visit 🙂`, language: 'gujarati' },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall theek-thaak visit rahi. Taste decent pan service thodi slow hati.{noteText} Aasha che aagal sudharo thase 🙂`, language: 'gujarati' },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Food thik hatu, pan service thodi slow lagi aaje.${noteText} 🙂` },
+        { id: 'opt2', focus: 'Food & Wait', text: `Chai sari hati pan snacks thoda thanda hata.${noteText} Samanya anubhav rahyo 🙂☕` },
+        { id: 'opt3', focus: 'Service Pace', text: `Staff saro hato pan order mate thodi vaar lagi.{noteText} Average visit 🙂` },
+        { id: 'opt4', focus: 'Crowd & Cleaning', text: `Bheed vadhare hati aaje. Taste barabar hato pan table cleaning ma time lagyo.{noteText} Aavti vakhte better service ni apeksha 🙂🥪` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Overall thik anubhav rahyo. Seating comfortable chhe pan service thodi improve karvani jarur chhe.{noteText} Okay visit 🙂` },
       ];
     } else if (r === 2) {
       return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Food average hatu ane aaje wait time bahu vadhare hato.{noteText} Nirasha thai 😕`, language: 'gujarati' },
-        { id: 'opt2', focus: 'Service Issue', text: `Service ma maza na aavi aaje. Order late aavyo ane food lukewarm hatu.{noteText} 😕`, language: 'gujarati' },
-        { id: 'opt3', focus: 'Cleanliness & Attention', text: `Staff dhyan na aaptu hatu ane table chokkha na hata.{noteText} Vadhu sari service ni apeksha hati 😕`, language: 'gujarati' },
-        { id: 'opt4', focus: 'Taste & Delay', text: `Taste khas na lagyo ane order mate lambo wait karvo padhyo.{noteText} Improvement joiye 😕`, language: 'gujarati' },
-        { id: 'opt5', focus: 'Overall Visit', text: `Aaje visit disappointing rahi. Service unorganized hati ane time pan kharab thayo.{noteText} Hope this improves 😕`, language: 'gujarati' },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Food thik hatu pan wait bahu karvu padyu aaje.${noteText} 😕` },
+        { id: 'opt2', focus: 'Order Delay', text: `Aaje service thi santosh na thayo.{noteText} Order late aavyo ane food pan lukewarm hatu 😕` },
+        { id: 'opt3', focus: 'Staff Attention', text: `Staff dhyan nhato aapi rahyo ane service slow hati.{noteText} Better service expected hati 😕` },
+        { id: 'opt4', focus: 'Slow Service', text: `Order mate ghano wait karyo ane tables pan quickly clean na thaya.{noteText} Customer service improve karvani jarur chhe 😕⏳` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Nirashajanak visit rahi. Chai thik hati pan snacks fresh nahota ane service slow hati.{noteText} Management sudharo kare evi aasha 😕` },
       ];
     } else {
       return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Bahu slow service ane food pan thandu hatu.{noteText} Khub kharab anubhav thayo 😞`, language: 'gujarati' },
-        { id: 'opt2', focus: 'Order Delay', text: `Aaje bilkul maza na aavi. Lambo wait karavyo ane order pan barabar na aavyo.{noteText} 😞`, language: 'gujarati' },
-        { id: 'opt3', focus: 'Staff & Cleanliness', text: `Tables chokkha na hata ane staff beparwah hatu.{noteText} Service khub kharab hati 😞`, language: 'gujarati' },
-        { id: 'opt4', focus: 'Food & Attention', text: `Food fresh na hatu ane koi dhyan pan aaptu na hatu.{noteText} Khub nirasha thai 😞`, language: 'gujarati' },
-        { id: 'opt5', focus: 'Overall Visit', text: `Bahu kharab visit rahi aaje. Thandu food ane careless staff.{noteText} Management ne sudhara ni sakht jarur che 😞`, language: 'gujarati' },
+        { id: 'opt1', focus: 'Short & Sweet', text: `Bahu j slow service ane thandu khavanu aapyu aaje.${noteText} 😞` },
+        { id: 'opt2', focus: 'Order Issue', text: `Kharab anubhav rahyo aaje.{noteText} Ghani vaar ubha rakhya ane order pan wrong aavyo 😞` },
+        { id: 'opt3', focus: 'Cleanliness', text: `Staff unorganized hato ane tables bilkul clean nahota.{noteText} Bahu poor service 😞` },
+        { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Food aavva ma khub time lagyo ane taste fresh nahoto.{noteText} Koi barabar attend pan na karyu 😞👎` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Experience bilkul saro na rahyo. Long waiting time, thandu food ane careless staff.{noteText} Service ma mota sudhara ni jarur chhe 😞` },
       ];
     }
   }
 
-  // ─── ENGLISH ──────────────────────────────────────────────────────
+  // English fallback
   if (r === 5) {
     return [
-      { id: 'opt1', focus: 'Short & Sweet', text: `Amazing breakfast and best chai in town!${noteText} Loved it 🍳☕`, language: 'english' },
-      { id: 'opt2', focus: 'Food & Tea', text: `The food was fresh and the tea was super tasty.${noteText} Quick service too ☕😋`, language: 'english' },
-      { id: 'opt3', focus: 'Staff & Place', text: `Very friendly staff and clean place.${noteText} We had a great time here 😊✨`, language: 'english' },
-      { id: 'opt4', focus: 'Taste & Value', text: `Everything was hot, fresh and full of flavour. The snacks and chai were really good and the price is also fair.${noteText} Must try 👌🍲`, language: 'english' },
-      { id: 'opt5', focus: 'Family Visit', text: `Had a wonderful breakfast with family at ${BRAND.name}. Great food, friendly people, and relaxed vibe.${noteText} Will surely visit again! 👨‍👩‍👧‍👦❤️`, language: 'english' },
+      { id: 'opt1', focus: 'Short & Sweet', text: `Amazing breakfast and best chai in town!${noteText} Loved it 🍳☕` },
+      { id: 'opt2', focus: 'Food & Tea', text: `The food was fresh and the tea was super tasty.${noteText} Quick service too ☕😋` },
+      { id: 'opt3', focus: 'Staff & Place', text: `Very friendly staff and clean place.${noteText} We had a great time here 😊✨` },
+      { id: 'opt4', focus: 'Taste & Value', text: `Everything was hot, fresh and full of flavour. The snacks and chai were really good and the price is also fair.${noteText} Must try 👌🍲` },
+      { id: 'opt5', focus: 'Family Visit', text: `Had a wonderful breakfast with family at ${BRAND.name}. Great food, friendly people, and relaxed vibe.${noteText} Will surely visit again! 👨‍👩‍👧‍👦❤️` },
     ];
   } else if (r === 4) {
     return [
-      { id: 'opt1', focus: 'Short & Sweet', text: `Good food and tasty chai!${noteText} Nice start to the morning 🍳`, language: 'english' },
-      { id: 'opt2', focus: 'Food & Service', text: `Fresh breakfast and quick service.${noteText} Staff was polite and helpful 👍☕`, language: 'english' },
-      { id: 'opt3', focus: 'Clean & Fair', text: `Clean sitting area and good food quality.${noteText} Prices are also reasonable 😊`, language: 'english' },
-      { id: 'opt4', focus: 'Snacks & Tea', text: `Enjoyed the snacks and hot tea. Food was served quickly and tasted nice.${noteText} Worth a visit for a quick bite 🥪🍲`, language: 'english' },
-      { id: 'opt5', focus: 'Overall Visit', text: `Overall a very pleasant visit. Good taste, clean tables, and friendly service.${noteText} Will definitely come back again 🌟👍`, language: 'english' },
+      { id: 'opt1', focus: 'Short & Sweet', text: `Good food and tasty chai!${noteText} Nice start to the morning 🍳` },
+      { id: 'opt2', focus: 'Food & Service', text: `Fresh breakfast and quick service.${noteText} Staff was polite and helpful 👍☕` },
+      { id: 'opt3', focus: 'Clean & Fair', text: `Clean sitting area and good food quality.${noteText} Prices are also reasonable 😊` },
+      { id: 'opt4', focus: 'Snacks & Tea', text: `Enjoyed the snacks and hot tea. Food was served quickly and tasted nice.${noteText} Worth a visit for a quick bite 🥪🍲` },
+      { id: 'opt5', focus: 'Overall Visit', text: `Overall a very pleasant visit. Good taste, clean tables, and friendly service.${noteText} Will definitely come back again 🌟👍` },
     ];
   } else if (r === 3) {
     return [
-      { id: 'opt1', focus: 'Short & Sweet', text: `Decent food, but the service was a bit slow today.${noteText} 🙂`, language: 'english' },
-      { id: 'opt2', focus: 'Food & Tea', text: `The chai was nice, but the snacks could have been hotter.${noteText} Okay experience overall 🙂☕`, language: 'english' },
-      { id: 'opt3', focus: 'Wait Time', text: `Staff was polite, but we had to wait some time for our order.${noteText} Average visit 🙂`, language: 'english' },
-      { id: 'opt4', focus: 'Busy Hours', text: `The place was quite crowded today. Food taste was fine, but table cleaning took longer than expected.${noteText} Hope it gets faster next time 🙂🥪`, language: 'english' },
-      { id: 'opt5', focus: 'Overall Visit', text: `Fair experience overall. Tea was good and seating is comfortable, but service needs a little improvement.${noteText} It was an okay visit 🙂`, language: 'english' },
+      { id: 'opt1', focus: 'Short & Sweet', text: `Decent food, but the service was a bit slow today.${noteText} 🙂` },
+      { id: 'opt2', focus: 'Food & Tea', text: `The chai was nice, but the snacks could have been hotter.${noteText} Okay experience overall 🙂☕` },
+      { id: 'opt3', focus: 'Wait Time', text: `Staff was polite, but we had to wait some time for our order.${noteText} Average visit 🙂` },
+      { id: 'opt4', focus: 'Busy Hours', text: `The place was quite crowded today. Food taste was fine, but table cleaning took longer than expected.${noteText} Hope it gets faster next time 🙂🥪` },
+      { id: 'opt5', focus: 'Overall Visit', text: `Fair experience overall. Tea was good and seating is comfortable, but service needs a little improvement.${noteText} It was an okay visit 🙂` },
     ];
   } else if (r === 2) {
     return [
-      { id: 'opt1', focus: 'Short & Sweet', text: `Food was okay, but wait time was too long today.${noteText} 😕`, language: 'english' },
-      { id: 'opt2', focus: 'Order Delay', text: `Not satisfied with the service today.${noteText} Order was delayed and food was lukewarm 😕`, language: 'english' },
-      { id: 'opt3', focus: 'Attention', text: `The place was noisy and staff was not paying attention.${noteText} Expected better service 😕`, language: 'english' },
-      { id: 'opt4', focus: 'Slow Service', text: `We had to wait a long time to get our food and tables were not cleaned quickly.${noteText} Need to improve customer service 😕⏳`, language: 'english' },
-      { id: 'opt5', focus: 'Overall Visit', text: `Disappointing visit today. The chai was fine but snacks were not fresh and service was very slow.${noteText} Hope management fixes this 😕`, language: 'english' },
+      { id: 'opt1', focus: 'Short & Sweet', text: `Food was okay, but wait time was too long today.${noteText} 😕` },
+      { id: 'opt2', focus: 'Order Delay', text: `Not satisfied with the service today.${noteText} Order was delayed and food was lukewarm 😕` },
+      { id: 'opt3', focus: 'Attention', text: `The place was noisy and staff was not paying attention.${noteText} Expected better service 😕` },
+      { id: 'opt4', focus: 'Slow Service', text: `We had to wait a long time to get our food and tables were not cleaned quickly.${noteText} Need to improve customer service 😕⏳` },
+      { id: 'opt5', focus: 'Overall Visit', text: `Disappointing visit today. The chai was fine but snacks were not fresh and service was very slow.${noteText} Hope management fixes this 😕` },
     ];
   } else {
     return [
-      { id: 'opt1', focus: 'Short & Sweet', text: `Very slow service and cold food today.${noteText} 😞`, language: 'english' },
-      { id: 'opt2', focus: 'Order Issue', text: `Bad experience today.${noteText} Waited very long and our order was wrong 😞`, language: 'english' },
-      { id: 'opt3', focus: 'Cleanliness', text: `Staff was unorganized and tables were not clean.${noteText} Very poor service 😞`, language: 'english' },
-      { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Food took forever to arrive and tasted stale.${noteText} Nobody came to attend us properly 😞👎`, language: 'english' },
-      { id: 'opt5', focus: 'Overall Visit', text: `Extremely poor experience today. Long waiting time, cold food, and careless staff.${noteText} Needs major improvement in service 😞`, language: 'english' },
+      { id: 'opt1', focus: 'Short & Sweet', text: `Very slow service and cold food today.${noteText} 😞` },
+      { id: 'opt2', focus: 'Order Issue', text: `Bad experience today.${noteText} Waited very long and our order was wrong 😞` },
+      { id: 'opt3', focus: 'Cleanliness', text: `Staff was unorganized and tables were not clean.${noteText} Very poor service 😞` },
+      { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Food took forever to arrive and tasted stale.${noteText} Nobody came to attend us properly 😞👎` },
+      { id: 'opt5', focus: 'Overall Visit', text: `Extremely poor experience today. Long waiting time, cold food, and careless staff.${noteText} Needs major improvement in service 😞` },
     ];
   }
-}
+};
 
 export default function CustomerReview({
   businessId = 'default_business',
@@ -237,7 +184,6 @@ export default function CustomerReview({
   const [showCustomEditor, setShowCustomEditor] = useState(false);
   const reviewCardRef = useRef(null);
   const editorRef = useRef(null);
-  const topicsSectionRef = useRef(null);
 
   // Rating
   const [rating, setRating] = useState(() => {
@@ -250,12 +196,13 @@ export default function CustomerReview({
   });
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewStarted, setReviewStarted] = useState(false);
+  const topicsSectionRef = useRef(null);
 
-  // Language selection
-  const [selectedLanguage, setSelectedLanguage] = useState(() => {
+  // Language selection: 'english' | 'hindi' | 'gujarati'
+  const [language, setLanguage] = useState(() => {
     try {
       const savedLang = sessionStorage.getItem('nastaGharSelectedLanguage');
-      return savedLang && ['english', 'hindi', 'gujarati'].includes(savedLang) ? savedLang : 'english';
+      return ['english', 'hindi', 'gujarati'].includes(savedLang) ? savedLang : 'english';
     } catch {
       return 'english';
     }
@@ -274,7 +221,7 @@ export default function CustomerReview({
   const [googleReviewUrl, setGoogleReviewUrl] = useState(BRAND.googleMapUrl);
 
   // Ideas initialized with fallback ideas (no empty screen, instant feedback)
-  const [ideas, setIdeas] = useState(() => getFallbackIdeas(rating, '', selectedLanguage));
+  const [ideas, setIdeas] = useState(() => getFallbackIdeas(rating, '', language));
   const [loadingIdeas, setLoadingIdeas] = useState(false);
   const [selectedIdeaId, setSelectedIdeaId] = useState(null);
   const fetchIdeasDebounceRef = useRef(null);
@@ -311,11 +258,11 @@ export default function CustomerReview({
       setCopied(sessionStorage.getItem('nastaGharClipboardCopied') === 'true');
       setHandoffOpen(true);
     } catch {
-      // Session storage can be unavailable in restricted contexts.
+      // Session storage can be unavailable in restricted browser contexts.
     }
   }, [businessId]);
 
-  // Acknowledgement for clipboard handoff instructions.
+  // Acknowledgement for the clipboard handoff instructions.
   const [cookieConsent, setCookieConsent] = useState(() => {
     try {
       return localStorage.getItem('ng_clipboard_notice_seen') === 'true';
@@ -331,7 +278,7 @@ export default function CustomerReview({
     setCookieConsent(true);
   };
 
-  // ─── FETCH CONFIG ──────────────────────────────────────────────────────────
+  // ─── FETCH CONFIG (optional enrichment, never overrides brand name) ─────────
   useEffect(() => {
     apiFetch(`/api/businesses/${businessId}/review-link`)
       .then((r) => r.json())
@@ -345,10 +292,6 @@ export default function CustomerReview({
           }));
           setAvailableTopics(enriched);
           setSelectedTopics(d.topics.slice(0, 2));
-        } else if (d.category) {
-          const catTopics = resolveCategoryTopics(d.category);
-          setAvailableTopics(catTopics);
-          setSelectedTopics(catTopics.slice(0, 2).map((t) => t.label));
         }
       })
       .catch(() => {/* use defaults */});
@@ -373,17 +316,16 @@ export default function CustomerReview({
     if (l.includes('breakfast') || l.includes('nasta')) return '🍳';
     if (l.includes('chai') || l.includes('tea') || l.includes('coffee') || l.includes('drink') || l.includes('beverage')) return '☕';
     if (l.includes('snack')) return '🥪';
-    if (l.includes('taste') || l.includes('flavour') || l.includes('flavor') || l.includes('food')) return '😋';
-    if (l.includes('portion')) return '🍽️';
-    if (l.includes('room') || l.includes('bed')) return '🛏️';
-    if (l.includes('comfort')) return '✨';
-    if (l.includes('location')) return '📍';
-    if (l.includes('result')) return '✨';
-    if (l.includes('staff') || l.includes('service') || l.includes('friendly') || l.includes('experience')) return '😊';
+    if (l.includes('taste') || l.includes('flavour') || l.includes('food')) return '😋';
+    if (l.includes('staff') || l.includes('service') || l.includes('friendly')) return '😊';
     if (l.includes('clean')) return '✨';
     if (l.includes('value') || l.includes('money') || l.includes('price')) return '💰';
     if (l.includes('quick') || l.includes('fast') || l.includes('speed')) return '⚡';
     if (l.includes('atmosphere') || l.includes('vibe') || l.includes('ambience')) return '🌟';
+    if (l.includes('room') || l.includes('bed')) return '🛏️';
+    if (l.includes('comfort')) return '🛋️';
+    if (l.includes('location')) return '📍';
+    if (l.includes('hair') || l.includes('salon') || l.includes('result') || l.includes('treatment')) return '💇';
     return '👍';
   }
 
@@ -397,7 +339,7 @@ export default function CustomerReview({
       body: JSON.stringify({
         session_id: sessionId,
         event_name: name,
-        metadata: { business_id: businessId, rating, language: selectedLanguage, ...meta },
+        metadata: { business_id: businessId, rating, ...meta },
       }),
     }).catch(() => {});
   };
@@ -438,9 +380,15 @@ export default function CustomerReview({
   // ─── HANDLERS ───────────────────────────────────────────────────────────────
   const handleRating = (s) => {
     setRating(s);
-    setReviewStarted(true);
     try { sessionStorage.setItem('nastaGharSelectedRating', String(s)); } catch {}
     logEvent('rating_selected', { rating: s });
+  };
+
+  const handleLanguageSelect = (langKey) => {
+    setLanguage(langKey);
+    try { sessionStorage.setItem('nastaGharSelectedLanguage', langKey); } catch {}
+    logEvent('language_selected', { language: langKey });
+    setIdeas(getFallbackIdeas(rating, personalNote, langKey));
   };
 
   const handleContinueReview = () => {
@@ -448,16 +396,6 @@ export default function CustomerReview({
     setTimeout(() => {
       topicsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 60);
-  };
-
-  const handleLanguageSelect = (langId) => {
-    setSelectedLanguage(langId);
-    try {
-      sessionStorage.setItem('nastaGharSelectedLanguage', langId);
-    } catch {}
-    logEvent('language_selected', { language: langId });
-    // Instant fallback update in selected language
-    setIdeas(getFallbackIdeas(rating, personalNote, langId));
   };
 
   const toggleTopic = (label) => {
@@ -475,10 +413,10 @@ export default function CustomerReview({
     logEvent('aspects_selected', { aspects: [] });
   };
 
-  // Keep ideas synchronized with rating, topics, personal note, and language
+  // Automatically keep ideas synchronized with rating, topics, language, and personal note
   useEffect(() => {
     // 1. Instant fallback update for 0ms perceived latency
-    setIdeas(getFallbackIdeas(rating, personalNote, selectedLanguage));
+    setIdeas(getFallbackIdeas(rating, personalNote, language));
 
     // 2. Debounce background request to enrich with AI-crafted candidate ideas
     if (fetchIdeasDebounceRef.current) {
@@ -496,8 +434,8 @@ export default function CustomerReview({
             rating,
             aspects: nothingSpecific ? [] : selectedTopics,
             user_note: personalNote.trim(),
-            language: selectedLanguage,
-            business_category: businessCategory,
+            language,
+            category: businessCategory,
           }),
         });
         if (res.ok) {
@@ -518,8 +456,9 @@ export default function CustomerReview({
         clearTimeout(fetchIdeasDebounceRef.current);
       }
     };
-  }, [rating, selectedTopics, nothingSpecific, personalNote, selectedLanguage, businessCategory, businessId]);
+  }, [rating, selectedTopics, nothingSpecific, personalNote, businessId, language, businessCategory]);
 
+  // Begin the handoff from the customer's tap; clipboard access is requested immediately.
   const handlePostDirectly = async (idea) => {
     await startReviewHandoff(idea.text, idea.id);
   };
@@ -531,21 +470,20 @@ export default function CustomerReview({
     setHandoffOpen(true);
     setCopyingReview(true);
     setShowCopyToast(false);
-    logEvent('review_selected', { review_id: reviewId, language: selectedLanguage });
-    logEvent('idea_selected', { idea_id: reviewId, language: selectedLanguage });
-    logEvent('review_approved', { length: reviewText.length, direct_post: true, language: selectedLanguage });
-    logEvent('google_review_handoff_started', { review_id: reviewId, language: selectedLanguage });
+    logEvent('review_selected', { review_id: reviewId });
+    logEvent('idea_selected', { idea_id: reviewId });
+    logEvent('review_approved', { length: reviewText.length, direct_post: true });
+    logEvent('google_review_handoff_started', { review_id: reviewId });
 
     try {
       sessionStorage.setItem('nastaGharSelectedReview', reviewText);
       sessionStorage.setItem('nastaGharSelectedRating', String(rating));
-      sessionStorage.setItem('nastaGharSelectedLanguage', selectedLanguage);
       sessionStorage.setItem('nastaGharSelectedReviewId', String(reviewId ?? ''));
       sessionStorage.setItem('nastaGharSelectedAt', new Date().toISOString());
       sessionStorage.setItem('nastaGharBusinessId', businessId);
       sessionStorage.setItem('nastaGharGoogleMapsDestination', googleReviewUrl);
     } catch {
-      // Continue handoff even when session storage is unavailable.
+      // Continue the handoff even when session storage is unavailable.
     }
 
     const copiedSuccessfully = await copyTextToClipboard(reviewText);
@@ -554,15 +492,16 @@ export default function CustomerReview({
     setShowCopyToast(true);
     setTimeout(() => setShowCopyToast(false), 3500);
     try { sessionStorage.setItem('nastaGharClipboardCopied', String(copiedSuccessfully)); } catch {}
-    logEvent(copiedSuccessfully ? 'review_clipboard_success' : 'review_clipboard_failed', { review_id: reviewId, language: selectedLanguage });
+    logEvent(copiedSuccessfully ? 'review_clipboard_success' : 'review_clipboard_failed', { review_id: reviewId });
 
     if (copiedSuccessfully) {
-      logEvent('google_maps_redirect', { destination: googleReviewUrl, language: selectedLanguage });
+      logEvent('google_maps_redirect', { destination: googleReviewUrl });
       logEvent('google_review_link_opened');
       window.location.href = googleReviewUrl;
       return;
     }
 
+    // Keep the exact review visible with a retry and an explicit Maps fallback CTA.
     setHandoffOpen(true);
   };
 
@@ -579,8 +518,8 @@ export default function CustomerReview({
           user_note: personalNote.trim(),
           selected_idea: draftReview || undefined,
           emoji_preference: 'light',
-          language: selectedLanguage,
-          business_category: businessCategory,
+          language,
+          category: businessCategory,
         }),
       });
       const data = await res.json();
@@ -643,7 +582,7 @@ export default function CustomerReview({
         ref={reviewCardRef}
         className={`ng-card ${!reviewStarted ? 'ng-initial-card' : 'ng-expanded-card'}`}
       >
-        {/* ── HEADER: BUSINESS WELCOME ─────────────────────────────────── */}
+        {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <header className="ng-header">
           <h1 className="ng-brand-name">નાસ્તા ઘર</h1>
           <p className="ng-brand-sub">Homestyle Breakfast & Chai • Rajkot</p>
@@ -654,8 +593,8 @@ export default function CustomerReview({
 
         {/* ── SECTION 1: RATING ─────────────────────────────────────────── */}
         <section className="ng-section" aria-label="Rating selection">
-          <h2 className="ng-section-title">How was your experience?</h2>
-          <p className="ng-section-sub">Tap a star to rate your visit</p>
+          <h2 className="ng-section-title">How was your visit?</h2>
+          <p className="ng-section-sub">Tap a star to rate your experience</p>
 
           <div className="ng-stars-row" role="radiogroup" aria-label="Star rating">
             {[1, 2, 3, 4, 5].map((s) => (
@@ -693,209 +632,195 @@ export default function CustomerReview({
           <>
             <div className="ng-section-divider" aria-hidden="true" />
 
-            {/* ── SECTION 2: LANGUAGE SELECTION ────────────────────────────── */}
+            {/* ── SECTION: LANGUAGE SELECTION ────────────────────────── */}
             <section className="ng-section ng-fade-in" aria-label="Language selection">
               <h2 className="ng-section-title">Which language feels most natural to you?</h2>
-              <p className="ng-section-sub">We'll craft review ideas in your preferred style</p>
+              <p className="ng-section-sub">Choose your preferred language for the review</p>
 
-              <div className="ng-lang-row" role="radiogroup" aria-label="Select review language">
-                {LANGUAGES.map((lang) => {
-                  const isSelected = selectedLanguage === lang.id;
-                  return (
-                    <button
-                      key={lang.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={isSelected}
-                      className={`ng-lang-btn ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleLanguageSelect(lang.id)}
-                    >
-                      <span className="ng-lang-label">{lang.label}</span>
-                      <span className="ng-lang-sub">{lang.sub}</span>
-                    </button>
-                  );
-                })}
+              <div className="ng-lang-row" role="radiogroup" aria-label="Review language">
+                {[
+                  { id: 'english', label: 'English' },
+                  { id: 'hindi', label: 'Hindi' },
+                  { id: 'gujarati', label: 'Gujarati' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`ng-lang-btn ${language === item.id ? 'active' : ''}`}
+                    onClick={() => handleLanguageSelect(item.id)}
+                    role="radio"
+                    aria-checked={language === item.id}
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
             </section>
 
             <div className="ng-section-divider" aria-hidden="true" />
 
-            {/* ── SECTION 3: HOSPITALITY TOPICS ────────────────────────────── */}
+            {/* ── SECTION 2: TOPICS / HIGHLIGHTS ────────────────────────────── */}
             <section ref={topicsSectionRef} className="ng-section ng-fade-in" aria-label="Visit highlights">
-              <h2 className="ng-section-title">
-                {rating >= 4 ? 'What did you enjoy?' : 'What stood out?'}
-              </h2>
-              <p className="ng-section-sub">
-                {rating >= 4 ? 'Tap anything you liked during your visit' : 'Pick anything matching your experience'}
-              </p>
+          <h2 className="ng-section-title">What stood out?</h2>
+          <p className="ng-section-sub">Pick anything that matched your visit</p>
 
-              <div className="ng-chips-grid">
-                {availableTopics.map(({ label, icon }) => {
-                  const selected = selectedTopics.includes(label);
-                  return (
-                    <button
-                      key={label}
-                      type="button"
-                      className={`ng-chip ${selected ? 'selected' : ''}`}
-                      onClick={() => toggleTopic(label)}
-                    >
-                      <span className="ng-chip-icon">{icon}</span>
-                      <span>{label}</span>
-                    </button>
-                  );
-                })}
+          <div className="ng-chips-grid">
+            {availableTopics.map(({ label, icon }) => {
+              const selected = selectedTopics.includes(label);
+              return (
                 <button
+                  key={label}
                   type="button"
-                  className={`ng-chip ng-chip-neutral ${nothingSpecific ? 'selected' : ''}`}
-                  onClick={handleNothingSpecific}
+                  className={`ng-chip ${selected ? 'selected' : ''}`}
+                  onClick={() => toggleTopic(label)}
                 >
-                  <span className="ng-chip-icon">—</span>
-                  <span>Nothing specific</span>
+                  <span className="ng-chip-icon">{icon}</span>
+                  <span>{label}</span>
                 </button>
-              </div>
+              );
+            })}
+            <button
+              type="button"
+              className={`ng-chip ng-chip-neutral ${nothingSpecific ? 'selected' : ''}`}
+              onClick={handleNothingSpecific}
+            >
+              <span className="ng-chip-icon">—</span>
+              <span>Nothing specific</span>
+            </button>
+          </div>
 
-              <div className="ng-note-wrap">
-                <label htmlFor="ng-note" className="ng-note-label">
-                  Anything else you'd like to mention? <span className="ng-optional">(optional)</span>
-                </label>
-                <input
-                  id="ng-note"
-                  type="text"
-                  className="ng-note-input"
-                  placeholder="e.g. The staff was super friendly! 😋"
-                  value={personalNote}
-                  onChange={(e) => setPersonalNote(e.target.value)}
-                  maxLength={100}
-                />
-              </div>
-            </section>
+          <div className="ng-note-wrap">
+            <label htmlFor="ng-note" className="ng-note-label">
+              Personal note <span className="ng-optional">(optional)</span>
+            </label>
+            <input
+              id="ng-note"
+              type="text"
+              className="ng-note-input"
+              placeholder="e.g. The poha was absolutely perfect! 😋"
+              value={personalNote}
+              onChange={(e) => setPersonalNote(e.target.value)}
+              maxLength={100}
+            />
+          </div>
+        </section>
 
-            <div className="ng-section-divider" aria-hidden="true" />
+        <div className="ng-section-divider" aria-hidden="true" />
 
-            {/* ── SECTION 4: REVIEW SUGGESTIONS / CUSTOM EDITOR ──────────── */}
-            {!showCustomEditor ? (
-              <section className="ng-section" aria-label="Review suggestions">
-                <div className="ng-ideas-header">
-                  <h2 className="ng-section-title">Here are a few ways to say it</h2>
-                  <p className="ng-section-sub">
-                    Tap any review below to copy & continue to Google
-                  </p>
-                  {loadingIdeas && (
-                    <div className="ng-updating-badge">
-                      <span>✨</span>
-                      <span>Refining suggestions...</span>
-                    </div>
-                  )}
+        {/* ── SECTION 3: REVIEW IDEAS / CUSTOM EDITOR ───────────────────── */}
+        {!showCustomEditor ? (
+          <section className="ng-section" aria-label="Review suggestions">
+            <div className="ng-ideas-header">
+              <h2 className="ng-section-title">Review ideas</h2>
+              <p className="ng-section-sub">
+                Tap your favourite to copy & open Google Review
+              </p>
+              {loadingIdeas && (
+                <div className="ng-updating-badge">
+                  <span>✨</span>
+                  <span>Refining ideas...</span>
                 </div>
+              )}
+            </div>
 
-                <div className="ng-ideas-list">
-                  {ideas.map((idea, i) => {
-                    const cardLang = idea.language || selectedLanguage;
-                    const langDisplay = cardLang === 'gujarati' ? 'Gujarati' : (cardLang === 'hindi' ? 'Hindi' : 'English');
-                    return (
-                      <div
-                        key={idea.id || i}
-                        className={`ng-idea-card ${selectedIdeaId === idea.id ? 'picked' : ''}`}
-                        onClick={() => handlePostDirectly(idea)}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Option ${i + 1} (${langDisplay}): ${idea.text}`}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handlePostDirectly(idea);
-                          }
-                        }}
-                      >
-                        <div className="ng-idea-top-row">
-                          <div className="ng-idea-meta">
-                            <span className="ng-idea-num">Option {i + 1}</span>
-                            <span className="ng-idea-lang-badge">{langDisplay}</span>
-                          </div>
-                          <div className="ng-idea-stars" aria-hidden="true">
-                            {'★'.repeat(rating)}
-                          </div>
-                        </div>
-                        <p className="ng-idea-text">"{idea.text}"</p>
-                        <div className="ng-idea-card-action">
-                          <span className="ng-idea-action-text">Use this review →</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="ng-divider"><span>or</span></div>
-
-                <button
-                  type="button"
-                  className="ng-btn-write-own"
-                  onClick={() => {
-                    setSelectedIdeaId('custom');
-                    if (!draftReview) setDraftReview('');
-                    setShowCustomEditor(true);
-                    setTimeout(() => editorRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+            <div className="ng-ideas-list">
+              {ideas.map((idea, i) => (
+                <div
+                  key={idea.id || i}
+                  className={`ng-idea-card ${selectedIdeaId === idea.id ? 'picked' : ''}`}
+                  onClick={() => handlePostDirectly(idea)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Option ${i + 1}: ${idea.text}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handlePostDirectly(idea);
+                    }
                   }}
                 >
-                  ✍️ Write my own review
-                </button>
-              </section>
-            ) : (
-              <section ref={editorRef} className="ng-section ng-fade-in" aria-label="Custom review editor">
-                <div className="ng-editor-header">
-                  <h2 className="ng-section-title" style={{ margin: 0 }}>Write your review</h2>
-                  <span className="ng-char-pill">{draftReview.length} chars</span>
+                  <div className="ng-idea-meta">
+                    <span className="ng-idea-num">Option {i + 1}</span>
+                    <span className="ng-idea-lang">{getLanguageLabel(language)}</span>
+                    <span className="ng-idea-stars">{'★'.repeat(rating)}</span>
+                  </div>
+                  <p className="ng-idea-text">"{idea.text}"</p>
+                  <div className="ng-idea-action">
+                    <span>Use this review →</span>
+                  </div>
                 </div>
-                <p className="ng-section-sub">Edit anything before posting — it's your words!</p>
+              ))}
+            </div>
 
-                <div className="ng-textarea-wrap">
-                  <textarea
-                    className="ng-textarea"
-                    rows={5}
-                    value={draftReview}
-                    onChange={(e) => setDraftReview(e.target.value)}
-                    placeholder="Write your review here..."
-                  />
-                </div>
+            <div className="ng-divider"><span>or</span></div>
 
-                <div className="ng-editor-tools">
-                  <button
-                    type="button"
-                    className="ng-btn-tool"
-                    onClick={handleMakeNatural}
-                    disabled={isRegenerating || !draftReview.trim()}
-                  >
-                    {isRegenerating ? '✨ Refining...' : '✨ Make it more natural'}
-                  </button>
-                  <button
-                    type="button"
-                    className="ng-btn-tool"
-                    onClick={() => setShowCustomEditor(false)}
-                  >
-                    ← Back to review ideas
-                  </button>
-                </div>
+            <button
+              type="button"
+              className="ng-btn-write-own"
+              onClick={() => {
+                setSelectedIdeaId('custom');
+                if (!draftReview) setDraftReview('');
+                setShowCustomEditor(true);
+                setTimeout(() => editorRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+              }}
+            >
+              ✍️ Write my own review
+            </button>
+          </section>
+        ) : (
+          <section ref={editorRef} className="ng-section ng-fade-in" aria-label="Custom review editor">
+            <div className="ng-editor-header">
+              <h2 className="ng-section-title" style={{ margin: 0 }}>Write your review</h2>
+              <span className="ng-char-pill">{draftReview.length} chars</span>
+            </div>
+            <p className="ng-section-sub">Edit anything before posting — it's your words!</p>
 
-                <div className="ng-google-notice">
-                  Your words, your review. Paste the copy into Google and post it yourself.
-                </div>
+            <div className="ng-textarea-wrap">
+              <textarea
+                className="ng-textarea"
+                rows={5}
+                value={draftReview}
+                onChange={(e) => setDraftReview(e.target.value)}
+                placeholder="Write your review here..."
+              />
+            </div>
 
-                <button
-                  type="button"
-                  className="ng-btn-primary ng-btn-cta"
-                  onClick={handleContinueToGoogle}
-                  disabled={!draftReview.trim()}
-                >
-                  Copy & open Google Review
-                </button>
-              </section>
-            )}
+            <div className="ng-editor-tools">
+              <button
+                type="button"
+                className="ng-btn-tool"
+                onClick={handleMakeNatural}
+                disabled={isRegenerating || !draftReview.trim()}
+              >
+                {isRegenerating ? '✨ Refining...' : '✨ Make it more natural'}
+              </button>
+              <button
+                type="button"
+                className="ng-btn-tool"
+                onClick={() => setShowCustomEditor(false)}
+              >
+                ← Back to review ideas
+              </button>
+            </div>
 
-            {/* ── SECTION 5: PRIVATE FEEDBACK PROMPT ────────────────────── */}
+            <div className="ng-google-notice">
+              Your words, your review. Paste the copy into Google and post it yourself.
+            </div>
+
+            <button
+              type="button"
+              className="ng-btn-primary ng-btn-cta"
+              onClick={handleContinueToGoogle}
+              disabled={!draftReview.trim()}
+            >
+              Copy & open Google Review
+            </button>
+          </section>
+        )}
+
+            {/* ── SECTION 4: PRIVATE FEEDBACK PROMPT ────────────────────────── */}
             <div className="ng-private-prompt">
-              {rating <= 2
-                ? 'Want to tell the team what could have been better?'
-                : 'Want to tell us privately?'}{' '}
+              {rating <= 3 ? "Want to tell the team what could have been better? " : "Want to tell us privately? "}
               <button type="button" className="ng-link-btn" onClick={() => setShowPrivate(true)}>
                 Send private note
               </button>
@@ -910,8 +835,8 @@ export default function CustomerReview({
           <span className="ng-toast-icon">📋</span>
           <span className="ng-toast-msg">
             {copied
-              ? "Review copied to clipboard ✓ On Google Maps, tap 'Write a review', select your stars and Paste."
-              : 'Review could not be copied automatically. Tap Copy Review below.'}
+                ? "તમારો review તૈયાર છે ✓ Google Maps માં 'Write a review' tap કરો, same stars select કરીને Paste કરો."
+                : 'Review copy na thayu. Tap Copy Review to try again.'}
           </span>
         </div>
       )}
@@ -926,10 +851,10 @@ export default function CustomerReview({
             </h3>
             <p className="ng-modal-body">
               {copyingReview
-                ? <>Your review is ready. Copying to clipboard and opening Google Maps…</>
+                ? <>તમારો review તૈયાર છે. Copy કરી રહ્યા છીએ અને Google Maps ખોલી રહ્યા છીએ…</>
                 : copied
-                ? <>Your review is copied ✓ You selected {rating}★ here. On Google Maps, tap <strong>Write a review</strong>, select {rating} stars, then paste your review.</>
-                : <>Your review is saved for this browser session. Tap Copy Review below, then paste it on Google Maps.</>}
+                ? <>તમારો review તૈયાર છે ✓ You selected {rating}★ here. On Google Maps, tap <strong>Write a review</strong>, select the same rating, then paste your review.</>
+                : <>Review copy na thayu. Your selected review is saved for this browser session; copy it below and try again. You selected {rating}★ here, so choose the same rating on Google Maps.</>}
             </p>
 
             <div className="ng-modal-steps">
@@ -939,7 +864,7 @@ export default function CustomerReview({
               </div>
               <div className="ng-modal-step">
                 <span className="ng-modal-step-num">2</span>
-                <span>{copyingReview ? 'Copying selected review…' : copied ? <><strong>Paste</strong> the copied review (long-press → Paste on mobile)</> : <>Copy the review below, then <strong>paste</strong> it into Google</>}</span>
+                <span>{copyingReview ? 'Copying selected review…' : copied ? <><strong>Paste</strong> the copied review (use your device's Paste command, or long-press → Paste on mobile)</> : <>Copy the review below, then <strong>paste</strong> it into Google</>}</span>
               </div>
               <div className="ng-modal-step">
                 <span className="ng-modal-step-num">3</span>
@@ -1045,7 +970,7 @@ export default function CustomerReview({
 
       {/* ════════ CLIPBOARD INFORMATION ════════ */}
       {!cookieConsent && (
-        <div className="ng-cookie-bar" role="region" aria-label="Review and clipboard information">
+          <div className="ng-cookie-bar" role="region" aria-label="Review and clipboard information">
           <div className="ng-cookie-content">
             <span className="ng-cookie-emoji">🍪</span>
             <div className="ng-cookie-msg">

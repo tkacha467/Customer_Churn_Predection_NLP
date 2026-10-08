@@ -64,22 +64,21 @@ class ReviewService:
             self._analytics_events = self._analytics_events[-2000:]
 
     def generate_ideas(self, req: ReviewIdeasRequest) -> ReviewIdeasResponse:
-        """Generates 3-5 distinct, customer-grounded review candidate ideas in the selected language."""
-        lang = req.language or "english"
+        """Generates 3-5 distinct, customer-grounded review candidate ideas."""
         raw_ideas = review_generator.generate_ideas(
             rating=req.rating,
             aspects=req.aspects or [],
             user_note=req.user_note or "",
             business_name=req.business_id,
-            language=lang,
-            business_category=req.business_category,
+            language=req.language or "english",
+            category=req.category
         )
         ideas = [ReviewIdeaItem(**item) for item in raw_ideas]
         self.record_event("review_ideas_generated", metadata={
             "rating": req.rating,
-            "language": lang,
             "aspects": req.aspects or [],
-            "has_note": bool(req.user_note)
+            "has_note": bool(req.user_note),
+            "language": req.language or "english"
         })
         return ReviewIdeasResponse(ideas=ideas)
 
@@ -87,17 +86,16 @@ class ReviewService:
         self, req: ReviewGenerateRequest, client_key: str = "default_client"
     ) -> ReviewGenerateResponse:
         session_id = req.session_id or str(uuid.uuid4())
-        lang = req.language or "english"
         
         self.record_event("review_generation_started", session_id, {
             "rating": req.rating,
-            "language": lang,
             "dining_type": req.dining_type,
             "table_number": req.table_number,
             "aspects_count": len(req.aspects or []),
             "has_note": bool(req.user_note),
             "has_idea": bool(req.selected_idea),
-            "tone": req.tone
+            "tone": req.tone,
+            "language": req.language or "english"
         })
 
         max_attempts = 2
@@ -118,8 +116,8 @@ class ReviewService:
                 dining_type=req.dining_type or "dine_in",
                 emoji_preference=req.emoji_preference or "light",
                 business_name=req.business_id,
-                language=lang,
-                business_category=req.business_category,
+                language=req.language or "english",
+                category=req.category
             )
             draft = gen_res["review"]
             provider = gen_res["provider"]
@@ -133,8 +131,7 @@ class ReviewService:
             else:
                 self.record_event("review_regenerated", session_id, {
                     "reason": "sentiment_mismatch",
-                    "attempt": attempt,
-                    "language": lang,
+                    "attempt": attempt
                 })
 
         is_consistent = best_val.get("rating_consistent", True)
@@ -142,11 +139,11 @@ class ReviewService:
         
         self.record_event("review_generation_completed", session_id, {
             "rating": req.rating,
-            "language": lang,
             "sentiment": sentiment,
             "rating_consistent": is_consistent,
             "table_number": req.table_number,
-            "provider": provider
+            "provider": provider,
+            "language": req.language or "english"
         })
 
         warnings = list(best_val.get("warnings", []))
@@ -164,8 +161,7 @@ class ReviewService:
             aspects_covered=req.aspects or [],
             dining_type=req.dining_type or "dine_in",
             table_number=req.table_number,
-            generation_provider=provider,
-            language=lang,
+            generation_provider=provider
         )
 
     def validate_review(self, req: ReviewValidateRequest, session_id: Optional[str] = None) -> ReviewValidateResponse:

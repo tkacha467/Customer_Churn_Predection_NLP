@@ -1,12 +1,10 @@
 """
-Humanized Prompt Engineering & Real-World Review Synthesis Engine for ChurnLens / Vajra.
+Humanized Prompt Engineering & Real-World Review Synthesis Engine for ChurnLens.
 Strictly adheres to:
 1. Zero fabrication (never invent unmentioned dishes, staff names, or events).
 2. Human-like natural phrasing (15-45 words, everyday language, no corporate jargon).
 3. 1-2 contextual emojis for every rating level (tasteful, rating-appropriate).
-4. Trilingual support: English, Hindi (Roman Hinglish), and Gujarati (Roman Gujlish).
-   - Strict rule: Roman/Latin script for Hindi & Gujarati, strictly NO Devanagari or Gujarati script.
-5. Hospitality category-aware topics (Café, Restaurant, Hotel, Salon, Breakfast, etc.).
+4. Review idea generation (3 distinct perspectives: taste/product, atmosphere/service, overall experience).
 """
 
 import random
@@ -15,118 +13,43 @@ from typing import List, Dict, Any, Optional
 SYSTEM_HUMANIZED_PROMPT = """You are helping a customer write a short, genuine review to post on Google Maps.
 
 CORE PRINCIPLES:
-1. WRITE LIKE A NORMAL PERSON typing on their mobile phone, not like a marketing professional or AI.
-2. SIMPLE EVERYDAY VOCABULARY: Short sentences, natural phrasing, natural punctuation.
+1. WRITE LIKE A NORMAL PERSON typing on their phone, not like a marketing professional.
+2. SCRIPT & LANGUAGE RULES:
+   - If English: Write in simple, natural everyday English.
+   - If Hindi: Write directly in natural Roman-script Hindi (Hinglish), the everyday colloquial Romanized Hindi used in India (e.g. "Yahan ka khana bahut tasty tha aur staff bhi kaafi friendly tha"). STRICTLY DO NOT output Devanagari script.
+   - If Gujarati: Write directly in natural Roman-script Gujarati (Gujlish), the everyday colloquial Romanized Gujarati used in Gujarat (e.g. "Ahiya nu food ekdum mast hatu ane staff pan khub friendly hato"). STRICTLY DO NOT output Gujarati native script.
+   - NEVER generate in English and translate. Write natively in the selected language.
 3. STRICT ZERO FABRICATION:
    - Reflect ONLY information supplied by the customer or selected from the provided options.
-   - NEVER invent dishes, drinks, ingredients, prices, staff names, wait times, parking, live music, discounts, or events that were not provided.
+   - NEVER invent dishes, drinks, ingredients, prices, staff names, wait times, parking, delivery, live music, discounts, or events that were not provided.
 4. FORBIDDEN PHRASES: Do NOT use "culinary excellence", "exceptional hospitality", "truly unforgettable experience", "top-tier", "delighted", "remarkable", "artisanal craftsmanship", or corporate openings/closings.
 5. LENGTH: 15 to 45 words. Never generate unnecessarily long reviews.
-6. EMOJIS: Use 1 to 2 tasteful contextual emojis for 4-5 stars, 1 neutral (🙂) for 3 stars, and 0 or disappointed (😕😞) for 1-2 stars.
-7. LANGUAGE & SCRIPT RULES:
-   - If language is ENGLISH: write in simple, everyday conversational English.
-   - If language is HINDI: write in natural ROMAN-SCRIPT HINGLISH (Latin letters only, e.g. "Yahan ka khana bahut tasty tha aur staff bhi kaafi friendly tha. Overall experience bahut accha raha."). Strictly DO NOT use Devanagari script.
-   - If language is GUJARATI: write in natural ROMAN-SCRIPT GUJLISH (Latin letters only, e.g. "Ahiya nu food ekdum mast hatu ane staff pan khub friendly hato. Overall experience bahu saras rahyo."). Strictly DO NOT use Gujarati script.
-8. STAR CALIBRATION:
-   - 5 Stars: Warm, enthusiastic, positive, would return.
-   - 4 Stars: Positive but natural and slightly measured.
-   - 3 Stars: Balanced and neutral, decent experience with minor drawback noted honestly.
+6. EMOJIS: Use 1 to 2 tasteful, contextual emojis for 4-5 stars, 0-1 for 3 stars, 0 for 1-2 stars.
+7. STAR CALIBRATION:
+   - 5 Stars: Genuinely happy, warm, enthusiastic, would return.
+   - 4 Stars: Very good visit, positive but natural and slightly measured.
+   - 3 Stars: Balanced, decent experience with minor drawback noted honestly.
    - 2 Stars: Disappointed with specific aspect, constructive, hope for improvement.
-   - 1 Star: Honest dissatisfaction without aggression, polite but firm, suitable for private feedback.
+   - 1 Star: Honest dissatisfaction without aggression, polite but firm.
 
 Output ONLY the review text. No quotes, no intro, no conversational filler.
 """
 
-# Hospitality topics mapped by category
-HOSPITALITY_CATEGORY_TOPICS = {
-    "cafe": [
-        "Food & Taste",
-        "Chai / Coffee",
-        "Staff",
-        "Service",
-        "Ambience",
-        "Cleanliness",
-        "Value for Money",
-    ],
-    "restaurant": [
-        "Food & Taste",
-        "Service",
-        "Staff",
-        "Ambience",
-        "Cleanliness",
-        "Portion Size",
-        "Value for Money",
-    ],
-    "hotel": [
-        "Room",
-        "Cleanliness",
-        "Staff",
-        "Service",
-        "Breakfast",
-        "Location",
-        "Comfort",
-        "Ambience",
-    ],
-    "salon": [
-        "Service",
-        "Staff",
-        "Cleanliness",
-        "Experience",
-        "Results",
-        "Ambience",
-    ],
-    "breakfast": [
-        "Breakfast",
-        "Chai & Beverages",
-        "Snacks",
-        "Taste & Flavour",
-        "Friendly Staff",
-        "Cleanliness",
-        "Value for Money",
-        "Quick Service",
-    ],
-}
-
 def normalize_language(lang: Optional[str]) -> str:
-    """Normalizes language string to english, hindi, or gujarati. Defaults to english."""
+    """Normalizes language string to 'english', 'hindi', or 'gujarati'."""
     if not lang:
         return "english"
-    l = str(lang).lower().strip()
+    l = lang.lower().strip()
     if "guj" in l:
         return "gujarati"
     if "hin" in l:
         return "hindi"
     return "english"
 
-def get_category_topics(category: Optional[str]) -> List[str]:
-    """Resolves sensible hospitality topics based on business category."""
-    if not category:
-        return HOSPITALITY_CATEGORY_TOPICS["breakfast"]
-    cat_lower = category.lower().strip()
-    if "cafe" in cat_lower or "coffee" in cat_lower:
-        return HOSPITALITY_CATEGORY_TOPICS["cafe"]
-    if "hotel" in cat_lower or "stay" in cat_lower or "resort" in cat_lower:
-        return HOSPITALITY_CATEGORY_TOPICS["hotel"]
-    if "salon" in cat_lower or "spa" in cat_lower or "parlour" in cat_lower or "parlor" in cat_lower:
-        return HOSPITALITY_CATEGORY_TOPICS["salon"]
-    if "restaurant" in cat_lower or "dining" in cat_lower or "bistro" in cat_lower:
-        return HOSPITALITY_CATEGORY_TOPICS["restaurant"]
-    if "breakfast" in cat_lower or "snack" in cat_lower or "nasta" in cat_lower:
-        return HOSPITALITY_CATEGORY_TOPICS["breakfast"]
-    return [
-        "Food & Taste",
-        "Service",
-        "Staff",
-        "Ambience",
-        "Cleanliness",
-        "Value for Money",
-    ]
-
 # Contextual emoji mapping
 EMOJI_MAP = {
     "coffee": "☕",
     "chai": "☕",
-    "tea": "☕",
     "drinks": "☕",
     "beverage": "☕",
     "food": "🍽️",
@@ -142,13 +65,7 @@ EMOJI_MAP = {
     "service": "😊",
     "staff": "😊",
     "cleanliness": "✨",
-    "room": "🛏️",
-    "comfort": "✨",
-    "location": "📍",
     "value": "👍",
-    "price": "👍",
-    "portion": "🍽️",
-    "results": "✨",
     "love": "❤️",
     "return": "❤️",
     "happy": "😊",
@@ -162,22 +79,23 @@ def pick_tasteful_emojis(rating: int, aspects: List[str], preference: str = "lig
     emojis = []
     aspect_text = " ".join([a.lower() for a in aspects])
 
+    # Breakfast-first emoji selection (Nasta Ghar)
     if "breakfast" in aspect_text:
         emojis.append(EMOJI_MAP["breakfast"])
-    elif any(k in aspect_text for k in ["chai", "tea", "beverage", "drink", "coffee"]):
+    elif "chai" in aspect_text or "beverage" in aspect_text or "drink" in aspect_text or "coffee" in aspect_text:
         emojis.append(EMOJI_MAP["chai"])
     elif "snack" in aspect_text:
         emojis.append(EMOJI_MAP["snacks"])
-    elif any(k in aspect_text for k in ["food", "taste", "flavour", "portion"]):
+    elif "food" in aspect_text or "taste" in aspect_text or "flavour" in aspect_text:
         emojis.append(EMOJI_MAP["taste"])
-    elif any(k in aspect_text for k in ["room", "comfort"]):
-        emojis.append(EMOJI_MAP["room"])
+    elif "bakery" in aspect_text or "pastry" in aspect_text:
+        emojis.append(EMOJI_MAP["bakery"])
     elif "value" in aspect_text or "price" in aspect_text:
         emojis.append(EMOJI_MAP["value"])
 
-    if any(k in aspect_text for k in ["ambience", "atmosphere", "vibe", "results"]):
+    if "ambience" in aspect_text or "atmosphere" in aspect_text or "vibe" in aspect_text:
         emojis.append(EMOJI_MAP["atmosphere"])
-    elif any(k in aspect_text for k in ["service", "staff", "experience"]):
+    elif "service" in aspect_text or "staff" in aspect_text:
         emojis.append(EMOJI_MAP["service"])
 
     if not emojis:
@@ -192,8 +110,10 @@ def pick_tasteful_emojis(rating: int, aspects: List[str], preference: str = "lig
         else:
             emojis = ["😞"]
 
+    # Limit to 1 or 2 emojis
     selected = emojis[:2] if preference == "light" else emojis[:1]
     return " " + "".join(selected) if selected else ""
+
 
 def generate_candidate_ideas(
     rating: int,
@@ -201,169 +121,149 @@ def generate_candidate_ideas(
     user_note: str = "",
     business_name: str = "Nasta Ghar",
     language: str = "english",
-    business_category: Optional[str] = None
+    category: Optional[str] = None
 ) -> List[Dict[str, str]]:
     """
-    Generates 5 distinct, human-sounding review candidate ideas based on:
-    - rating (1-5 calibrated tone)
-    - selected language: english, hindi (Roman Hinglish), or gujarati (Roman Gujlish)
-    - selected hospitality aspects and user note
-    - zero fabrication: never invents unprovided details
+    Generates 5 distinct, human-sounding review candidate ideas based on user input,
+    supporting English, Roman Hindi (Hinglish), and Roman Gujarati (Gujlish).
     """
     lang = normalize_language(language)
     cleaned_aspects = [a.lower().strip() for a in aspects if a.strip()]
 
-    # Safely format note fragment without trailing punctuation conflicts
+    # Safely inject user note without creating ungrounded facts
     note_fragment = ""
     if user_note and user_note.strip():
         n = user_note.strip().rstrip(".!")
         note_fragment = f" {n}."
 
-    # Language badge helper
-    lang_badge = "English" if lang == "english" else ("Hindi" if lang == "hindi" else "Gujarati")
-
-    # Detect hospitality focus keywords
-    has_chai = any("chai" in a or "tea" in a or "drink" in a or "beverage" in a or "coffee" in a for a in cleaned_aspects)
-    has_food = any("food" in a or "taste" in a or "flavour" in a or "breakfast" in a or "snack" in a for a in cleaned_aspects)
-    has_service = any("service" in a or "staff" in a for a in cleaned_aspects)
-    has_vibe = any("ambience" in a or "vibe" in a or "atmosphere" in a for a in cleaned_aspects)
-    has_clean = any("clean" in a for a in cleaned_aspects)
-    has_value = any("value" in a or "price" in a or "money" in a for a in cleaned_aspects)
-    has_room = any("room" in a or "comfort" in a or "stay" in a for a in cleaned_aspects)
-
     if lang == "hindi":
-        # ─── HINDI (ROMAN SCRIPT / HINGLISH) ──────────────────────────────
         if rating == 5:
-            food_word = "breakfast aur chai" if has_chai else ("khana aur taste" if has_food else "service")
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Bahut accha experience raha aur {food_word} sach me lajawab tha!{note_fragment} Loved it 😊👌", "language": "hindi"},
-                {"id": "idea_2", "focus": "Taste & Service", "text": f"Food ekdum fresh tha aur staff ka nature bhi kaafi polite tha.{note_fragment} Quick service mili 😋👍", "language": "hindi"},
-                {"id": "idea_3", "focus": "Staff & Ambience", "text": f"Staff ka behaviour bahut friendly tha aur jagah bilkul clean thi.{note_fragment} Bohot achha time spend hua ✨😊", "language": "hindi"},
-                {"id": "idea_4", "focus": "Taste & Value", "text": f"Har cheez garam aur fresh serve hui. Taste badhiya tha aur price bhi reasonable hai.{note_fragment} Jarur try karein 👌🍽️", "language": "hindi"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Hamara visit {business_name} par bohot accha raha. Badhiya service, fresh taste aur welcoming log.{note_fragment} Definitely wapas aayenge! ❤️🌟", "language": "hindi"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Bahut hi tasty khana aur best chai!{note_fragment} Maza aa gaya 🍳☕"},
+                {"id": "idea_2", "focus": "Food & Taste", "text": f"Khana ekdum fresh aur lajawab tha.{note_fragment} Service bhi kaafi quick thi ☕😋"},
+                {"id": "idea_3", "focus": "Staff & Ambience", "text": f"Staff bahut polite hai aur safai ka pura dhyan rakha hai.{note_fragment} Family ke sath visit ke liye best jagah 😊✨"},
+                {"id": "idea_4", "focus": "Taste & Value", "text": f"Har cheez garam aur fresh mili. Snacks aur chai bahut acche the aur price bhi sahi hai.{note_fragment} Zaroor try karein 👌🍲"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall experience bahut shandar raha at {business_name}. Khana aur service dono top notch the.{note_fragment} Phir zaroor aayenge! 👨‍👩‍👧‍👦❤️"},
             ]
         elif rating == 4:
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Accha khana aur pleasant atmosphere.{note_fragment} Ek badhiya visit rahi 👍😊", "language": "hindi"},
-                {"id": "idea_2", "focus": "Taste & Service", "text": f"Khana fresh tha aur staff ne bhi achhe se attend kiya.{note_fragment} Service time par mili 👍☕", "language": "hindi"},
-                {"id": "idea_3", "focus": "Clean & Fair", "text": f"Saaf-suthri jagah hai aur pricing bhi fair hai.{note_fragment} Food quality acchi lagi 😊", "language": "hindi"},
-                {"id": "idea_4", "focus": "Staff & Ambience", "text": f"Staff helpful tha aur seating comfortable thi. Taste bhi accha tha.{note_fragment} Ek baar aane layak jagah hai 🌟👍", "language": "hindi"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall kaafi accha experience raha. Taste aur service dono satisfactory the.{note_fragment} Fir se visit karenge 😊", "language": "hindi"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Accha khana aur tasty chai!{note_fragment} Morning ke liye badhiya choice 🍳"},
+                {"id": "idea_2", "focus": "Food & Service", "text": f"Breakfast fresh tha aur service bhi fast thi.{note_fragment} Staff ka behaviour kaafi polite tha 👍☕"},
+                {"id": "idea_3", "focus": "Clean & Fair", "text": f"Clean sitting area aur achhi food quality.{note_fragment} Rates bhi pocket friendly hain 😊"},
+                {"id": "idea_4", "focus": "Snacks & Tea", "text": f"Snacks aur garam chai enjoy kiya. Food time pe serve hua aur taste accha tha.{note_fragment} Quick bite ke liye acchi jagah 🥪🍲"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Kaafi accha visit raha. Good taste, clean tables aur friendly service.{note_fragment} Definitely visit karne jaisa hai 🌟👍"},
             ]
         elif rating == 3:
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Khana theek tha, lekin aaj service thodi slow lagi.{note_fragment} Average visit 🙂", "language": "hindi"},
-                {"id": "idea_2", "focus": "Taste & Wait", "text": f"Taste decent tha, par order aane me thoda zyada time lag gaya.{note_fragment} Theek-thaak raha 🙂☕", "language": "hindi"},
-                {"id": "idea_3", "focus": "Ambience & Service", "text": f"Staff polite tha par thoda rush zyada tha.{note_fragment} Service me thoda improvement ho sakta hai 🙂", "language": "hindi"},
-                {"id": "idea_4", "focus": "Food & Prep", "text": f"Food theek-thaak tha, thoda garam hota toh aur accha lagta.{note_fragment} Average experience 🙂", "language": "hindi"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall thik-thak visit raha. Jagah achhi hai par order delay hua.{note_fragment} Umeed hai agli baar behtar hoga 🙂", "language": "hindi"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Khana theek tha, lekin service thodi slow lagi aaj.{note_fragment} 🙂"},
+                {"id": "idea_2", "focus": "Food & Wait", "text": f"Chai acchi thi par snacks thode thande the.{note_fragment} Average experience raha 🙂☕"},
+                {"id": "idea_3", "focus": "Service Pace", "text": f"Staff polite tha par order ke liye wait karna pada.{note_fragment} Decent visit 🙂"},
+                {"id": "idea_4", "focus": "Crowd & Cleaning", "text": f"Aaj bheed kaafi thi. Food taste theek tha lekin table cleaning mein thoda time lag gaya.{note_fragment} Hope agli baar fast service mile 🙂🥪"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall theek experience tha. Seating comfortable hai par service mein thoda improvement chahiye.{note_fragment} Okay visit 🙂"},
             ]
         elif rating == 2:
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Khana average tha aur wait time kaafi lamba ho gaya.{note_fragment} Thoda disappointed 😕", "language": "hindi"},
-                {"id": "idea_2", "focus": "Service Issue", "text": f"Aaj service se satisfaction nahi mila. Order late aaya aur khana lukewarm tha.{note_fragment} 😕", "language": "hindi"},
-                {"id": "idea_3", "focus": "Cleanliness & Attention", "text": f"Staff ka dhyan nahi tha aur table safai me time laga.{note_fragment} Better service expect ki thi 😕", "language": "hindi"},
-                {"id": "idea_4", "focus": "Taste & Delay", "text": f"Taste khas nahi tha aur order aane me kaafi der hui.{note_fragment} Management ko thoda dhyan dena chahiye 😕", "language": "hindi"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Aaj ka visit disappointing raha. Service kaafi unorganized thi aur wait karna pada.{note_fragment} Hope this improves 😕", "language": "hindi"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Khana theek tha par wait time bahut zyada tha aaj.{note_fragment} 😕"},
+                {"id": "idea_2", "focus": "Order Delay", "text": f"Aaj service se khush nahi huye.{note_fragment} Order kaafi late aaya aur khana bhi lukewarm tha 😕"},
+                {"id": "idea_3", "focus": "Staff Attention", "text": f"Staff ka dhyaan nahi tha aur service kaafi slow thi.{note_fragment} Better service expected thi 😕"},
+                {"id": "idea_4", "focus": "Slow Service", "text": f"Khaane ke liye kaafi wait karna pada aur tables quickly clean nahi huye.{note_fragment} Service improve karni chahiye 😕⏳"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Disappointing visit raha. Chai theek thi par snacks fresh nahi the aur service slow thi.{note_fragment} Umeed hai agle baar sudhar hoga 😕"},
             ]
         else: # 1 star
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Bahut slow service aur khana bhi thanda tha.{note_fragment} Kaafi bura experience raha 😞", "language": "hindi"},
-                {"id": "idea_2", "focus": "Order Delay", "text": f"Aaj ka experience bilkul accha nahi raha. Lamba wait karwaya aur order galat aaya.{note_fragment} 😞", "language": "hindi"},
-                {"id": "idea_3", "focus": "Staff & Cleanliness", "text": f"Tables saaf nahi thi aur staff careless laga.{note_fragment} Service me kaafi kami hai 😞", "language": "hindi"},
-                {"id": "idea_4", "focus": "Food & Attention", "text": f"Khana fresh nahi tha aur koi attend karne wala bhi nahi tha.{note_fragment} Total disappointment 😞", "language": "hindi"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Bohot kharab experience raha aaj. Slow service aur thanda khana.{note_fragment} Management needs major improvement 😞", "language": "hindi"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Bahut slow service aur khana bhi thanda mila aaj.{note_fragment} 😞"},
+                {"id": "idea_2", "focus": "Order Issue", "text": f"Kharab experience raha aaj.{note_fragment} Bahut der wait kiya aur order bhi galat aaya 😞"},
+                {"id": "idea_3", "focus": "Cleanliness", "text": f"Staff unorganized tha aur tables bilkul clean nahi the.{note_fragment} Poor service 😞"},
+                {"id": "idea_4", "focus": "Food & Wait", "text": f"Disappointed with the visit. Khaana aane mein bahut time laga aur taste fresh nahi tha.{note_fragment} Koi theek se attend nahi kar raha tha 😞👎"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Kaafi poor experience raha. Long waiting time, cold food aur careless staff.{note_fragment} Major improvement ki zaroorat hai 😞"},
             ]
 
     elif lang == "gujarati":
-        # ─── GUJARATI (ROMAN SCRIPT / GUJLISH) ────────────────────────────
         if rating == 5:
-            food_word = "nasto ane chai" if has_chai else ("food ane taste" if has_food else "service")
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Ahiya nu {food_word} ekdum mast hatu ane service pan jordar.{note_fragment} Bahu maza aavi! 🍳☕😋", "language": "gujarati"},
-                {"id": "idea_2", "focus": "Taste & Service", "text": f"Food khub fresh ane tasty hatu. Staff pan ekdum polite ane helpful hato.{note_fragment} Quick service mali 👌😊", "language": "gujarati"},
-                {"id": "idea_3", "focus": "Staff & Ambience", "text": f"Staff no swabhav bahu saras hato ane jagya ekdum chokhi hati.{note_fragment} Khub gamyu ahiya aavi ne ✨😊", "language": "gujarati"},
-                {"id": "idea_4", "focus": "Taste & Value", "text": f"Badhu garam ane fresh hatu. Taste ekdum authentic ane rates pan reasonable che.{note_fragment} Must try 👌🍲", "language": "gujarati"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"{business_name} ni visit ekdum saras rahi. Food mast, staff premal ane relaxed vatavaran.{note_fragment} Fari thi chokkas aavishu! ❤️👍", "language": "gujarati"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Ahiya nu food ekdum mast hatu ane chai pan jordar!{note_fragment} Khub majja aavi 🍳☕"},
+                {"id": "idea_2", "focus": "Food & Taste", "text": f"Nasto ekdum fresh ane taste lajawab hato.{note_fragment} Service pan ekdum quick hati ☕😋"},
+                {"id": "idea_3", "focus": "Staff & Ambience", "text": f"Staff khub polite chhe ane chokkhai pan saras chhe.{note_fragment} Family sathe aavva mate best jagya 😊✨"},
+                {"id": "idea_4", "focus": "Taste & Value", "text": f"Badhu garam ane fresh malyu. Snacks ane chai bahu saras hata ane bhav pan fair chhe.{note_fragment} Jarur try karva jevu chhe 👌🍲"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall experience bahu j saras rahyo at {business_name}. Food ane service banne top class.{note_fragment} Fari thi jarur aavishu! 👨‍👩‍👧‍👦❤️"},
             ]
         elif rating == 4:
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Food saras hatu ane vatavaran pan acchu hatu.{note_fragment} Ek vaar javay evo anubhav 🍳👍", "language": "gujarati"},
-                {"id": "idea_2", "focus": "Taste & Service", "text": f"Nasto ekdum garam ane tasty hato. Staff no response pan quick hato.{note_fragment} Saras service mali 😊☕", "language": "gujarati"},
-                {"id": "idea_3", "focus": "Clean & Fair", "text": f"Chokkhai sarasi hati ane price pan yogya che.{note_fragment} Food quality acchi lagi 👍😊", "language": "gujarati"},
-                {"id": "idea_4", "focus": "Staff & Ambience", "text": f"Staff helpful hato ane besvani vyavastha sari che.{note_fragment} Khub anand aavyo 🌟👍", "language": "gujarati"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall visit khub sari rahi. Badhu vyavasthit hatu ane taste pan gamyu.{note_fragment} Fari mulakat laishu 😊", "language": "gujarati"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Saras khavanu ane kadak chai!{note_fragment} Savarni saras sharuat 🍳"},
+                {"id": "idea_2", "focus": "Food & Service", "text": f"Breakfast fresh hatu ane quick service mali.{note_fragment} Staff no swabhav pan vinamra hato 👍☕"},
+                {"id": "idea_3", "focus": "Clean & Fair", "text": f"Clean sitting area ane sari food quality.{note_fragment} Rates pan reasonable chhe 😊"},
+                {"id": "idea_4", "focus": "Snacks & Tea", "text": f"Snacks ane garam chai ni maja aavi. Food jaldi aavyu ane taste saro hato.{note_fragment} Quick bite mate saras jagya 🥪🍲"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Samagra mulakat khub sari rahi. Saro taste, clean tables ane friendly service.{note_fragment} Fari aavva jevu chhe 🌟👍"},
             ]
         elif rating == 3:
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Food theek hatu, pan aaje service thodi dhimi lagi.{note_fragment} Average anubhav 🙂", "language": "gujarati"},
-                {"id": "idea_2", "focus": "Taste & Wait", "text": f"Taste barabar hato, pan order aavta vaar lagi.{note_fragment} Theek-thaak rahya aaje 🙂☕", "language": "gujarati"},
-                {"id": "idea_3", "focus": "Ambience & Service", "text": f"Staff polite hato pan rush lidhe order delay thayo.{note_fragment} Service sudharvani jarur che 🙂", "language": "gujarati"},
-                {"id": "idea_4", "focus": "Food & Prep", "text": f"Food thodu thandu hatu, thodu garam hoy to vadhare maza aave.{note_fragment} Average visit 🙂", "language": "gujarati"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall theek-thaak visit rahi. Taste decent pan service thodi slow hati.{note_fragment} Aasha che aagal sudharo thase 🙂", "language": "gujarati"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Food thik hatu, pan service thodi slow lagi aaje.{note_fragment} 🙂"},
+                {"id": "idea_2", "focus": "Food & Wait", "text": f"Chai sari hati pan snacks thoda thanda hata.{note_fragment} Samanya anubhav rahyo 🙂☕"},
+                {"id": "idea_3", "focus": "Service Pace", "text": f"Staff saro hato pan order mate thodi vaar lagi.{note_fragment} Average visit 🙂"},
+                {"id": "idea_4", "focus": "Crowd & Cleaning", "text": f"Bheed vadhare hati aaje. Taste barabar hato pan table cleaning ma time lagyo.{note_fragment} Aavti vakhte better service ni apeksha 🙂🥪"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall thik anubhav rahyo. Seating comfortable chhe pan service thodi improve karvani jarur chhe.{note_fragment} Okay visit 🙂"},
             ]
         elif rating == 2:
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Food average hatu ane aaje wait time bahu vadhare hato.{note_fragment} Nirasha thai 😕", "language": "gujarati"},
-                {"id": "idea_2", "focus": "Service Issue", "text": f"Service ma maza na aavi aaje. Order late aavyo ane food lukewarm hatu.{note_fragment} 😕", "language": "gujarati"},
-                {"id": "idea_3", "focus": "Cleanliness & Attention", "text": f"Staff dhyan na aaptu hatu ane table chokkha na hata.{note_fragment} Vadhu sari service ni apeksha hati 😕", "language": "gujarati"},
-                {"id": "idea_4", "focus": "Taste & Delay", "text": f"Taste khas na lagyo ane order mate lambo wait karvo padhyo.{note_fragment} Improvement joiye 😕", "language": "gujarati"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Aaje visit disappointing rahi. Service unorganized hati ane time pan kharab thayo.{note_fragment} Hope this improves 😕", "language": "gujarati"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Food thik hatu pan wait bahu karvu padyu aaje.{note_fragment} 😕"},
+                {"id": "idea_2", "focus": "Order Delay", "text": f"Aaje service thi santosh na thayo.{note_fragment} Order late aavyo ane food pan lukewarm hatu 😕"},
+                {"id": "idea_3", "focus": "Staff Attention", "text": f"Staff dhyan nhato aapi rahyo ane service slow hati.{note_fragment} Better service expected hati 😕"},
+                {"id": "idea_4", "focus": "Slow Service", "text": f"Order mate ghano wait karyo ane tables pan quickly clean na thaya.{note_fragment} Customer service improve karvani jarur chhe 😕⏳"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Nirashajanak visit rahi. Chai thik hati pan snacks fresh nahota ane service slow hati.{note_fragment} Management sudharo kare evi aasha 😕"},
             ]
         else: # 1 star
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Bahu slow service ane food pan thandu hatu.{note_fragment} Khub kharab anubhav thayo 😞", "language": "gujarati"},
-                {"id": "idea_2", "focus": "Order Delay", "text": f"Aaje bilkul maza na aavi. Lambo wait karavyo ane order pan barabar na aavyo.{note_fragment} 😞", "language": "gujarati"},
-                {"id": "idea_3", "focus": "Staff & Cleanliness", "text": f"Tables chokkha na hata ane staff beparwah hatu.{note_fragment} Service khub kharab hati 😞", "language": "gujarati"},
-                {"id": "idea_4", "focus": "Food & Attention", "text": f"Food fresh na hatu ane koi dhyan pan aaptu na hatu.{note_fragment} Khub nirasha thai 😞", "language": "gujarati"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Bahu kharab visit rahi aaje. Thandu food ane careless staff.{note_fragment} Management ne sudhara ni sakht jarur che 😞", "language": "gujarati"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Bahu j slow service ane thandu khavanu aapyu aaje.{note_fragment} 😞"},
+                {"id": "idea_2", "focus": "Order Issue", "text": f"Kharab anubhav rahyo aaje.{note_fragment} Ghani vaar ubha rakhya ane order pan wrong aavyo 😞"},
+                {"id": "idea_3", "focus": "Cleanliness", "text": f"Staff unorganized hato ane tables bilkul clean nahota.{note_fragment} Bahu poor service 😞"},
+                {"id": "idea_4", "focus": "Food & Wait", "text": f"Disappointed with the visit. Food aavva ma khub time lagyo ane taste fresh nahoto.{note_fragment} Koi barabar attend pan na karyu 😞👎"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Experience bilkul saro na rahyo. Long waiting time, thandu food ane careless staff.{note_fragment} Service ma mota sudhara ni jarur chhe 😞"},
             ]
 
-    else:
-        # ─── ENGLISH ──────────────────────────────────────────────────────
+    else: # English
         if rating == 5:
-            item_phrase = "breakfast and chai" if has_chai else ("food and taste" if has_food else "service and hospitality")
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Amazing {item_phrase} and great experience!{note_fragment} Loved it 🍳☕", "language": "english"},
-                {"id": "idea_2", "focus": "Food & Service", "text": f"The food was fresh and flavourful, and service was quick.{note_fragment} Truly satisfied 😋👍", "language": "english"},
-                {"id": "idea_3", "focus": "Staff & Ambience", "text": f"Very friendly staff and very clean place.{note_fragment} We had a wonderful time here 😊✨", "language": "english"},
-                {"id": "idea_4", "focus": "Taste & Value", "text": f"Everything was served hot, fresh and full of flavour. Fair prices and great quality.{note_fragment} Must try 👌🍲", "language": "english"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Had a wonderful visit at {business_name}. Great food, friendly people, and relaxed vibe.{note_fragment} Will surely visit again! 👨‍👩‍👧‍👦❤️", "language": "english"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Amazing breakfast and best chai in town!{note_fragment} Loved it 🍳☕"},
+                {"id": "idea_2", "focus": "Food & Tea", "text": f"The food was fresh and the tea was super tasty.{note_fragment} Quick service too ☕😋"},
+                {"id": "idea_3", "focus": "Staff & Place", "text": f"Very friendly staff and clean place.{note_fragment} We had a great time here 😊✨"},
+                {"id": "idea_4", "focus": "Taste & Value", "text": f"Everything was hot, fresh and full of flavour. The snacks and chai were really good and the price is also fair.{note_fragment} Must try 👌🍲"},
+                {"id": "idea_5", "focus": "Family Visit", "text": f"Had a wonderful breakfast with family at {business_name}. Great food, friendly people, and relaxed vibe.{note_fragment} Will surely visit again! 👨‍👩‍👧‍👦❤️"},
             ]
         elif rating == 4:
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Good food and tasty chai!{note_fragment} Nice start to the morning 🍳", "language": "english"},
-                {"id": "idea_2", "focus": "Food & Service", "text": f"Fresh breakfast and quick service.{note_fragment} Staff was polite and helpful 👍☕", "language": "english"},
-                {"id": "idea_3", "focus": "Clean & Fair", "text": f"Clean sitting area and good food quality.{note_fragment} Prices are also reasonable 😊", "language": "english"},
-                {"id": "idea_4", "focus": "Snacks & Ambience", "text": f"Enjoyed the snacks and warm ambience. Food arrived promptly and tasted nice.{note_fragment} Worth a visit 🥪🍲", "language": "english"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall a very pleasant visit. Good taste, clean tables, and friendly service.{note_fragment} Will definitely come back again 🌟👍", "language": "english"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Good food and tasty chai!{note_fragment} Nice start to the morning 🍳"},
+                {"id": "idea_2", "focus": "Food & Service", "text": f"Fresh breakfast and quick service.{note_fragment} Staff was polite and helpful 👍☕"},
+                {"id": "idea_3", "focus": "Clean & Fair", "text": f"Clean sitting area and good food quality.{note_fragment} Prices are also reasonable 😊"},
+                {"id": "idea_4", "focus": "Snacks & Tea", "text": f"Enjoyed the snacks and hot tea. Food was served quickly and tasted nice.{note_fragment} Worth a visit for a quick bite 🥪🍲"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall a very pleasant visit. Good taste, clean tables, and friendly service.{note_fragment} Will definitely come back again 🌟👍"},
             ]
         elif rating == 3:
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Decent food, but the service was a bit slow today.{note_fragment} 🙂", "language": "english"},
-                {"id": "idea_2", "focus": "Food & Wait", "text": f"The food was nice, but we had to wait some time for our order.{note_fragment} Okay experience overall 🙂☕", "language": "english"},
-                {"id": "idea_3", "focus": "Staff & Service", "text": f"Staff was polite, but they were quite busy today.{note_fragment} Average visit 🙂", "language": "english"},
-                {"id": "idea_4", "focus": "Busy Hours", "text": f"The place was crowded today. Food taste was fine, but table cleaning took longer than expected.{note_fragment} Average visit 🙂", "language": "english"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Fair experience overall. Tea was good and seating was fine, but service has room for improvement.{note_fragment} It was an okay visit 🙂", "language": "english"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Decent food, but the service was a bit slow today.{note_fragment} 🙂"},
+                {"id": "idea_2", "focus": "Food & Tea", "text": f"The chai was nice, but the snacks could have been hotter.{note_fragment} Okay experience overall 🙂☕"},
+                {"id": "idea_3", "focus": "Wait Time", "text": f"Staff was polite, but we had to wait some time for our order.{note_fragment} Average visit 🙂"},
+                {"id": "idea_4", "focus": "Busy Hours", "text": f"The place was quite crowded today. Food taste was fine, but table cleaning took longer than expected.{note_fragment} Hope it gets faster next time 🙂🥪"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Fair experience overall. Tea was good and seating is comfortable, but service needs a little improvement.{note_fragment} It was an okay visit 🙂"},
             ]
         elif rating == 2:
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Food was okay, but wait time was too long today.{note_fragment} 😕", "language": "english"},
-                {"id": "idea_2", "focus": "Order Delay", "text": f"Not satisfied with the service today.{note_fragment} Order was delayed and food was lukewarm 😕", "language": "english"},
-                {"id": "idea_3", "focus": "Attention & Staff", "text": f"Staff was inattentive and tables were not cleaned quickly.{note_fragment} Expected better service 😕", "language": "english"},
-                {"id": "idea_4", "focus": "Slow Service", "text": f"We had to wait a long time to get our food today.{note_fragment} Need to improve customer service 😕⏳", "language": "english"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Disappointing visit today. The food was not fresh and service was very slow.{note_fragment} Hope management fixes this 😕", "language": "english"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Food was okay, but wait time was too long today.{note_fragment} 😕"},
+                {"id": "idea_2", "focus": "Order Delay", "text": f"Not satisfied with the service today.{note_fragment} Order was delayed and food was lukewarm 😕"},
+                {"id": "idea_3", "focus": "Attention", "text": f"The place was noisy and staff was not paying attention.{note_fragment} Expected better service 😕"},
+                {"id": "idea_4", "focus": "Slow Service", "text": f"We had to wait a long time to get our food and tables were not cleaned quickly.{note_fragment} Need to improve customer service 😕⏳"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Disappointing visit today. The chai was fine but snacks were not fresh and service was very slow.{note_fragment} Hope management fixes this 😕"},
             ]
         else: # 1 star
             ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Very slow service and cold food today.{note_fragment} 😞", "language": "english"},
-                {"id": "idea_2", "focus": "Order Issue", "text": f"Bad experience today.{note_fragment} Waited very long and our order was wrong 😞", "language": "english"},
-                {"id": "idea_3", "focus": "Cleanliness & Care", "text": f"Staff was disorganized and tables were not clean.{note_fragment} Very poor service 😞", "language": "english"},
-                {"id": "idea_4", "focus": "Food & Wait", "text": f"Disappointed with the visit. Food took forever to arrive and tasted stale.{note_fragment} Nobody came to attend us properly 😞👎", "language": "english"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Extremely poor experience today. Long waiting time, cold food, and careless staff.{note_fragment} Needs major improvement in service 😞", "language": "english"},
+                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Very slow service and cold food today.{note_fragment} 😞"},
+                {"id": "idea_2", "focus": "Order Issue", "text": f"Bad experience today.{note_fragment} Waited very long and our order was wrong 😞"},
+                {"id": "idea_3", "focus": "Cleanliness", "text": f"Staff was unorganized and tables were not clean.{note_fragment} Very poor service 😞"},
+                {"id": "idea_4", "focus": "Food & Wait", "text": f"Disappointed with the visit. Food took forever to arrive and tasted stale.{note_fragment} Nobody came to attend us properly 😞👎"},
+                {"id": "idea_5", "focus": "Overall Visit", "text": f"Extremely poor experience today. Long waiting time, cold food, and careless staff.{note_fragment} Needs major improvement in service 😞"},
             ]
 
     return ideas
+
 
 def humanize_review_draft(
     rating: int,
@@ -376,30 +276,27 @@ def humanize_review_draft(
     emoji_preference: str = "light",
     business_name: str = "the restaurant",
     language: str = "english",
-    business_category: Optional[str] = None
+    category: Optional[str] = None
 ) -> str:
     """
-    Deterministic Humanization Engine adhering to:
-    - 15-45 words
-    - contextual emojis
-    - zero fabrication
-    - selected language: english, hindi (Roman Hinglish), or gujarati (Roman Gujlish)
+    Deterministic Humanization Engine adhering to 15-45 words,
+    contextual emojis, zero fabrication, and natural Roman-script Hinglish/Gujlish.
     """
     lang = normalize_language(language)
 
-    # If customer selected an idea, personalize and ground it
+    # If customer already selected an idea, build upon and personalize it
     if selected_idea and selected_idea.strip():
         base_text = selected_idea.strip()
         if user_note and user_note.strip() and user_note.strip().lower() not in base_text.lower():
             n = user_note.strip().rstrip(".!")
-            base_text = f"{base_text.rstrip('.! 😊❤️✨☕')} — {n}."
+            base_text = f"{base_text.rstrip('.! 😊❤️✨☕👌🍲🥪👍')} — {n}."
             if emoji_preference != "none":
                 emojis = pick_tasteful_emojis(rating, aspects, emoji_preference)
                 base_text = f"{base_text}{emojis}"
         return base_text
 
     cleaned_aspects = [a.lower().strip() for a in aspects if a.strip()]
-    has_coffee = any("coffee" in a or "chai" in a or "tea" in a or "drink" in a or "beverage" in a for a in cleaned_aspects)
+    has_coffee = any("coffee" in a or "chai" in a or "drink" in a or "beverage" in a for a in cleaned_aspects)
     has_food = any("food" in a or "taste" in a or "breakfast" in a or "snack" in a for a in cleaned_aspects)
     has_service = any("service" in a or "staff" in a for a in cleaned_aspects)
     has_vibe = any("ambience" in a or "vibe" in a or "atmosphere" in a for a in cleaned_aspects)
@@ -411,69 +308,56 @@ def humanize_review_draft(
     emojis = pick_tasteful_emojis(rating, aspects, emoji_preference)
 
     if lang == "hindi":
-        # Roman Hinglish synthesis
-        if rating == 5:
-            if has_food and has_service:
-                draft = f"Yahan ka khana bahut tasty tha aur staff bhi kaafi friendly tha.{note_text} Overall experience bahut accha raha{emojis}"
-            elif has_coffee:
-                draft = f"Chai aur snacks dono bahut badhiya the! Staff ne smile ke saath serve kiya.{note_text} Definitely wapas aayenge{emojis}"
-            elif has_vibe:
-                draft = f"Bohot hi pyara ambience hai aur food bhi fresh tha.{note_text} Yahan aakar bahut accha laga{emojis}"
-            else:
-                draft = f"Hamara visit bohot accha raha! Sabhi cheezein time par aur fresh mili.{note_text} Highly recommend karte hain{emojis}"
-        elif rating == 4:
-            if has_food:
-                draft = f"Accha khana aur pleasant atmosphere tha. Staff ne bhi ache se attend kiya.{note_text} Ek acchi visit rahi{emojis}"
-            else:
-                draft = f"Service time par mili aur jagah bhi clean thi.{note_text} Overall kaafi accha experience raha{emojis}"
-        elif rating == 3:
-            draft = f"Khana theek tha par aane me thoda time laga.{note_text} Service me thoda improvement ho sakta hai.{emojis}"
-        elif rating == 2:
-            draft = f"Khana lukewarm tha aur service kaafi slow thi aaj.{note_text} Thoda disappointing experience raha.{emojis}"
-        else: # 1 star
-            draft = f"Bohot slow service aur thanda khana mila aaj.{note_text} Staff careless laga aur visit bilkul accha nahi raha.{emojis}"
-
-    elif lang == "gujarati":
-        # Roman Gujlish synthesis
-        if rating == 5:
-            if has_food and has_service:
-                draft = f"Ahiya nu food ekdum mast hatu ane staff pan khub friendly hato.{note_text} Overall experience bahu saras rahyo{emojis}"
-            elif has_coffee:
-                draft = f"Chai ane nasto ekdum jordar hatu! Fast service mali ane maja aavi.{note_text} Fari thi chokkas aavishu{emojis}"
-            elif has_vibe:
-                draft = f"Jagya khub shanti vali hati ane food pan ekdum fresh hatu.{note_text} Visit bahu sari rahi{emojis}"
-            else:
-                draft = f"{business_name} ni visit ekdum saras rahi. Badhu fresh ane swadist hatu.{note_text} Chokkas recommend karishu{emojis}"
-        elif rating == 4:
-            if has_food:
-                draft = f"Food taste ma saras hatu ane staff no response pan quick hato.{note_text} Saras anubhav rahyo{emojis}"
-            else:
-                draft = f"Chokkhai sari hati ane seating pan comfortable hati.{note_text} Overall visit sari rahi{emojis}"
-        elif rating == 3:
-            draft = f"Taste theek hato pan order aavta vaar lagi.{note_text} Average experience rahyo aaje.{emojis}"
-        elif rating == 2:
-            draft = f"Order delay thayo ane food thandu hatu.{note_text} Service ma sudharo thavo joie.{emojis}"
-        else: # 1 star
-            draft = f"Aaje bilkul maza na aavi. Lambo wait karavyo ane food pan kharab hatu.{note_text} Bohot kharab anubhav thayo.{emojis}"
-
-    else:
-        # English synthesis
         if rating == 5:
             if has_coffee and has_service:
-                draft = f"Really enjoyed the chai and coffee, and the staff were so friendly! Great place to relax.{note_text} Definitely coming back{emojis}"
+                draft = f"Yahan ki chai aur snacks sach me lajawab the! Staff ka nature bahut friendly tha.{note_text} Definitely dobara aayenge{emojis}"
             elif has_food and has_vibe:
-                draft = f"Had a lovely meal here. The food was delicious and the place had such a warm vibe.{note_text} Highly recommend{emojis}"
+                draft = f"Yahan aakar bahut accha laga. Khana fresh aur tasty tha aur mahaul bhi kaafi relaxed tha.{note_text} Zaroor try karein{emojis}"
+            else:
+                draft = f"Overall visit bahut shandar raha! Khana fresh tha aur service bhi kaafi fast aur polite thi.{note_text} Highly recommend karte hain{emojis}"
+        elif rating == 4:
+            draft = f"Kaafi accha experience raha. Taste accha tha aur staff bhi attentive tha.{note_text} Morning naste ke liye badhiya jagah hai{emojis}"
+        elif rating == 3:
+            draft = f"Taste theek tha, lekin service thodi slow lagi aaj.{note_text} Average visit raha overall.{emojis}"
+        elif rating == 2:
+            draft = f"Khana theek tha par wait time kaafi zyada tha aaj.{note_text} Umeed hai service thodi fast hogi next time.{emojis}"
+        else: # 1 star
+            draft = f"Experience bilkul accha nahi raha aaj. Service bahut slow thi aur khana bhi thanda tha.{note_text} Dhyan dene ki zaroorat hai.{emojis}"
+
+    elif lang == "gujarati":
+        if rating == 5:
+            if has_coffee and has_service:
+                draft = f"Ahiya nu food ane chai sachme ekdum mast hatu! Staff pan khub friendly ane helpful hato.{note_text} Fari thi jarur aavishu{emojis}"
+            elif has_food and has_vibe:
+                draft = f"Ahiya aavine khub maja aavi. Khavanu ekdum fresh hatu ane vatavaran pan saras hatu.{note_text} Jarur visit karva jevu chhe{emojis}"
+            else:
+                draft = f"Samagra anubhav khub j saras rahyo! Nasto fresh hato ane service pan fast mali.{note_text} Badhane jarur recommend karish{emojis}"
+        elif rating == 4:
+            draft = f"Khub saro anubhav rahyo. Food taste saro hato ane staff no swabhav pan vinamra hato.{note_text} Breakfast mate sari jagya chhe{emojis}"
+        elif rating == 3:
+            draft = f"Taste thik hato, pan service aaje thodi slow lagi.{note_text} Average mulakat rahi overall.{emojis}"
+        elif rating == 2:
+            draft = f"Khavanu thik hatu pan wait ghano karvo padyo.{note_text} Aavti vakhte service thodi fast male evi aasha.{emojis}"
+        else: # 1 star
+            draft = f"Experience aaje bilkul saro na rahyo. Service khub slow hati ane nasto thando aavyo.{note_text} Sudharo karvani jarur chhe.{emojis}"
+
+    else: # English
+        if rating == 5:
+            if has_coffee and has_service:
+                draft = f"Really enjoyed the coffee and the staff were so friendly! Great place to relax and recharge.{note_text} Definitely coming back{emojis}"
+            elif has_food and has_vibe:
+                draft = f"Had a lovely meal here. The food was delicious and the place had such a warm, comfortable vibe.{note_text} Highly recommend{emojis}"
             elif has_food and has_service:
                 draft = f"Great food and really friendly service. Everything was served fresh with a smile.{note_text} Will definitely be back{emojis}"
             elif has_coffee:
-                draft = f"Loved the beverages here! Freshly brewed and super welcoming staff.{note_text} Such a nice spot{emojis}"
+                draft = f"Loved the coffee here! Excellent brew and super welcoming staff.{note_text} Such a nice little spot{emojis}"
             else:
                 draft = f"Had a wonderful time! The staff were great and the whole visit was really pleasant.{note_text} Would happily recommend{emojis}"
         elif rating == 4:
             if has_food:
                 draft = f"Had a really good time here. The food was tasty and the service was friendly.{note_text} Nice place to relax and eat{emojis}"
             elif has_coffee:
-                draft = f"Solid spot with great drinks and good seating.{note_text} Staff were welcoming and items came out quickly{emojis}"
+                draft = f"Solid spot with great coffee and good seating.{note_text} Staff were welcoming and the drinks came out quickly{emojis}"
             else:
                 draft = f"Very enjoyable visit! Good service, nice atmosphere, and fair prices.{note_text} Happy to come back again{emojis}"
         elif rating == 3:
@@ -486,17 +370,8 @@ def humanize_review_draft(
         else: # 1 star
             draft = f"Unfortunately, my experience wasn't great today. The service took quite a while and the food wasn't what I expected.{note_text} I hope things improve.{emojis}"
 
-    # Word count safety check
-    words = draft.split()
-    if len(words) < 10 and rating >= 4:
-        if lang == "hindi":
-            draft += " Zaroor visit karein."
-        elif lang == "gujarati":
-            draft += " Chokkas visit karjo."
-        else:
-            draft += " Would gladly recommend to others."
-
     return draft.strip()
+
 
 def build_humanized_prompt(
     rating: int,
@@ -509,12 +384,10 @@ def build_humanized_prompt(
     emoji_preference: str = "light",
     business_name: str = "the restaurant",
     language: str = "english",
-    business_category: Optional[str] = None
+    category: Optional[str] = None
 ) -> str:
     lang = normalize_language(language)
-    aspects_str = ", ".join(aspects) if aspects else "General hospitality experience"
-    category_str = business_category or "Hospitality"
-
+    aspects_str = ", ".join(aspects) if aspects else "General visit"
     note_instruction = (
         f"Customer's note: \"{user_note.strip()}\""
         if user_note and user_note.strip()
@@ -527,28 +400,22 @@ def build_humanized_prompt(
     )
 
     if lang == "hindi":
-        lang_rule = """- TARGET LANGUAGE: HINDI IN ROMAN / LATIN SCRIPT (HINGLISH).
-- STRICT MANDATE: Do NOT output Devanagari script. Use Roman letters only (e.g. "Yahan ka khana bahut tasty tha aur staff bhi kaafi friendly tha. Overall experience bahut accha raha.").
-- STYLE: Casual Indian customer typing naturally on WhatsApp or Google Maps. Avoid textbook Hindi."""
+        lang_rule = "Language: Natural Roman-script Hindi (Hinglish). Write everyday spoken Romanized Hindi as used by real Indian customers on mobile phones. STRICTLY DO NOT output Devanagari script. Do NOT translate from English."
     elif lang == "gujarati":
-        lang_rule = """- TARGET LANGUAGE: GUJARATI IN ROMAN / LATIN SCRIPT (GUJLISH).
-- STRICT MANDATE: Do NOT output Gujarati native script. Use Roman letters only (e.g. "Ahiya nu food ekdum mast hatu ane staff pan khub friendly hato. Overall experience bahu saras rahyo.").
-- STYLE: Casual Gujarati customer typing naturally on mobile. Avoid textbook Gujarati."""
+        lang_rule = "Language: Natural Roman-script Gujarati (Gujlish). Write everyday spoken Romanized Gujarati as used by real customers in Gujarat on mobile phones. STRICTLY DO NOT output Gujarati script. Do NOT translate from English."
     else:
-        lang_rule = """- TARGET LANGUAGE: Simple, everyday conversational English.
-- STYLE: Casual customer typing on mobile."""
+        lang_rule = "Language: Simple, natural everyday English."
 
-    return f"""Draft a short, human-like customer review for Google Maps:
-- Business Name: {business_name}
-- Category: {category_str}
+    return f"""Draft a short, human-like hospitality review:
 - Star Rating: {rating} of 5 Stars
-- Selected Topics: {aspects_str}
+- Business Name: {business_name}
+- Category: {category or "Hospitality"}
+- Mentioned Topics: {aspects_str}
+- {lang_rule}
 - {note_instruction}
 - {idea_instruction}
-{lang_rule}
 - Length: 15 to 45 words
-- Emojis: {emoji_preference} (1-2 for 4-5 stars, 1 for 3 stars, 0 or sad for 1-2 stars)
-- Tone: Calibrated to {rating} stars. Authentic, genuine, zero marketing buzzwords, strict zero fabrication.
+- Emojis: {emoji_preference} (at most 1-2 for 4-5 stars, 0 for 1-2 stars)
+- Tone: Natural, friendly, human tone. Never use marketing or corporate words. Zero fabrication.
 
 Output ONLY the review text."""
-

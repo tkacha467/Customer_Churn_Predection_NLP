@@ -1661,72 +1661,6 @@ textarea:focus, input:focus, select:focus {
   margin-bottom: 1.25rem;
 }
 
-/* ─── LANGUAGE SELECTION ROW ─────────────────────────────────────── */
-.ng-lang-row {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-  margin: 0.5rem 0 0.5rem;
-  box-sizing: border-box;
-}
-
-.ng-lang-btn {
-  flex: 1;
-  min-height: 52px;
-  border-radius: 14px;
-  border: 1.5px solid rgba(215, 157, 83, 0.4);
-  background: linear-gradient(145deg, rgba(38, 27, 20, 0.9), rgba(24, 16, 11, 0.9));
-  color: #fff6e8;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 0.35rem;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  outline: none;
-  user-select: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-}
-
-.ng-lang-btn:hover {
-  border-color: #f2bd65;
-  background: linear-gradient(145deg, rgba(50, 35, 25, 0.95), rgba(32, 22, 15, 0.95));
-  transform: translateY(-1px);
-}
-
-.ng-lang-btn:focus-visible {
-  border-color: #f2bd65;
-  box-shadow: 0 0 0 3px rgba(242, 189, 101, 0.4);
-}
-
-.ng-lang-btn.selected {
-  background: linear-gradient(135deg, #f5cf8c, #d99547);
-  color: #211309;
-  border-color: #f5cf8c;
-  font-weight: 700;
-  box-shadow: 0 4px 14px rgba(217, 149, 71, 0.4);
-  transform: translateY(-1px);
-}
-
-.ng-lang-label {
-  font-size: 0.96rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.ng-lang-sub {
-  font-size: 0.72rem;
-  opacity: 0.85;
-  margin-top: 1px;
-}
-
-.ng-lang-btn.selected .ng-lang-sub {
-  color: #3b220c;
-  opacity: 0.95;
-  font-weight: 600;
-}
-
 .ng-ideas-header {
   text-align: center;
   margin-bottom: 0.85rem;
@@ -1810,17 +1744,66 @@ textarea:focus, input:focus, select:focus {
   transform: translateY(0);
 }
 
-.ng-idea-top-row {
+/* ── LANGUAGE SELECTOR ─────────────────────────────────────────────────────── */
+.ng-lang-row {
   display: flex;
-  justify-content: space-between;
+  gap: 0.55rem;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  width: 100%;
+}
+
+.ng-lang-btn {
+  flex: 1;
+  max-width: 140px;
+  background: rgba(23, 59, 32, 0.35);
+  border: 1px solid rgba(201, 255, 0, 0.25);
+  color: #a3b899;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 44px;
+  text-align: center;
+  display: flex;
   align-items: center;
-  margin-bottom: 0.45rem;
+  justify-content: center;
+  user-select: none;
+}
+
+.ng-lang-btn:hover {
+  border-color: rgba(201, 255, 0, 0.5);
+  color: #fff8e8;
+  transform: translateY(-1px);
+}
+
+.ng-lang-btn.active {
+  background: linear-gradient(135deg, #173b20 0%, #23542f 100%);
+  border-color: #c9ff00;
+  color: #c9ff00;
+  font-weight: 700;
+  box-shadow: 0 2px 14px rgba(201, 255, 0, 0.25);
+}
+
+.ng-lang-btn:focus-visible {
+  outline: 2px solid #c9ff00;
+  outline-offset: 2px;
+}
+
+@media (max-width: 380px) {
+  .ng-lang-btn {
+    font-size: 0.84rem;
+    padding: 0.55rem 0.4rem;
+  }
 }
 
 .ng-idea-meta {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  margin-bottom: 0.45rem;
 }
 
 .ng-idea-num {
@@ -1835,23 +1818,22 @@ textarea:focus, input:focus, select:focus {
   box-shadow: 0 2px 6px rgba(217, 149, 71, 0.35);
 }
 
-.ng-idea-lang-badge {
-  font-size: 0.68rem;
+.ng-idea-lang {
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  color: #f2bd65;
+  background: rgba(242, 189, 101, 0.15);
+  border: 1px solid rgba(242, 189, 101, 0.3);
   padding: 2px 8px;
   border-radius: 99px;
-  background: rgba(245, 207, 140, 0.15);
-  color: #f5cf8c;
-  border: 1px solid rgba(245, 207, 140, 0.3);
-  margin-left: 8px;
-  text-transform: uppercase;
+  margin-left: 0.45rem;
 }
 
 .ng-idea-stars {
-  color: #f59e0b;
-  font-size: 0.95rem;
-  letter-spacing: 1px;
+  font-size: 0.78rem;
+  color: #f2bd65;
+  margin-left: auto;
+  letter-spacing: 0.05em;
 }
 
 .ng-idea-text {
@@ -1865,27 +1847,18 @@ textarea:focus, input:focus, select:focus {
   overflow-wrap: break-word;
 }
 
-.ng-idea-card-action {
+.ng-idea-action {
   display: flex;
-  align-items: center;
   justify-content: flex-end;
   margin-top: 0.65rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.ng-idea-action-text {
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  color: #f5cf8c;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  color: #f2bd65;
+  transition: transform 0.18s ease, color 0.18s ease;
 }
 
-.ng-idea-card:hover .ng-idea-action-text {
-  color: #ffd899;
+.ng-idea-card:hover .ng-idea-action {
+  color: #ffdda3;
   transform: translateX(3px);
 }
 

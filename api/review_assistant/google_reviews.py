@@ -25,6 +25,64 @@ DEFAULT_TOPICS = [
     "Quick Service"
 ]
 
+HOSPITALITY_CATEGORY_TOPICS: Dict[str, List[str]] = {
+    "cafe": [
+        "Food & Taste",
+        "Chai / Coffee",
+        "Staff",
+        "Service",
+        "Ambience",
+        "Cleanliness",
+        "Value for Money",
+    ],
+    "restaurant": [
+        "Food & Taste",
+        "Service",
+        "Staff",
+        "Ambience",
+        "Cleanliness",
+        "Portion Size",
+        "Value for Money",
+    ],
+    "hotel": [
+        "Room",
+        "Cleanliness",
+        "Staff",
+        "Service",
+        "Breakfast",
+        "Location",
+        "Comfort",
+        "Ambience",
+    ],
+    "salon": [
+        "Service",
+        "Staff",
+        "Cleanliness",
+        "Experience",
+        "Results",
+        "Ambience",
+    ],
+    "breakfast & snacks": [
+        "Breakfast",
+        "Chai & Beverages",
+        "Snacks",
+        "Taste & Flavour",
+        "Friendly Staff",
+        "Cleanliness",
+        "Value for Money",
+        "Quick Service",
+    ],
+}
+
+def get_category_topics(category: Optional[str]) -> List[str]:
+    if not category:
+        return DEFAULT_TOPICS
+    cat_lower = category.lower().strip()
+    for key, topics in HOSPITALITY_CATEGORY_TOPICS.items():
+        if key in cat_lower or cat_lower in key:
+            return list(topics)
+    return list(DEFAULT_TOPICS)
+
 class GoogleReviewManager:
     def __init__(self):
         self._links: Dict[str, Dict[str, Any]] = {}
@@ -73,8 +131,7 @@ class GoogleReviewManager:
             url = "https://maps.google.com"
 
         category = info.get("category", "Breakfast & Snacks")
-        from api.review_assistant.prompts import get_category_topics
-        topics = info.get("topics") if info.get("topics") else get_category_topics(category)
+        topics = info.get("topics") or get_category_topics(category)
 
         return {
             "business_id": business_id,
