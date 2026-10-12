@@ -1577,22 +1577,22 @@ textarea:focus, input:focus, select:focus {
   display: block;
   font-size: 0.83rem;
   font-weight: 600;
-  color: #a3b899;
+  color: #dac7ac;
   margin-bottom: 0.5rem;
 }
 
 .ng-optional {
-  color: #556b50;
+  color: #9e8870;
   font-weight: 400;
 }
 
 .ng-note-input {
   width: 100%;
-  background: rgba(10, 20, 12, 0.8);
-  border: 1px solid rgba(201, 255, 0, 0.2);
+  background: #211a16;
+  border: 1px solid #765638;
   border-radius: 12px;
   padding: 0.8rem 1rem;
-  color: #fff8e8;
+  color: #fff0d1;
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -1601,12 +1601,12 @@ textarea:focus, input:focus, select:focus {
 }
 
 .ng-note-input:focus {
-  border-color: #c9ff00;
-  box-shadow: 0 0 0 3px rgba(201, 255, 0, 0.18);
+  border-color: #c88b42;
+  box-shadow: 0 0 0 3px rgba(200, 139, 66, 0.22);
 }
 
 .ng-note-input::placeholder {
-  color: #445942;
+  color: #ac9984;
 }
 
 /* ── IDEA CARDS ────────────────────────────────────────────────────────────── */
@@ -1628,7 +1628,7 @@ textarea:focus, input:focus, select:focus {
 }
 
 .ng-loading-text {
-  color: #8da684;
+  color: #dac7ac;
   font-size: 0.92rem;
   margin-top: 0.85rem;
 }
@@ -1641,14 +1641,14 @@ textarea:focus, input:focus, select:focus {
 
 .ng-section-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(201, 255, 0, 0.18), transparent);
+  background: linear-gradient(90deg, transparent, rgba(200, 139, 66, 0.28), transparent);
   margin: 1.75rem 0;
 }
 
 .ng-section-title {
   font-size: 1.28rem;
   font-weight: 700;
-  color: #fff8e8;
+  color: #fff6e7;
   text-align: center;
   margin-bottom: 0.25rem;
   letter-spacing: -0.02em;
@@ -1656,7 +1656,7 @@ textarea:focus, input:focus, select:focus {
 
 .ng-section-sub {
   font-size: 0.86rem;
-  color: #8da684;
+  color: #dac7ac;
   text-align: center;
   margin-bottom: 1.25rem;
 }
@@ -1756,11 +1756,11 @@ textarea:focus, input:focus, select:focus {
 .ng-lang-btn {
   flex: 1;
   max-width: 140px;
-  background: rgba(23, 59, 32, 0.35);
-  border: 1px solid rgba(201, 255, 0, 0.25);
-  color: #a3b899;
+  background: #33271f;
+  border: 1px solid #6e5137;
+  color: #f4e5d0;
   padding: 0.65rem 0.75rem;
-  border-radius: 12px;
+  border-radius: 999px;
   font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
@@ -1774,21 +1774,22 @@ textarea:focus, input:focus, select:focus {
 }
 
 .ng-lang-btn:hover {
-  border-color: rgba(201, 255, 0, 0.5);
-  color: #fff8e8;
+  border-color: #a67847;
+  background: #3f2f24;
+  color: #fff6e7;
   transform: translateY(-1px);
 }
 
 .ng-lang-btn.active {
-  background: linear-gradient(135deg, #173b20 0%, #23542f 100%);
-  border-color: #c9ff00;
-  color: #c9ff00;
+  background: #543b25;
+  border-color: #c88b42;
+  color: #ffdfa7;
   font-weight: 700;
-  box-shadow: 0 2px 14px rgba(201, 255, 0, 0.25);
+  box-shadow: 0 0 0 2px #d0924745;
 }
 
 .ng-lang-btn:focus-visible {
-  outline: 2px solid #c9ff00;
+  outline: 2px solid #c88b42;
   outline-offset: 2px;
 }
 
@@ -1894,7 +1895,7 @@ textarea:focus, input:focus, select:focus {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #4a6350;
+  color: #9e8870;
   font-size: 0.8rem;
   margin: 0.35rem 0;
 }
@@ -1904,13 +1905,13 @@ textarea:focus, input:focus, select:focus {
   content: '';
   flex: 1;
   height: 1px;
-  background: rgba(201, 255, 0, 0.15);
+  background: rgba(200, 139, 66, 0.22);
 }
 
 .ng-btn-write-own {
-  background: transparent;
-  border: 1px dashed rgba(201, 255, 0, 0.3);
-  color: #8da684;
+  background: rgba(51, 39, 31, 0.55);
+  border: 1px dashed #8f6c46;
+  color: #f4e5d0;
   padding: 0.8rem 1rem;
   border-radius: 12px;
   font-size: 0.9rem;
@@ -1923,8 +1924,9 @@ textarea:focus, input:focus, select:focus {
 }
 
 .ng-btn-write-own:hover {
-  border-color: #c9ff00;
-  color: #c9ff00;
+  background: #3f2f24;
+  border-color: #c88b42;
+  color: #ffdfa7;
 }
 
 /* ── EDITOR ────────────────────────────────────────────────────────────────── */

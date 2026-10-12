@@ -421,8 +421,12 @@ body:has(.ng-world) {
 .ng-page:has(.ng-world) .ng-btn-primary { color:#271a11; background:linear-gradient(135deg,#f5cf8c,#d99547); box-shadow:0 3px 0 #80501e; }
 .ng-page:has(.ng-world) .ng-btn-primary:hover:not(:disabled) { background:linear-gradient(135deg,#ffdda0,#e5a352); }
 .ng-page:has(.ng-world) .ng-btn-secondary { color:#fff0d1; background:#3a2b21; border-color:#765638; }
-.ng-page:has(.ng-world) .ng-chip { color:#f4e5d0; background:#33271f; border-color:#6e5137; }
-.ng-page:has(.ng-world) .ng-chip.selected { color:#ffdfa7; background:#543b25; border-color:#c88b42; box-shadow:0 0 0 2px #d0924745; }
+.ng-page:has(.ng-world) .ng-chip,
+.ng-page:has(.ng-world) .ng-lang-btn { color:#f4e5d0; background:#33271f; border-color:#6e5137; }
+.ng-page:has(.ng-world) .ng-chip:hover,
+.ng-page:has(.ng-world) .ng-lang-btn:hover { color:#fff6e7; background:#3f2f24; border-color:#a67847; }
+.ng-page:has(.ng-world) .ng-chip.selected,
+.ng-page:has(.ng-world) .ng-lang-btn.active { color:#ffdfa7; background:#543b25; border-color:#c88b42; box-shadow:0 0 0 2px #d0924745; }
 .ng-page:has(.ng-world) .ng-idea-card { color:#fff0d1; background:#2a211c; border-color:#6e5137; }
 .ng-page:has(.ng-world) .ng-idea-text { color:#eadcc9; }
 .ng-page:has(.ng-world) .ng-step-dot.done { background:#a77b4b; }
