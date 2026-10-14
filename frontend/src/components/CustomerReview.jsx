@@ -68,9 +68,9 @@ const getFallbackIdeas = (r, note, lang = 'english') => {
       return [
         { id: 'opt1', focus: 'Short & Sweet', text: `Khana theek tha par wait time bahut zyada tha aaj.${noteText} 😕` },
         { id: 'opt2', focus: 'Order Delay', text: `Aaj service se khush nahi huye.${noteText} Order kaafi late aaya aur khana bhi lukewarm tha 😕` },
-        { id: 'opt3', focus: 'Staff Attention', text: `Staff ka dhyaan nahi tha aur service kaafi slow thi.{noteText} Better service expected thi 😕` },
-        { id: 'opt4', focus: 'Slow Service', text: `Khaane ke liye kaafi wait karna pada aur tables quickly clean nahi huye.{noteText} Service improve karni chahiye 😕⏳` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Disappointing visit raha. Chai theek thi par snacks fresh nahi the aur service slow thi.{noteText} Umeed hai agle baar sudhar hoga 😕` },
+        { id: 'opt3', focus: 'Staff Attention', text: `Staff ka dhyaan nahi tha aur service kaafi slow thi.${noteText} Better service expected thi 😕` },
+        { id: 'opt4', focus: 'Slow Service', text: `Khaane ke liye kaafi wait karna pada aur tables quickly clean nahi huye.${noteText} Service improve karni chahiye 😕⏳` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Disappointing visit raha. Chai theek thi par snacks fresh nahi the aur service slow thi.${noteText} Umeed hai agle baar sudhar hoga 😕` },
       ];
     } else {
       return [
@@ -78,7 +78,7 @@ const getFallbackIdeas = (r, note, lang = 'english') => {
         { id: 'opt2', focus: 'Order Issue', text: `Kharab experience raha aaj.${noteText} Bahut der wait kiya aur order bhi galat aaya 😞` },
         { id: 'opt3', focus: 'Cleanliness', text: `Staff unorganized tha aur tables bilkul clean nahi the.${noteText} Poor service 😞` },
         { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Khaana aane mein bahut time laga aur taste fresh nahi tha.${noteText} Koi theek se attend nahi kar raha tha 😞👎` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Kaafi poor experience raha. Long waiting time, cold food aur careless staff.{noteText} Major improvement ki zaroorat hai 😞` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Kaafi poor experience raha. Long waiting time, cold food aur careless staff.${noteText} Major improvement ki zaroorat hai 😞` },
       ];
     }
   }
@@ -104,25 +104,25 @@ const getFallbackIdeas = (r, note, lang = 'english') => {
       return [
         { id: 'opt1', focus: 'Short & Sweet', text: `Food thik hatu, pan service thodi slow lagi aaje.${noteText} 🙂` },
         { id: 'opt2', focus: 'Food & Wait', text: `Chai sari hati pan snacks thoda thanda hata.${noteText} Samanya anubhav rahyo 🙂☕` },
-        { id: 'opt3', focus: 'Service Pace', text: `Staff saro hato pan order mate thodi vaar lagi.{noteText} Average visit 🙂` },
-        { id: 'opt4', focus: 'Crowd & Cleaning', text: `Bheed vadhare hati aaje. Taste barabar hato pan table cleaning ma time lagyo.{noteText} Aavti vakhte better service ni apeksha 🙂🥪` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall thik anubhav rahyo. Seating comfortable chhe pan service thodi improve karvani jarur chhe.{noteText} Okay visit 🙂` },
+        { id: 'opt3', focus: 'Service Pace', text: `Staff saro hato pan order mate thodi vaar lagi.${noteText} Average visit 🙂` },
+        { id: 'opt4', focus: 'Crowd & Cleaning', text: `Bheed vadhare hati aaje. Taste barabar hato pan table cleaning ma time lagyo.${noteText} Aavti vakhte better service ni apeksha 🙂🥪` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Overall thik anubhav rahyo. Seating comfortable chhe pan service thodi improve karvani jarur chhe.${noteText} Okay visit 🙂` },
       ];
     } else if (r === 2) {
       return [
         { id: 'opt1', focus: 'Short & Sweet', text: `Food thik hatu pan wait bahu karvu padyu aaje.${noteText} 😕` },
-        { id: 'opt2', focus: 'Order Delay', text: `Aaje service thi santosh na thayo.{noteText} Order late aavyo ane food pan lukewarm hatu 😕` },
-        { id: 'opt3', focus: 'Staff Attention', text: `Staff dhyan nhato aapi rahyo ane service slow hati.{noteText} Better service expected hati 😕` },
-        { id: 'opt4', focus: 'Slow Service', text: `Order mate ghano wait karyo ane tables pan quickly clean na thaya.{noteText} Customer service improve karvani jarur chhe 😕⏳` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Nirashajanak visit rahi. Chai thik hati pan snacks fresh nahota ane service slow hati.{noteText} Management sudharo kare evi aasha 😕` },
+        { id: 'opt2', focus: 'Order Delay', text: `Aaje service thi santosh na thayo.${noteText} Order late aavyo ane food pan lukewarm hatu 😕` },
+        { id: 'opt3', focus: 'Staff Attention', text: `Staff dhyan nhato aapi rahyo ane service slow hati.${noteText} Better service expected hati 😕` },
+        { id: 'opt4', focus: 'Slow Service', text: `Order mate ghano wait karyo ane tables pan quickly clean na thaya.${noteText} Customer service improve karvani jarur chhe 😕⏳` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Nirashajanak visit rahi. Chai thik hati pan snacks fresh nahota ane service slow hati.${noteText} Management sudharo kare evi aasha 😕` },
       ];
     } else {
       return [
         { id: 'opt1', focus: 'Short & Sweet', text: `Bahu j slow service ane thandu khavanu aapyu aaje.${noteText} 😞` },
-        { id: 'opt2', focus: 'Order Issue', text: `Kharab anubhav rahyo aaje.{noteText} Ghani vaar ubha rakhya ane order pan wrong aavyo 😞` },
-        { id: 'opt3', focus: 'Cleanliness', text: `Staff unorganized hato ane tables bilkul clean nahota.{noteText} Bahu poor service 😞` },
-        { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Food aavva ma khub time lagyo ane taste fresh nahoto.{noteText} Koi barabar attend pan na karyu 😞👎` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Experience bilkul saro na rahyo. Long waiting time, thandu food ane careless staff.{noteText} Service ma mota sudhara ni jarur chhe 😞` },
+        { id: 'opt2', focus: 'Order Issue', text: `Kharab anubhav rahyo aaje.${noteText} Ghani vaar ubha rakhya ane order pan wrong aavyo 😞` },
+        { id: 'opt3', focus: 'Cleanliness', text: `Staff unorganized hato ane tables bilkul clean nahota.${noteText} Bahu poor service 😞` },
+        { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Food aavva ma khub time lagyo ane taste fresh nahoto.${noteText} Koi barabar attend pan na karyu 😞👎` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Experience bilkul saro na rahyo. Long waiting time, thandu food ane careless staff.${noteText} Service ma mota sudhara ni jarur chhe 😞` },
       ];
     }
   }
@@ -197,6 +197,7 @@ export default function CustomerReview({
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewStarted, setReviewStarted] = useState(false);
   const topicsSectionRef = useRef(null);
+  const languageSectionRef = useRef(null);
 
   // Language selection: 'english' | 'hindi' | 'gujarati'
   const [language, setLanguage] = useState(() => {
@@ -394,7 +395,7 @@ export default function CustomerReview({
   const handleContinueReview = () => {
     setReviewStarted(true);
     setTimeout(() => {
-      topicsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      languageSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 60);
   };
 
@@ -633,7 +634,7 @@ export default function CustomerReview({
             <div className="ng-section-divider" aria-hidden="true" />
 
             {/* ── SECTION: LANGUAGE SELECTION ────────────────────────── */}
-            <section className="ng-section ng-fade-in" aria-label="Language selection">
+            <section ref={languageSectionRef} className="ng-section ng-fade-in" aria-label="Language selection">
               <h2 className="ng-section-title">Which language feels most natural to you?</h2>
               <p className="ng-section-sub">Choose your preferred language for the review</p>
 
@@ -701,6 +702,8 @@ export default function CustomerReview({
               value={personalNote}
               onChange={(e) => setPersonalNote(e.target.value)}
               maxLength={100}
+              data-gramm="false"
+              data-enable-grammarly="false"
             />
           </div>
         </section>
@@ -782,6 +785,8 @@ export default function CustomerReview({
                 value={draftReview}
                 onChange={(e) => setDraftReview(e.target.value)}
                 placeholder="Write your review here..."
+                data-gramm="false"
+                data-enable-grammarly="false"
               />
             </div>
 
@@ -835,8 +840,16 @@ export default function CustomerReview({
           <span className="ng-toast-icon">📋</span>
           <span className="ng-toast-msg">
             {copied
-                ? "તમારો review તૈયાર છે ✓ Google Maps માં 'Write a review' tap કરો, same stars select કરીને Paste કરો."
-                : 'Review copy na thayu. Tap Copy Review to try again.'}
+              ? (language === 'hindi'
+                  ? "Aapka review copy ho gaya hai ✓ Google Maps par 'Write a review' tap karein, same rating select karke Paste karein."
+                  : language === 'gujarati'
+                  ? "તમારો review copy થઈ ગયો છે ✓ Google Maps માં 'Write a review' tap કરો, same rating select કરીને Paste કરો."
+                  : "Your review is copied ✓ On Google Maps, tap 'Write a review', select the same rating, and paste.")
+              : (language === 'hindi'
+                  ? "Review copy nahi hua. Dobara koshish karne ke liye 'Copy Review' tap karein."
+                  : language === 'gujarati'
+                  ? "Review copy na thayu. Fari prayas karva 'Copy Review' par tap karo."
+                  : "Review could not be copied. Tap 'Copy Review' to try again.")}
           </span>
         </div>
       )}
@@ -847,28 +860,90 @@ export default function CustomerReview({
           <div className="ng-modal ng-modal-bounce">
             <div className="ng-modal-icon">📋</div>
             <h3 className="ng-modal-title">
-              {copyingReview ? 'Preparing your review…' : copied ? 'Review Copied to Clipboard' : 'Copy Your Review to Continue'}
+              {copyingReview
+                ? (language === 'hindi' ? 'Review taiyar ho raha hai…' : language === 'gujarati' ? 'Review તૈયાર થઈ રહ્યો છે…' : 'Preparing your review…')
+                : copied
+                ? (language === 'hindi' ? 'Review Clipboard par Copy Ho Gaya ✓' : language === 'gujarati' ? 'Review Clipboard પર Copy થઈ ગયો ✓' : 'Review Copied to Clipboard ✓')
+                : (language === 'hindi' ? 'Review Copy Karke Aage Badhein' : language === 'gujarati' ? 'Review Copy Kari Aagal Vadho' : 'Copy Your Review to Continue')}
             </h3>
             <p className="ng-modal-body">
-              {copyingReview
-                ? <>તમારો review તૈયાર છે. Copy કરી રહ્યા છીએ અને Google Maps ખોલી રહ્યા છીએ…</>
-                : copied
-                ? <>તમારો review તૈયાર છે ✓ You selected {rating}★ here. On Google Maps, tap <strong>Write a review</strong>, select the same rating, then paste your review.</>
-                : <>Review copy na thayu. Your selected review is saved for this browser session; copy it below and try again. You selected {rating}★ here, so choose the same rating on Google Maps.</>}
+              {copyingReview ? (
+                language === 'hindi' ? (
+                  <>Aapka review taiyar hai. Clipboard par copy karke Google Maps khol rahe hain…</>
+                ) : language === 'gujarati' ? (
+                  <>તમારો review તૈયાર છે. Clipboard પર copy કરી રહ્યા છીએ અને Google Maps ખોલી રહ્યા છીએ…</>
+                ) : (
+                  <>Preparing your review. Copying to clipboard and opening Google Maps…</>
+                )
+              ) : copied ? (
+                language === 'hindi' ? (
+                  <>
+                    Aapka review copy ho gaya hai ✓ Aapne yahan <strong>{rating}★</strong> chuna hai. Google Maps par <strong>Write a review</strong> tap karein, same rating select karein aur paste karein.
+                  </>
+                ) : language === 'gujarati' ? (
+                  <>
+                    તમારો review copy થઈ ગયો છે ✓ તમે અહીં <strong>{rating}★</strong> પસંદ કર્યા છે. Google Maps પર <strong>Write a review</strong> tap કરો, same rating પસંદ કરો અને review paste કરો.
+                  </>
+                ) : (
+                  <>
+                    Your review is copied ✓ You selected <strong>{rating}★</strong> here. On Google Maps, tap <strong>Write a review</strong>, select the same rating, then paste your review.
+                  </>
+                )
+              ) : (
+                language === 'hindi' ? (
+                  <>
+                    Review copy nahi hua. Niche diye gaye review ko copy karein aur Google Maps par paste karein (aapne yahan <strong>{rating}★</strong> chuna tha).
+                  </>
+                ) : language === 'gujarati' ? (
+                  <>
+                    Review copy na thayu. Niche aapyelo review copy karo ane Google Maps ma paste karo (tame ahiya <strong>{rating}★</strong> પસંદ કર્યા છે).
+                  </>
+                ) : (
+                  <>
+                    Review copy failed. Your selected review is saved below; copy it manually and paste into Google Maps (you selected <strong>{rating}★</strong> here).
+                  </>
+                )
+              )}
             </p>
 
             <div className="ng-modal-steps">
               <div className="ng-modal-step">
                 <span className="ng-modal-step-num">1</span>
-                <span>Choose the rating that reflects your visit on Google (you selected <strong>{rating} stars</strong> here)</span>
+                <span>
+                  {language === 'hindi'
+                    ? <>Google par wahi rating chunein jo yahan chuni thi (aapne <strong>{rating} stars</strong> chune hain)</>
+                    : language === 'gujarati'
+                    ? <>Google par ae j rating select karo je ahiya select kari hati (tame <strong>{rating} stars</strong> select karya chhe)</>
+                    : <>Choose the rating that reflects your visit on Google (you selected <strong>{rating} stars</strong> here)</>}
+                </span>
               </div>
               <div className="ng-modal-step">
                 <span className="ng-modal-step-num">2</span>
-                <span>{copyingReview ? 'Copying selected review…' : copied ? <><strong>Paste</strong> the copied review (use your device's Paste command, or long-press → Paste on mobile)</> : <>Copy the review below, then <strong>paste</strong> it into Google</>}</span>
+                <span>
+                  {copyingReview
+                    ? (language === 'hindi' ? 'Selected review copy ho raha hai…' : language === 'gujarati' ? 'Selected review copy thai rahyo chhe…' : 'Copying selected review…')
+                    : copied
+                    ? (language === 'hindi'
+                        ? <>Copied review ko <strong>Paste</strong> karein (apne device ka Paste command use karein)</>
+                        : language === 'gujarati'
+                        ? <>Copied review ne <strong>Paste</strong> karo (screen par long-press kari Paste karo)</>
+                        : <><strong>Paste</strong> the copied review (use your device's Paste command, or long-press → Paste on mobile)</>)
+                    : (language === 'hindi'
+                        ? <>Niche se review copy karein aur Google par <strong>Paste</strong> karein</>
+                        : language === 'gujarati'
+                        ? <>Niche thi review copy karo ane Google par <strong>Paste</strong> karo</>
+                        : <>Copy the review below, then <strong>paste</strong> it into Google</>)}
+                </span>
               </div>
               <div className="ng-modal-step">
                 <span className="ng-modal-step-num">3</span>
-                <span>Review it, then tap Google's <strong>Post</strong> button when you're ready.</span>
+                <span>
+                  {language === 'hindi'
+                    ? <>Review check karein aur Google ke <strong>Post</strong> button par tap karein.</>
+                    : language === 'gujarati'
+                    ? <>Review check karo ane Google na <strong>Post</strong> button par tap karo.</>
+                    : <>Review it, then tap Google's <strong>Post</strong> button when you're ready.</>}
+                </span>
               </div>
             </div>
 
@@ -887,7 +962,11 @@ export default function CustomerReview({
                   if (ok) setTimeout(() => setCopyAgainSuccess(false), 2000);
                 }}
               >
-                {copyAgainSuccess ? '✓ Copied!' : copied ? '📋 Copy Again' : '📋 Copy Review'}
+                {copyAgainSuccess
+                  ? '✓ Copied!'
+                  : copied
+                  ? (language === 'hindi' ? '📋 Dobara Copy Karein' : language === 'gujarati' ? '📋 Fari Copy Karo' : '📋 Copy Again')
+                  : (language === 'hindi' ? '📋 Review Copy Karein' : language === 'gujarati' ? '📋 Review Copy Karo' : '📋 Copy Review')}
               </button>
             </div>
 
@@ -902,7 +981,7 @@ export default function CustomerReview({
                   window.location.href = googleReviewUrl;
                 }}
               >
-                ↗ Continue to Google Maps
+                {language === 'hindi' ? '↗ Google Maps Kholein' : language === 'gujarati' ? '↗ Google Maps Kholo' : '↗ Continue to Google Maps'}
               </button>
               <button
                 type="button"
@@ -947,6 +1026,8 @@ export default function CustomerReview({
                   value={privateNote}
                   onChange={(e) => setPrivateNote(e.target.value)}
                   required
+                  data-gramm="false"
+                  data-enable-grammarly="false"
                 />
                 <input
                   type="text"

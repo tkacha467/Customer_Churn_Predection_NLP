@@ -11,15 +11,19 @@ echo.
 
 echo  Stopping FastAPI Backend (port 8000)...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000 " ^| findstr "LISTENING" 2^>nul') do (
-    taskkill /F /PID %%a >nul 2>&1
-    echo   - Stopped PID %%a on port 8000
+    if not "%%a"=="0" (
+        taskkill /F /T /PID %%a >nul 2>&1
+        echo   - Stopped PID %%a on port 8000 (Backend + reload worker)
+    )
 )
 
 echo.
 echo  Stopping React Frontend (port 5173)...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173 " ^| findstr "LISTENING" 2^>nul') do (
-    taskkill /F /PID %%a >nul 2>&1
-    echo   - Stopped PID %%a on port 5173
+    if not "%%a"=="0" (
+        taskkill /F /T /PID %%a >nul 2>&1
+        echo   - Stopped PID %%a on port 5173 (Frontend + node processes)
+    )
 )
 
 echo.
