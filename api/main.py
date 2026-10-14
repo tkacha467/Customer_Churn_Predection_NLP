@@ -1,4 +1,15 @@
 import os
+import warnings
+
+# Suppress HF Hub unauthenticated warnings and progress bars
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", message=".*HF_TOKEN.*")
+warnings.filterwarnings("ignore", message=".*unauthenticated requests.*")
+warnings.filterwarnings("ignore", message=".*RobertaForSequenceClassification.*")
+
 from dotenv import load_dotenv
 
 load_dotenv()

@@ -1,9 +1,30 @@
 import os
+import warnings
+
+# Suppress noisy environment and framework warnings
 os.environ["USE_TF"] = "0"
 os.environ["USE_TORCH"] = "1"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+# Filter out unauthenticated HF Hub warning and model pooler unexpected keys notices
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", message=".*HF_TOKEN.*")
+warnings.filterwarnings("ignore", message=".*unauthenticated requests.*")
+warnings.filterwarnings("ignore", message=".*RobertaForSequenceClassification.*")
 
 import torch
-from transformers import pipeline
+from transformers import pipeline, logging as hf_logging
+hf_logging.set_verbosity_error()
+hf_logging.disable_progress_bar()
+
+try:
+    from huggingface_hub.utils import disable_progress_bars, logging as hub_logging
+    disable_progress_bars()
+    hub_logging.set_verbosity_error()
+except ImportError:
+    pass
 import time
 import threading
 from api.config.settings import settings
