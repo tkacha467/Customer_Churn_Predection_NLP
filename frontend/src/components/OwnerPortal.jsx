@@ -9,6 +9,8 @@ export default function OwnerPortal({
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [authSession, setAuthSession] = useState(null);
+  const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPassword, setOwnerPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -27,6 +29,7 @@ export default function OwnerPortal({
   ]);
   const [newTopicInput, setNewTopicInput] = useState('');
   const [primaryAccent, setPrimaryAccent] = useState('#f97316');
+  const [entitlements, setEntitlements] = useState(['review_manager', 'digital_card']);
 
   // Setup / Save status
   const [isSaving, setIsSaving] = useState(false);
@@ -51,7 +54,16 @@ export default function OwnerPortal({
   useEffect(() => {
     let active = true;
     apiFetch('/api/auth/session')
-      .then((res) => { if (active) setIsAuthenticated(res.ok); })
+      .then(async (res) => {
+        if (!active) return;
+        if (res.ok) {
+          const data = await res.json();
+          setAuthSession(data);
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      })
       .catch(() => { if (active) setIsAuthenticated(false); })
       .finally(() => { if (active) setIsCheckingSession(false); });
     return () => { active = false; };
@@ -62,16 +74,25 @@ export default function OwnerPortal({
     setAuthError('');
     setIsSigningIn(true);
     try {
+      const payload = {
+        password: ownerPassword,
+        tenant_id: businessId !== 'default_business' ? businessId : undefined,
+      };
+      if (ownerEmail.trim()) {
+        payload.email = ownerEmail.trim();
+      }
       const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: ownerPassword }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const error = await res.json().catch(() => ({}));
-        throw new Error(error.detail || 'Sign-in failed. Please try again.');
+        throw new Error(error.detail || 'Sign-in failed. Please check your credentials and try again.');
       }
+      const data = await res.json();
       setOwnerPassword('');
+      setAuthSession(data);
       setIsAuthenticated(true);
     } catch (error) {
       setAuthError(error.message || 'Could not sign in. Check the API connection and try again.');
@@ -82,13 +103,36 @@ export default function OwnerPortal({
 
   const handleOwnerLogout = async () => {
     try { await apiFetch('/api/auth/logout', { method: 'POST' }); }
-    finally { setIsAuthenticated(false); }
+    finally {
+      setAuthSession(null);
+      setIsAuthenticated(false);
+    }
+  };
+
+  const handleSwitchTenant = async (tenantId) => {
+    try {
+      const res = await apiFetch('/api/auth/switch-tenant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant_id: tenantId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAuthSession(data);
+        const url = new URL(window.location);
+        url.searchParams.set('business_id', tenantId);
+        window.history.pushState({}, '', url.toString());
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Failed to switch business:', err);
+    }
   };
 
   // Fetch business config
   const fetchConfig = async () => {
     try {
-      const res = await apiFetch(`/api/businesses/${businessId}/review-link`);
+      const res = await apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/review-link`);
       if (res.status === 401) setIsAuthenticated(false);
       if (!res.ok) throw new Error('Could not load restaurant configuration');
       const data = await res.json();
@@ -100,16 +144,18 @@ export default function OwnerPortal({
       setIsUrlConfigured(Boolean(data.is_configured));
       if (data.topics && data.topics.length > 0) setTopics(data.topics);
       if (data.primary_accent) setPrimaryAccent(data.primary_accent);
+      if (Array.isArray(data.entitlements)) setEntitlements(data.entitlements);
     } catch (err) {
       console.error('Failed fetching business config:', err);
     }
   };
 
-  // Fetch real analytics
+  // Fetch real analytics scoped to business
   const fetchAnalytics = async () => {
     setIsLoadingAnalytics(true);
     try {
-      const res = await apiFetch('/api/reviews/analytics');
+      const query = businessId ? `?business_id=${encodeURIComponent(businessId)}` : '';
+      const res = await apiFetch(`/api/reviews/analytics${query}`);
       if (res.status === 401) setIsAuthenticated(false);
       if (!res.ok) throw new Error('Could not load restaurant activity');
       const data = await res.json();
@@ -128,7 +174,7 @@ export default function OwnerPortal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId, isAuthenticated]);
 
-  // Generate QR Code dynamically
+  // Generate QR Code dynamically targeting business URL
   useEffect(() => {
     let locationLabel = '';
     if (qrLocationType === 'table') locationLabel = `Table ${qrTableNumber}`;
@@ -136,7 +182,8 @@ export default function OwnerPortal({
     else if (qrLocationType === 'receipt') locationLabel = 'Receipt';
     else locationLabel = 'General';
 
-    const targetUrl = `${qrBaseUrl}/review?table=${encodeURIComponent(locationLabel)}`;
+    const bizParam = businessId && businessId !== 'default_business' ? `&business_id=${encodeURIComponent(businessId)}` : '';
+    const targetUrl = `${qrBaseUrl}/review?table=${encodeURIComponent(locationLabel)}${bizParam}`;
     QRCode.toDataURL(targetUrl, {
       width: 320,
       margin: 2,
@@ -147,7 +194,7 @@ export default function OwnerPortal({
     })
       .then(url => setGeneratedQrDataUrl(url))
       .catch(err => console.error('Failed generating QR code:', err));
-  }, [qrLocationType, qrTableNumber, qrBaseUrl]);
+  }, [qrLocationType, qrTableNumber, qrBaseUrl, businessId]);
 
   // Save configuration
   const handleSaveConfig = async (e) => {
@@ -156,7 +203,7 @@ export default function OwnerPortal({
     setSaveSuccessMsg('');
 
     try {
-      const res = await apiFetch(`/api/businesses/${businessId}/config`, {
+      const res = await apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -170,6 +217,10 @@ export default function OwnerPortal({
         })
       });
       if (res.status === 401) setIsAuthenticated(false);
+      if (res.status === 403) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Insufficient permissions: Owner role is required to modify setup.');
+      }
       if (!res.ok) throw new Error('Could not save configuration');
       const data = await res.json();
       setIsUrlConfigured(Boolean(data.is_configured));
@@ -177,7 +228,7 @@ export default function OwnerPortal({
       setTimeout(() => setSaveSuccessMsg(''), 4000);
     } catch (err) {
       console.error('Error saving config:', err);
-      alert('Could not save configuration. Please try again.');
+      alert(err.message || 'Could not save configuration. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -218,11 +269,23 @@ export default function OwnerPortal({
         <form className="owner-login-card" onSubmit={handleOwnerLogin}>
           <h1>Owner sign-in</h1>
           <p>Sign in to manage the review link and view restaurant activity.</p>
-          <label htmlFor="owner-password">Owner password</label>
+
+          <label htmlFor="owner-email">Account Email</label>
+          <input
+            id="owner-email"
+            type="email"
+            autoComplete="email"
+            placeholder="owner@yourbusiness.com"
+            value={ownerEmail}
+            onChange={(event) => setOwnerEmail(event.target.value)}
+          />
+
+          <label htmlFor="owner-password">Password</label>
           <input
             id="owner-password"
             type="password"
             autoComplete="current-password"
+            placeholder="••••••••••••"
             value={ownerPassword}
             onChange={(event) => setOwnerPassword(event.target.value)}
             required
@@ -251,6 +314,28 @@ export default function OwnerPortal({
         </div>
 
         <div className="owner-top-actions">
+          {authSession?.available_tenants?.length > 1 && (
+            <div className="tenant-switcher-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label htmlFor="tenant-select" style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Business:</label>
+              <select
+                id="tenant-select"
+                value={authSession.active_tenant?.id || businessId}
+                onChange={(e) => handleSwitchTenant(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              >
+                {authSession.available_tenants.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.business_name} ({t.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {authSession?.active_tenant?.role && (
+            <span className="role-badge" style={{ padding: '4px 8px', borderRadius: '4px', background: '#e0f2fe', color: '#0369a1', fontSize: '12px', fontWeight: 600, textTransform: 'capitalize' }}>
+              {authSession.active_tenant.role}
+            </span>
+          )}
           <button
             type="button"
             className="btn-preview-customer"
@@ -276,32 +361,38 @@ export default function OwnerPortal({
           <span>Home</span>
         </button>
 
-        <button
-          type="button"
-          className={`owner-tab-btn ${activeTab === 'setup' ? 'active' : ''}`}
-          onClick={() => setActiveTab('setup')}
-        >
-          <span>⚙️</span>
-          <span>Review Setup</span>
-        </button>
+        {entitlements.includes('review_manager') && (
+          <button
+            type="button"
+            className={`owner-tab-btn ${activeTab === 'setup' ? 'active' : ''}`}
+            onClick={() => setActiveTab('setup')}
+          >
+            <span>⚙️</span>
+            <span>Review Setup</span>
+          </button>
+        )}
 
-        <button
-          type="button"
-          className={`owner-tab-btn ${activeTab === 'qr' ? 'active' : ''}`}
-          onClick={() => setActiveTab('qr')}
-        >
-          <span>📱</span>
-          <span>QR Codes</span>
-        </button>
+        {entitlements.includes('digital_card') && (
+          <button
+            type="button"
+            className={`owner-tab-btn ${activeTab === 'qr' ? 'active' : ''}`}
+            onClick={() => setActiveTab('qr')}
+          >
+            <span>📱</span>
+            <span>QR Codes</span>
+          </button>
+        )}
 
-        <button
-          type="button"
-          className={`owner-tab-btn ${activeTab === 'activity' ? 'active' : ''}`}
-          onClick={() => setActiveTab('activity')}
-        >
-          <span>📈</span>
-          <span>Review Activity</span>
-        </button>
+        {entitlements.includes('review_manager') && (
+          <button
+            type="button"
+            className={`owner-tab-btn ${activeTab === 'activity' ? 'active' : ''}`}
+            onClick={() => setActiveTab('activity')}
+          >
+            <span>📈</span>
+            <span>Review Activity</span>
+          </button>
+        )}
 
         <button
           type="button"

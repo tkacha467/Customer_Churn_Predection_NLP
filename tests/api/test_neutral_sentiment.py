@@ -2,6 +2,8 @@ import pytest
 from fastapi.testclient import TestClient
 from api.main import app
 
+pytestmark = pytest.mark.model_dependent
+
 @pytest.fixture(scope="module")
 def client():
     # Context manager triggers startup/shutdown events

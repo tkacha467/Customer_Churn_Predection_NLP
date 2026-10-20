@@ -35,9 +35,10 @@ const getLanguageLabel = (l) => {
   return 'English';
 };
 
-const getFallbackIdeas = (r, note, lang = 'english') => {
+const getFallbackIdeas = (r, note, lang = 'english', bizName = BRAND.name) => {
   const noteText = note && note.trim() ? ` ${note.trim().replace(/[.!]+$/, '')}.` : '';
   const l = (lang || 'english').toLowerCase();
+  const name = bizName || BRAND.name;
 
   if (l.includes('hin')) {
     if (r === 5) {
@@ -46,7 +47,7 @@ const getFallbackIdeas = (r, note, lang = 'english') => {
         { id: 'opt2', focus: 'Food & Taste', text: `Khana ekdum fresh aur lajawab tha.${noteText} Quick service too ☕😋` },
         { id: 'opt3', focus: 'Staff & Ambience', text: `Staff bahut polite hai aur safai ka pura dhyan rakha hai.${noteText} Family ke sath visit ke liye best jagah 😊✨` },
         { id: 'opt4', focus: 'Taste & Value', text: `Har cheez garam aur fresh mili. Snacks aur chai bahut acche the aur price bhi sahi hai.${noteText} Zaroor try karein 👌🍲` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall experience bahut shandar raha at ${BRAND.name}. Khana aur service dono top notch the.${noteText} Phir zaroor aayenge! 👨‍👩‍👧‍👦❤️` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Overall experience bahut shandar raha at ${name}. Khana aur service dono top notch the.${noteText} Phir zaroor aayenge! 👨‍👩‍👧‍👦❤️` },
       ];
     } else if (r === 4) {
       return [
@@ -90,7 +91,7 @@ const getFallbackIdeas = (r, note, lang = 'english') => {
         { id: 'opt2', focus: 'Food & Taste', text: `Nasto ekdum fresh ane taste lajawab hato.${noteText} Quick service too ☕😋` },
         { id: 'opt3', focus: 'Staff & Ambience', text: `Staff khub polite chhe ane chokkhai pan saras chhe.${noteText} Family sathe aavva mate best jagya 😊✨` },
         { id: 'opt4', focus: 'Taste & Value', text: `Badhu garam ane fresh malyu. Snacks ane chai bahu saras hata ane bhav pan fair chhe.${noteText} Jarur try karva jevu chhe 👌🍲` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall experience bahu j saras rahyo at ${BRAND.name}. Food ane service banne top class.{noteText} Fari thi jarur aavishu! 👨‍👩‍👧‍👦❤️` },
+        { id: 'opt5', focus: 'Overall Visit', text: `Overall experience bahu j saras rahyo at ${name}. Food ane service banne top class.{noteText} Fari thi jarur aavishu! 👨‍👩‍👧‍👦❤️` },
       ];
     } else if (r === 4) {
       return [
@@ -134,7 +135,7 @@ const getFallbackIdeas = (r, note, lang = 'english') => {
       { id: 'opt2', focus: 'Food & Tea', text: `The food was fresh and the tea was super tasty.${noteText} Quick service too ☕😋` },
       { id: 'opt3', focus: 'Staff & Place', text: `Very friendly staff and clean place.${noteText} We had a great time here 😊✨` },
       { id: 'opt4', focus: 'Taste & Value', text: `Everything was hot, fresh and full of flavour. The snacks and chai were really good and the price is also fair.${noteText} Must try 👌🍲` },
-      { id: 'opt5', focus: 'Family Visit', text: `Had a wonderful breakfast with family at ${BRAND.name}. Great food, friendly people, and relaxed vibe.${noteText} Will surely visit again! 👨‍👩‍👧‍👦❤️` },
+      { id: 'opt5', focus: 'Family Visit', text: `Had a wonderful breakfast with family at ${name}. Great food, friendly people, and relaxed vibe.${noteText} Will surely visit again! 👨‍👩‍👧‍👦❤️` },
     ];
   } else if (r === 4) {
     return [
@@ -209,8 +210,13 @@ export default function CustomerReview({
     }
   });
 
-  // Business Category
+  // Business Category & Dynamic Branding
+  const [businessName, setBusinessName] = useState(() => (businessId === 'default_business' || businessId === 'nasta_ghar' ? BRAND.name : ''));
+  const [primaryAccent, setPrimaryAccent] = useState('#f97316');
+  const [businessDescription, setBusinessDescription] = useState('');
   const [businessCategory, setBusinessCategory] = useState('Breakfast & Snacks');
+  const [notFound, setNotFound] = useState(false);
+  const [notFoundId, setNotFoundId] = useState('');
 
   // Topics
   const [availableTopics, setAvailableTopics] = useState(DEFAULT_TOPICS);
@@ -222,7 +228,7 @@ export default function CustomerReview({
   const [googleReviewUrl, setGoogleReviewUrl] = useState(BRAND.googleMapUrl);
 
   // Ideas initialized with fallback ideas (no empty screen, instant feedback)
-  const [ideas, setIdeas] = useState(() => getFallbackIdeas(rating, '', language));
+  const [ideas, setIdeas] = useState(() => getFallbackIdeas(rating, '', language, businessName || BRAND.name));
   const [loadingIdeas, setLoadingIdeas] = useState(false);
   const [selectedIdeaId, setSelectedIdeaId] = useState(null);
   const fetchIdeasDebounceRef = useRef(null);
@@ -248,10 +254,25 @@ export default function CustomerReview({
   const [privateSent, setPrivateSent] = useState(false);
   const [privateError, setPrivateError] = useState('');
 
+  // Clean tenant storage isolation when switching between businesses
   useEffect(() => {
     try {
       const savedReview = sessionStorage.getItem('nastaGharSelectedReview');
       const savedBusinessId = sessionStorage.getItem('nastaGharBusinessId');
+      if (savedBusinessId && savedBusinessId !== businessId) {
+        // Clear stale data from previous business
+        sessionStorage.removeItem('nastaGharSelectedReview');
+        sessionStorage.removeItem('nastaGharSelectedReviewId');
+        sessionStorage.removeItem('nastaGharSelectedRating');
+        sessionStorage.removeItem('nastaGharClipboardCopied');
+        sessionStorage.removeItem('nastaGharGoogleMapsDestination');
+        setDraftReview('');
+        setSelectedIdeaId(null);
+        setCopied(false);
+        setHandoffOpen(false);
+        sessionStorage.setItem('nastaGharBusinessId', businessId);
+        return;
+      }
       if (!savedReview || savedBusinessId !== businessId) return;
       setDraftReview(savedReview);
       setSelectedIdeaId(sessionStorage.getItem('nastaGharSelectedReviewId'));
@@ -279,13 +300,33 @@ export default function CustomerReview({
     setCookieConsent(true);
   };
 
-  // ─── FETCH CONFIG (optional enrichment, never overrides brand name) ─────────
+  // ─── FETCH CONFIG (dynamic per business ID) ──────────────────────────────
   useEffect(() => {
-    apiFetch(`/api/businesses/${businessId}/review-link`)
-      .then((r) => r.json())
+    let active = true;
+    setNotFound(false);
+
+    apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/review-link`)
+      .then(async (r) => {
+        if (!r.ok) {
+          if (r.status === 404 || r.status === 422) {
+            if (active) {
+              setNotFound(true);
+              setNotFoundId(businessId);
+            }
+            return null;
+          }
+          throw new Error('Config load failed');
+        }
+        return r.json();
+      })
       .then((d) => {
-        if (d.review_url && d.is_configured) setGoogleReviewUrl(d.review_url);
+        if (!d || !active) return;
+        const resolvedName = d.business_name || (businessId === 'default_business' ? BRAND.name : businessId);
+        setBusinessName(resolvedName);
+        if (d.review_url) setGoogleReviewUrl(d.review_url);
         if (d.category) setBusinessCategory(d.category);
+        if (d.primary_accent) setPrimaryAccent(d.primary_accent);
+        if (d.description) setBusinessDescription(d.description);
         if (d.topics && d.topics.length > 0) {
           const enriched = d.topics.map((t) => ({
             label: t,
@@ -294,8 +335,14 @@ export default function CustomerReview({
           setAvailableTopics(enriched);
           setSelectedTopics(d.topics.slice(0, 2));
         }
+        // Update initial ideas with loaded business name
+        setIdeas(getFallbackIdeas(rating, personalNote, language, resolvedName));
       })
-      .catch(() => {/* use defaults */});
+      .catch(() => {
+        if (businessId === 'default_business' || businessId === 'nasta_ghar') {
+          if (active) setBusinessName(BRAND.name);
+        }
+      });
 
     // Initialize session
     apiFetch(`/api/reviews/session`, {
@@ -308,8 +355,11 @@ export default function CustomerReview({
       }),
     })
       .then((r) => r.json())
-      .then((d) => setSessionId(d.session_id))
-      .catch(() => setSessionId(`local-${Date.now()}`));
+      .then((d) => { if (active) setSessionId(d.session_id); })
+      .catch(() => { if (active) setSessionId(`local-${Date.now()}`); });
+
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId, tableParam]);
 
   function getTopicIcon(label) {
@@ -563,6 +613,37 @@ export default function CustomerReview({
   const ratingLabel = RATING_LABELS[activeRating] || RATING_LABELS[5];
 
   // ─── RENDER ─────────────────────────────────────────────────────────────────
+  if (notFound) {
+    return (
+      <div className="ng-page">
+        {isPreviewMode && (
+          <div className="ng-preview-bar">
+            <span>👁️ Owner Preview Mode</span>
+            {onSwitchToOwner && (
+              <button type="button" className="ng-preview-back" onClick={onSwitchToOwner}>
+                ← Back to Dashboard
+              </button>
+            )}
+          </div>
+        )}
+        <div className="ng-card" style={{ textAlign: 'center', padding: '3.5rem 1.5rem', margin: '2rem auto', maxWidth: '480px' }}>
+          <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🔍</div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '0.75rem', color: '#1e293b' }}>
+            Business Not Found
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
+            We could not find any business matching <strong>{notFoundId}</strong>. Please check your link or scan the QR code again.
+          </p>
+          {onSwitchToOwner && (
+            <button type="button" className="ng-btn-primary" onClick={onSwitchToOwner} style={{ margin: '0 auto' }}>
+              Open Owner Portal
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="ng-page">
       {/* Preview Banner */}
@@ -577,7 +658,17 @@ export default function CustomerReview({
         </div>
       )}
 
-      <RestaurantWorld />
+      {(businessId === 'default_business' || businessId === 'nasta_ghar') ? (
+        <RestaurantWorld />
+      ) : (
+        <div className="ng-scene-wrapper compact" style={{ minHeight: '140px', background: `linear-gradient(135deg, ${primaryAccent}15, ${primaryAccent}30)` }}>
+          <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+            <span style={{ fontSize: '3rem' }}>
+              {businessCategory.toLowerCase().includes('cafe') ? '☕' : businessCategory.toLowerCase().includes('hotel') ? '🏨' : '🍽️'}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div
         ref={reviewCardRef}
@@ -585,8 +676,17 @@ export default function CustomerReview({
       >
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <header className="ng-header">
-          <h1 className="ng-brand-name">નાસ્તા ઘર</h1>
-          <p className="ng-brand-sub">Homestyle Breakfast & Chai • Rajkot</p>
+          {(businessId === 'default_business' || businessId === 'nasta_ghar') ? (
+            <>
+              <h1 className="ng-brand-name">નાસ્તા ઘર</h1>
+              <p className="ng-brand-sub">Homestyle Breakfast & Chai • Rajkot</p>
+            </>
+          ) : (
+            <>
+              <h1 className="ng-brand-name">{businessName || 'Review Assistant'}</h1>
+              <p className="ng-brand-sub">{businessDescription || businessCategory || 'Hospitality Review Assistant'}</p>
+            </>
+          )}
           {tableParam && (
             <span className="ng-table-pill">📍 {tableParam}</span>
           )}
@@ -999,7 +1099,7 @@ export default function CustomerReview({
       {showPrivate && (
         <div className="ng-modal-backdrop">
           <div className="ng-modal ng-modal-bounce">
-            <h3 className="ng-modal-title">Direct note to {BRAND.name}</h3>
+            <h3 className="ng-modal-title">Direct note to {businessName || BRAND.name}</h3>
             <p className="ng-modal-body">Share anything you'd like our team to know privately.</p>
 
             {privateSent ? (

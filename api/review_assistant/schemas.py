@@ -67,6 +67,8 @@ class BusinessReviewLinkResponse(BaseModel):
         "Breakfast", "Chai & Beverages", "Snacks", "Taste & Flavour", "Friendly Staff", "Cleanliness", "Value for Money", "Quick Service"
     ])
     primary_accent: Optional[str] = "#f97316"
+    domain: Optional[str] = ""
+    entitlements: List[str] = Field(default_factory=lambda: ["review_manager", "digital_card"])
 
 class BusinessConfigUpdateRequest(BaseModel):
     business_name: Optional[str] = None
@@ -77,6 +79,8 @@ class BusinessConfigUpdateRequest(BaseModel):
     tagline: Optional[str] = None
     topics: Optional[List[str]] = None
     primary_accent: Optional[str] = None
+    domain: Optional[str] = None
+    entitlements: Optional[List[str]] = None
 
 class ReviewSessionCreateRequest(BaseModel):
     business_id: str = "default_business"
@@ -149,4 +153,55 @@ class PrivateFeedbackResponse(BaseModel):
     message: str
 
 class OwnerLoginRequest(BaseModel):
+    email: Optional[str] = Field(default=None, max_length=256)
     password: str = Field(..., min_length=1, max_length=256)
+    tenant_id: Optional[str] = Field(default=None, max_length=100)
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    display_name: str = ""
+
+class TenantInfo(BaseModel):
+    id: str
+    business_name: str
+    role: str
+
+class AuthSessionResponse(BaseModel):
+    authenticated: bool
+    user: Optional[UserResponse] = None
+    active_tenant: Optional[TenantInfo] = None
+    available_tenants: List[TenantInfo] = Field(default_factory=list)
+
+class SwitchTenantRequest(BaseModel):
+    tenant_id: str = Field(..., min_length=1, max_length=100)
+
+class TenantOnboardingRequest(BaseModel):
+    tenant_id: str = Field(..., min_length=2, max_length=100, pattern=r"^[a-zA-Z0-9_\-]+$")
+    business_name: str = Field(..., min_length=1, max_length=150)
+    owner_email: str = Field(..., min_length=3, max_length=256)
+    owner_password: str = Field(..., min_length=10, max_length=256)
+    owner_name: Optional[str] = Field(default="", max_length=150)
+    category: Optional[str] = Field(default="Cafe", max_length=100)
+    review_url: Optional[str] = Field(default="", max_length=2000)
+    branch: Optional[str] = Field(default="", max_length=100)
+    description: Optional[str] = Field(default="", max_length=1000)
+    primary_accent: Optional[str] = Field(default="#0ea5e9", max_length=20)
+    domain: Optional[str] = Field(default="", max_length=256)
+    topics: Optional[List[str]] = Field(default_factory=lambda: [
+        "Taste & Flavour", "Quick Service", "Cleanliness", "Friendly Staff", "Value for Money"
+    ])
+    entitlements: Optional[List[str]] = Field(default_factory=lambda: ["review_manager", "digital_card"])
+    status: Optional[str] = Field(default="active", pattern=r"^(active|suspended|inactive)$")
+
+class TenantOnboardingResponse(BaseModel):
+    tenant_id: str
+    business_name: str
+    owner_email: str
+    owner_user_id: str
+    status: str
+    entitlements: List[str]
+    created: bool
+
+class TenantStatusUpdateRequest(BaseModel):
+    status: str = Field(..., pattern=r"^(active|suspended|inactive)$")

@@ -58,5 +58,28 @@
     "category": "Italian Bistro & Espresso",
     "description": "Artisan coffee, fresh pasta, and stone-baked pizza.",
     "primary_accent": "#d97706"
+  },
+  "test_cafe": {
+    "business_name": "Test Cafe",
+    "google_review_url": "https://g.page/r/test-cafe/review",
+    "platform": "google",
+    "category": "Cafe"
+  },
+  "vraja_cafe": {
+    "platform": "google",
+    "topics": [
+      "Artisan Coffee",
+      "Cold Brew",
+      "Fresh Sourdough",
+      "Vibe",
+      "Quick Service"
+    ],
+    "google_review_url": "https://g.page/r/vraja-cafe/review",
+    "status": "active",
+    "business_name": "Vraja Artisanal Cafe",
+    "category": "Cafe & Roastery",
+    "primary_accent": "#0ea5e9",
+    "branch": "Main Street",
+    "description": "Specialty pour-overs and artisanal sourdough."
   }
 }

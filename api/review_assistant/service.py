@@ -51,12 +51,15 @@ class ReviewService:
         session_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
     ):
+        meta = dict(metadata or {})
+        if "business_id" not in meta:
+            meta["business_id"] = "default_business"
         event_record = {
             "event_id": str(uuid.uuid4()),
             "event_name": event_name,
             "session_id": session_id or "anonymous",
             "timestamp": time.time(),
-            "metadata": metadata or {}
+            "metadata": meta
         }
         self._store.add_event(event_record)
         self._analytics_events.append(event_record)
@@ -75,6 +78,7 @@ class ReviewService:
         )
         ideas = [ReviewIdeaItem(**item) for item in raw_ideas]
         self.record_event("review_ideas_generated", metadata={
+            "business_id": req.business_id,
             "rating": req.rating,
             "aspects": req.aspects or [],
             "has_note": bool(req.user_note),
@@ -88,6 +92,7 @@ class ReviewService:
         session_id = req.session_id or str(uuid.uuid4())
         
         self.record_event("review_generation_started", session_id, {
+            "business_id": req.business_id,
             "rating": req.rating,
             "dining_type": req.dining_type,
             "table_number": req.table_number,
@@ -130,6 +135,7 @@ class ReviewService:
                 break
             else:
                 self.record_event("review_regenerated", session_id, {
+                    "business_id": req.business_id,
                     "reason": "sentiment_mismatch",
                     "attempt": attempt
                 })
@@ -138,6 +144,7 @@ class ReviewService:
         sentiment = best_val.get("sentiment", "Neutral")
         
         self.record_event("review_generation_completed", session_id, {
+            "business_id": req.business_id,
             "rating": req.rating,
             "sentiment": sentiment,
             "rating_consistent": is_consistent,
@@ -164,13 +171,13 @@ class ReviewService:
             generation_provider=provider
         )
 
-    def validate_review(self, req: ReviewValidateRequest, session_id: Optional[str] = None) -> ReviewValidateResponse:
+    def validate_review(self, req: ReviewValidateRequest, session_id: Optional[str] = None, business_id: Optional[str] = None) -> ReviewValidateResponse:
         val_res = review_validator.validate(rating=req.rating, review_text=req.review)
-        
+        meta = {"rating": req.rating, "business_id": business_id or "default_business"}
         if val_res["rating_consistent"]:
-            self.record_event("review_validation_passed", session_id, {"rating": req.rating})
+            self.record_event("review_validation_passed", session_id, meta)
         else:
-            self.record_event("review_validation_failed", session_id, {"rating": req.rating})
+            self.record_event("review_validation_failed", session_id, meta)
 
         return ReviewValidateResponse(
             sentiment=val_res["sentiment"],
@@ -196,7 +203,10 @@ class ReviewService:
         }
         self._private_tickets.append(ticket)
         self._store.add_ticket(ticket)
-        self.record_event("private_feedback_submitted", metadata={"ticket_id": ticket_id, "rating": req.rating})
+        self.record_event(
+            "private_feedback_submitted",
+            metadata={"business_id": req.business_id, "ticket_id": ticket_id, "rating": req.rating}
+        )
         
         return PrivateFeedbackResponse(
             status="escalated",
@@ -204,8 +214,8 @@ class ReviewService:
             message="Your feedback has been shared with the restaurant team. Thank you for helping us improve!"
         )
 
-    def get_private_tickets(self) -> List[Dict[str, Any]]:
-        return self._store.list_tickets(limit=20)
+    def get_private_tickets(self, business_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+        return self._store.list_tickets(business_id=business_id, limit=limit)
 
     def generate_manager_reply(self, req: ManagerReplyRequest) -> ManagerReplyResponse:
         val_res = review_validator.validate(rating=req.rating, review_text=req.guest_review)
@@ -226,15 +236,15 @@ class ReviewService:
             recommended_action=action
         )
 
-    def get_analytics_summary(self) -> Dict[str, Any]:
-        """Calculates authentic, non-faked activity metrics for the restaurant owner."""
-        self._analytics_events = self._store.list_events()
+    def get_analytics_summary(self, business_id: Optional[str] = None) -> Dict[str, Any]:
+        """Calculates authentic, non-faked activity metrics scoped to a restaurant owner."""
+        events = self._store.list_events(business_id=business_id)
         event_counts = defaultdict(int)
         ratings_count = defaultdict(int)
         sentiment_breakdown = defaultdict(int)
         topic_counts = defaultdict(int)
         
-        for ev in self._analytics_events:
+        for ev in events:
             ev_name = ev["event_name"]
             event_counts[ev_name] += 1
             meta = ev.get("metadata", {})
@@ -256,7 +266,7 @@ class ReviewService:
 
         # Build clean recent activity feed
         recent_activity = []
-        for ev in reversed(self._analytics_events[-20:]):
+        for ev in reversed(events[-20:]):
             name = ev["event_name"]
             meta = ev.get("metadata", {})
             t_str = time.strftime("%H:%M", time.localtime(ev["timestamp"]))
@@ -284,10 +294,10 @@ class ReviewService:
             "sentiment_distribution": dict(sentiment_breakdown),
             "top_topics": top_topics_formatted,
             "recent_activity": recent_activity[:10],
-            "private_tickets_count": self._store.ticket_count(),
+            "private_tickets_count": self._store.ticket_count(business_id=business_id),
             # Backwards compatibility fields
             "conversion_rate_percent": round((google_clicks / total_generations) * 100, 1) if total_generations > 0 else 0.0,
-            "recent_events": self._analytics_events[-15:]
+            "recent_events": events[-15:]
         }
 
 review_service = ReviewService()
