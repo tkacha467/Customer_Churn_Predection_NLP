@@ -8,28 +8,47 @@ __pycache__/
 # Environment files (secrets)
 .env
 .env.*
+*.env
 !.env.example
+!**/.env.example
+!staging.env.example
+!**/staging.env.example
 
-# Data and models (local only)
+# OS & Editor
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data, temporary verification, and models (local only)
 data/
 /models/
+Project_Files/Staging_Deployment/
+chrome_profile/
+**/chrome_profile/
 
 # Large binary artifacts
 *.pkl
 *.zip
 
-# Node.js / Frontend
+# Node.js / Frontend build
 node_modules/
-frontend/dist/
+dist/
+**/dist/
+nastaghar/frontend/dist/
+product-b/frontend/dist/
+product-c-mastercard/frontend/dist/
 frontend_deprecated/
 
-# Testing and IDE
+# Testing
 .pytest_cache/
 .ipynb_checkpoints/
-*.swp
-*.swo
-.idea/
-.vscode/
 
-# SQLite databases (local dev copies)
+# SQLite databases & temp journals (local dev copies)
 *.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.db-journal
+ukm_db*

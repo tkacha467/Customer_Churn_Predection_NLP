@@ -3,7 +3,7 @@
 set -u
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-FRONTEND_DIR="$ROOT_DIR/frontend"
+FRONTEND_DIR="$ROOT_DIR/NastaGhar/frontend"
 PYTHON="$ROOT_DIR/.venv/bin/python"
 
 fail() {
@@ -220,9 +220,9 @@ if [ "$BACKEND_HEALTHY" -eq 0 ]; then
         write_runner_header
         printf 'printf "\\033]0;Nasta Ghar API Backend\\007"\n'
         printf 'cd %s || exit 1\n' "$ROOT_Q"
-        printf 'export PYTHONPATH=%s HF_HUB_CACHE=%s HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1\n' "$ROOT_Q" "$HF_CACHE_Q"
+        printf 'export HF_HUB_CACHE=%s HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1\n' "$HF_CACHE_Q"
         printf 'printf "\\nNastaGhar backend on http://127.0.0.1:8000\\nCached CardiffNLP models only; downloads disabled.\\n\\n"\n'
-        printf '%s -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload\n' "$PYTHON_Q"
+        printf '%s -m uvicorn Backend.app.main:app --host 127.0.0.1 --port 8000 --reload\n' "$PYTHON_Q"
         printf 'result=$?\nprintf "\\nBackend exited with status %%s. Press Ctrl-D to close this Terminal window.\\n" "$result"\n/bin/bash -i\n'
     } > "$runner_file"
     launch_terminal_runner backend "$runner_file"

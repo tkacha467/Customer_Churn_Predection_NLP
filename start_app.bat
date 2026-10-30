@@ -15,7 +15,6 @@ echo.
 set "ROOT_DIR=%~dp0"
 if "%ROOT_DIR:~-1%"=="\" set "ROOT_DIR=%ROOT_DIR:~0,-1%"
 cd /d "%ROOT_DIR%"
-set "PYTHONPATH=%ROOT_DIR%"
 
 echo  [1/4] Checking environment dependencies...
 
@@ -49,9 +48,9 @@ if errorlevel 1 (
 )
 
 :: Check frontend node_modules
-if not exist "%ROOT_DIR%\frontend\node_modules" (
+if not exist "%ROOT_DIR%\NastaGhar\frontend\node_modules" (
     echo  Frontend dependencies missing. Running npm install...
-    cd /d "%ROOT_DIR%\frontend"
+    cd /d "%ROOT_DIR%\NastaGhar\frontend"
     call npm install
     cd /d "%ROOT_DIR%"
 )
@@ -77,11 +76,11 @@ for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
 :: Start FastAPI backend in a new dedicated window
 echo.
 echo  [2/4] Starting FastAPI Backend on http://0.0.0.0:8000 ...
-start "Nasta Ghar API Backend" /D "%ROOT_DIR%" cmd /k "title Nasta Ghar API Backend && set PYTHONPATH=%ROOT_DIR% && "%PY_CMD%" -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
+start "Nasta Ghar API Backend" /D "%ROOT_DIR%" cmd /k "title Nasta Ghar API Backend && "%PY_CMD%" -m uvicorn Backend.app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 :: Start React Frontend in a new dedicated window
 echo  [3/4] Starting React Frontend on http://0.0.0.0:5173 ...
-start "Nasta Ghar React Frontend" /D "%ROOT_DIR%\frontend" cmd /k "title Nasta Ghar React Frontend && call npm run dev -- --host 0.0.0.0"
+start "Nasta Ghar React Frontend" /D "%ROOT_DIR%\NastaGhar\frontend" cmd /k "title Nasta Ghar React Frontend && call npm run dev -- --host 0.0.0.0"
 
 :: Wait for servers to initialize with dynamic health polling
 echo.

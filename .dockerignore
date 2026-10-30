@@ -17,8 +17,10 @@ __pycache__/
 
 # Local Node.js dependencies and caches
 node_modules/
-frontend/node_modules/
-frontend/.oxlintrc.json
+nastaghar/frontend/node_modules/
+product-b/frontend/node_modules/
+product-c-mastercard/frontend/node_modules/
+**/.oxlintrc.json
 
 # Offline datasets (saves 1.85 GB)
 data/

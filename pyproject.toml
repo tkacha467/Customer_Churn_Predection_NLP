@@ -10,9 +10,17 @@ dependencies = [
     'uvicorn',
     'pydantic',
     'python-dotenv>=1.0,<2',
+    'python-multipart>=0.0.9',
     'emoji',
     'contractions',
     'torch',
     'transformers>=5.17.0,<6.0.0',
     'huggingface-hub>=1.0.0,<2.0.0',
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["Project_Files/Tests"]
+pythonpath = [".", "Backend", "Project_Files/Scripts"]
+
+[tool.setuptools.packages.find]
+include = ["Backend*"]

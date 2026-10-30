@@ -1,0 +1,19 @@
+{
+  "clientId": "nasta-ghar",
+  "displayName": "Nasta Ghar",
+  "tagline": "Authentic Gujarati Breakfast & Chai",
+  "theme": {
+    "primaryColor": "#f97316",
+    "primaryHover": "#ea580c",
+    "accentColor": "#ea580c",
+    "backgroundColor": "#fff7ed",
+    "cardBackground": "#ffffff",
+    "textColor": "#1e293b",
+    "fontFamily": "Inter, system-ui, sans-serif"
+  },
+  "assets": {
+    "logo": "/assets/nasta-ghar/logo.svg",
+    "coverImage": "/assets/nasta-ghar/cover.jpg",
+    "favicon": "/favicon.ico"
+  }
+}
