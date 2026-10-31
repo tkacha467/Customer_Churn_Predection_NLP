@@ -45,7 +45,8 @@ def compute_sha256(filepath: Path) -> str:
 
 def build_frontend(product: str) -> None:
     frontend = ROOT_DIR / product / "frontend"
-    result = subprocess.run(["npm", "--prefix", str(frontend), "run", "build"], text=True, capture_output=True)
+    npm_cmd = shutil.which("npm") or ("npm.cmd" if sys.platform == "win32" else "npm")
+    result = subprocess.run([npm_cmd, "--prefix", str(frontend), "run", "build"], text=True, capture_output=True, shell=(sys.platform == "win32"))
     if result.returncode:
         raise RuntimeError(f"{product} frontend build failed:\n{result.stdout}\n{result.stderr}")
 

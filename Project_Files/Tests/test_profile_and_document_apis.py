@@ -694,7 +694,10 @@ def test_backup_restore_symlink_rejection(test_setup, tmp_path):
     symlink_target = tmp_path / "external_target.pdf"
     symlink_target.write_bytes(SAMPLE_PDF_BYTES)
     symlink_file = backup_docs / "evil_symlink.pdf"
-    os.symlink(symlink_target, symlink_file)
+    try:
+        os.symlink(symlink_target, symlink_file)
+    except OSError as e:
+        pytest.skip(f"Creating symlinks requires administrator privileges on Windows: {e}")
 
     # Attempt to restore to isolated directory
     restore_target = tmp_path / "isolated_restore"

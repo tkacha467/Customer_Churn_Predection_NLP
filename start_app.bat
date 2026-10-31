@@ -76,7 +76,7 @@ for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
 :: Start FastAPI backend in a new dedicated window
 echo.
 echo  [2/4] Starting FastAPI Backend on http://0.0.0.0:8000 ...
-start "Nasta Ghar API Backend" /D "%ROOT_DIR%" cmd /k "title Nasta Ghar API Backend && "%PY_CMD%" -m uvicorn Backend.app.main:app --host 0.0.0.0 --port 8000 --reload"
+start "Nasta Ghar API Backend" /D "%ROOT_DIR%" cmd /k "title Nasta Ghar API Backend && set PYTHONCASEOK=1 && "%PY_CMD%" -m uvicorn Backend.app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 :: Start React Frontend in a new dedicated window
 echo  [3/4] Starting React Frontend on http://0.0.0.0:5173 ...

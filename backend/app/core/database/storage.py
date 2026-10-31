@@ -187,15 +187,37 @@ class ReviewStore:
             ("test_cafe", "Test Cafe", "https://g.page/r/test-cafe/review", "Cafe", "Test Cafe in Rajkot", "#0ea5e9"),
         ]
         for b_id, name, url, category, desc, accent in initial_tenants:
+            ents = json.dumps(["review_manager", "digital_card"] if b_id == "default_business" else ["review_manager"])
             db.execute("""
                 INSERT OR IGNORE INTO tenants (
                     id, business_name, status, platform, review_url, branch,
-                    category, description, topics_json, primary_accent, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    category, description, topics_json, primary_accent, entitlements_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 b_id, name, "active", "google", url, "", category, desc,
-                json.dumps(DEFAULT_TOPICS), accent, now, now
+                json.dumps(DEFAULT_TOPICS), accent, ents, now, now
             ))
+
+        db.execute("""
+            INSERT OR IGNORE INTO business_profiles (
+                tenant_id, tagline, display_name, category, opening_hours, welcome_message,
+                phone_number, address, website_url, primary_accent, background_preset,
+                is_published, show_review_button, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+        """, (
+            "default_business",
+            "Authentic Gujarati Breakfast & Chai",
+            "Nasta Ghar",
+            "Breakfast & Snacks",
+            "Mon - Sun: 7:00 AM - 10:00 PM",
+            "Welcome to Nasta Ghar! Enjoy authentic Gujarati breakfast, fresh snacks, and special chai.",
+            "+91 98765 43210",
+            "Near Jubilee Garden, Rajkot, Gujarat, India",
+            "https://maps.google.com",
+            "#f97316",
+            "amber",
+            now, now
+        ))
 
 
     def _connect(self):
