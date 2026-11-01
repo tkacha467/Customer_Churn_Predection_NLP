@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
 import { initSecurityShield } from '../lib/securityShield';
-import './DigitalCardRedesign.css';
+import './DigitalCard.css';
 
 /**
  * Generates an RFC 2426 vCard 3.0 string from actual tenant data.

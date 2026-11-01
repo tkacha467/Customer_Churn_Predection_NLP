@@ -111,3 +111,4 @@ export function initSecurityShield() {
     window.removeEventListener('dragstart', handleDragStart, { capture: true });
   };
 }
+
