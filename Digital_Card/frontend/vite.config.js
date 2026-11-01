@@ -15,8 +15,22 @@ export default defineConfig(({ mode }) => {
         'X-Content-Type-Options': 'nosniff',
       },
       proxy: {
-        '/api': { target: backend, changeOrigin: true },
-        '/healthz': { target: backend, changeOrigin: true },
+        '/api': {
+          target: backend,
+          changeOrigin: true,
+          configure: (proxy) => {
+            proxy.on('error', (_err, _req, res) => {
+              if (res && !res.headersSent && typeof res.writeHead === 'function') {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Backend server is initializing or offline' }));
+              }
+            });
+          },
+        },
+        '/healthz': {
+          target: backend,
+          changeOrigin: true,
+        },
       },
     },
     build: {
