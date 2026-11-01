@@ -10,6 +10,10 @@ export default defineConfig(({ mode }) => {
     server: {
       host: '127.0.0.1',
       port: 5174,
+      headers: {
+        'X-Frame-Options': 'SAMEORIGIN',
+        'X-Content-Type-Options': 'nosniff',
+      },
       proxy: {
         '/api': { target: backend, changeOrigin: true },
         '/healthz': { target: backend, changeOrigin: true },
