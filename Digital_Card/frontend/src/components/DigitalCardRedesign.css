@@ -219,8 +219,8 @@
 /* 2. Social Media Icon Grid */
 .vcard-social-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 9px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
 
 .vcard-social-tile {
