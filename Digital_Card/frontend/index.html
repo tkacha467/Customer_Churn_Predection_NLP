@@ -8,12 +8,16 @@
     <meta name="theme-color" content="#102D52" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- Security Hardening: Anti-Sniffing, Anti-Clickjacking, Strict Referrer -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap" rel="stylesheet">
     <title>Digital Business Card — VRAJA AI</title>
   </head>
-  <body data-gramm="false" data-enable-grammarly="false">
+  <body data-gramm="false" data-enable-grammarly="false" oncontextmenu="return false;">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

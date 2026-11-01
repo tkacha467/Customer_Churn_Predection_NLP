@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import './index.css';
+import DigitalCard from './components/DigitalCard';
 import DigitalCardEditor from './components/DigitalCardEditor';
-import DigitalCardRedesignDemo from './components/DigitalCardRedesignDemo';
 
 function App() {
   const getInitialView = () => {
@@ -9,17 +9,12 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const view = params.get('view');
 
-    // Redesign Demo preview: /demo or ?view=demo
-    if (path.includes('/demo') || view === 'demo') {
-      return 'demo';
-    }
-
     // Editor view: /owner or /card-editor or view === 'card-editor' or view === 'editor'
     if (path.includes('/owner') || path.includes('/editor') || view === 'card-editor' || view === 'editor') {
       return 'card-editor';
     }
 
-    // Default to public card view
+    // Default to official public card view
     return 'card';
   };
 
@@ -58,17 +53,13 @@ function App() {
 
   return (
     <div className={`min-h-screen font-sans antialiased ${view === 'card-editor' ? 'bg-slate-900 text-slate-100' : 'bg-[#0c1524] text-slate-900'}`}>
-      {view === 'demo' ? (
-        <DigitalCardRedesignDemo
-          businessId={businessId}
-        />
-      ) : view === 'card-editor' ? (
+      {view === 'card-editor' ? (
         <DigitalCardEditor
           businessId={businessId}
           onSwitchTenant={(newId) => setBusinessId(newId)}
         />
       ) : (
-        <DigitalCardRedesignDemo
+        <DigitalCard
           businessId={businessId}
           onOpenEditor={() => setView('card-editor')}
         />
