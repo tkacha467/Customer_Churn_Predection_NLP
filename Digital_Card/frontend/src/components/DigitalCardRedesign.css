@@ -232,59 +232,78 @@
 .vcard-social-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 12px;
 }
 
 .vcard-social-tile {
-  background: #ECF3FB;
-  border: 1px solid #D8E4F1;
-  border-radius: 16px;
-  padding: 12px 4px 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 14px 6px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.15s ease-in-out;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
   -webkit-tap-highlight-color: transparent;
 }
 
 .vcard-social-tile:hover {
-  background: #dbeaf8;
-  border-color: #bcd5ef;
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+  border-color: #cbd5e1;
 }
 
 .vcard-social-tile:active {
-  transform: scale(0.95);
-  background: #d0e3f5;
+  transform: scale(0.96);
 }
 
 .vcard-social-icon-box {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 5px;
-  color: #15569A;
+  margin-bottom: 8px;
+  transition: transform 0.2s ease;
+}
+
+.vcard-social-tile:hover .vcard-social-icon-box {
+  transform: scale(1.08);
+}
+
+/* Authentic Social Brand Palettes */
+.vcard-social-icon-box.instagram {
+  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+  box-shadow: 0 4px 14px rgba(214, 36, 159, 0.35);
+}
+
+.vcard-social-icon-box.facebook {
+  background: #1877F2;
+  box-shadow: 0 4px 14px rgba(24, 119, 242, 0.35);
+}
+
+.vcard-social-icon-box.youtube {
+  background: #FF0000;
+  box-shadow: 0 4px 14px rgba(255, 0, 0, 0.35);
 }
 
 .vcard-social-icon-box svg {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
+  width: 22px;
+  height: 22px;
 }
 
 .vcard-social-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: #102D52;
+  color: #1e293b;
   text-align: center;
-  line-height: 1.1;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -295,66 +314,83 @@
 .vcard-actions-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 11px;
+  gap: 12px;
 }
 
 .vcard-action-tile {
-  background: #ECF3FB;
-  border: 1px solid #D8E4F1;
-  border-radius: 18px;
-  padding: 16px 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 16px 14px 14px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.15s ease-in-out;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
   position: relative;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
   -webkit-tap-highlight-color: transparent;
-  min-height: 102px;
+  min-height: 116px;
 }
 
 .vcard-action-tile:hover {
-  background: #dbeaf8;
-  border-color: #bcd5ef;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(21, 86, 154, 0.08);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.1);
+  border-color: #cbd5e1;
 }
 
 .vcard-action-tile:active {
   transform: scale(0.97);
-  background: #d0e3f5;
 }
 
 .vcard-action-icon-circle {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  background: rgba(21, 86, 154, 0.11);
-  color: #15569A;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 10px;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
 .vcard-action-tile:hover .vcard-action-icon-circle {
-  background: #15569A;
-  color: #ffffff;
+  transform: scale(1.08);
+}
+
+/* Distinct Action Colorways */
+.vcard-action-icon-circle.menu {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+}
+
+.vcard-action-icon-circle.contact {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+
+.vcard-action-icon-circle.call {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
+}
+
+.vcard-action-icon-circle.whatsapp {
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
 }
 
 .vcard-action-icon-circle svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .vcard-action-title {
   font-size: 14.5px;
   font-weight: 800;
-  color: #102D52;
+  color: #0f172a;
   margin: 0;
   line-height: 1.2;
 }
@@ -362,9 +398,43 @@
 .vcard-action-subtitle {
   font-size: 11px;
   font-weight: 500;
-  color: #55708F;
+  color: #64748b;
   margin: 3px 0 0;
-  line-height: 1.2;
+  line-height: 1.25;
+}
+
+.vcard-action-badge {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2.5px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
+}
+
+.vcard-action-badge.orange {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #ffedd5;
+}
+
+.vcard-action-badge.blue {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+}
+
+.vcard-action-badge.sky {
+  background: #f0f9ff;
+  color: #0284c7;
+  border: 1px solid #e0f2fe;
+}
+
+.vcard-action-badge.green {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #dcfce7;
 }
 
 /* Product A Review Action Button */
@@ -403,28 +473,30 @@
 
 /* 4. Find Us Section */
 .vcard-find-us-card {
-  background: #ECF3FB;
-  border: 1px solid #D8E4F1;
-  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
 }
 
 .vcard-location-row {
   display: flex;
   align-items: flex-start;
-  gap: 11px;
+  gap: 12px;
 }
 
 .vcard-location-pin {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: rgba(21, 86, 154, 0.12);
-  color: #15569A;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -433,8 +505,8 @@
 }
 
 .vcard-location-pin svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 .vcard-address-main {
