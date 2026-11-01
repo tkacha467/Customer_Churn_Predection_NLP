@@ -239,7 +239,7 @@ export default function DigitalCardRedesignDemo({
         <div className="vcard-content-body">
 
           {/* 2. CONNECT WITH US — SOCIAL MEDIA GRID */}
-          <section aria-label="Social Media Channels">
+          <section className="vcard-section-social" aria-label="Social Media Channels">
             <div className="vcard-section-title">
               <span>Connect with us</span>
             </div>
@@ -298,7 +298,7 @@ export default function DigitalCardRedesignDemo({
           </section>
 
           {/* 3. BUSINESS ACTIONS SECTION */}
-          <section aria-label="Quick Actions">
+          <section className="vcard-section-actions" aria-label="Quick Actions">
             <div className="vcard-section-title">
               <span>Business actions</span>
             </div>
@@ -399,7 +399,7 @@ export default function DigitalCardRedesignDemo({
           </section>
 
           {/* 4. FIND US SECTION */}
-          <section aria-label="Location and Directions">
+          <section className="vcard-section-location" aria-label="Location and Directions">
             <div className="vcard-section-title">
               <span>Find Us</span>
             </div>

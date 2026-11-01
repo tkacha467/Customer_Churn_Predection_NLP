@@ -2,7 +2,7 @@
    VRAJA AI — Digital Business Card (Product B)
    Fully Responsive Multi-Device Stylesheet
    Supports: Small Phones (<=360px), Modern Phones (375-430px),
-             Foldables, Tablets (768-1024px), Laptops & Desktops,
+             Foldables & Tablets (600-959px), Laptops & Desktops (>=960px),
              Landscape Mobile, and iOS Safe-Area Insets.
    ========================================================================== */
 
@@ -11,7 +11,7 @@
   box-sizing: border-box;
 }
 
-/* Page Viewport: Seamless Deep-Navy Background & Dynamic Viewport Height */
+/* Page Viewport: Deep-Navy Ambient Backdrop */
 .vcard-redesign-viewport {
   min-height: 100vh;
   min-height: 100dvh;
@@ -35,7 +35,7 @@
 }
 
 /* ==========================================================================
-   1. DIGITAL CARD PHONE SHELL (CENTERED ON ALL DEVICES)
+   1. DIGITAL CARD SHELL (EXPANDS BEAUTIFULLY ON LAPTOP & DESKTOP)
    ========================================================================== */
 .vcard-redesign-shell {
   width: 100%;
@@ -49,6 +49,7 @@
   position: relative;
   box-sizing: border-box;
   margin: 0 auto;
+  transition: max-width 0.3s ease;
 }
 
 /* 1. Business Identity Header */
@@ -214,7 +215,7 @@
   flex-shrink: 0;
 }
 
-/* Card Main Body Content */
+/* Card Main Body Content (Mobile Default: Single Column Stack) */
 .vcard-content-body {
   padding: 22px 18px 24px;
   display: flex;
@@ -331,7 +332,7 @@
 }
 
 /* ==========================================================================
-   3. BUSINESS ACTIONS 2-COLUMN GRID
+   3. BUSINESS ACTIONS GRID
    ========================================================================== */
 .vcard-actions-grid {
   display: grid;
@@ -732,7 +733,7 @@
 .vcard-modal-content {
   background: #ffffff;
   width: 100%;
-  max-width: min(420px, calc(100vw - 32px));
+  max-width: min(440px, calc(100vw - 32px));
   border-radius: 22px;
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55);
@@ -866,7 +867,7 @@
 }
 
 /* ==========================================================================
-   8. DEVICE-SPECIFIC MEDIA QUERIES (Small Phones, Standard Phones, Tablets)
+   8. RESPONSIVE MEDIA QUERIES (Small Mobile, Tablet, and Desktop/Laptop)
    ========================================================================== */
 
 /* A. Extra-Small Mobile Devices (e.g. Galaxy Z Fold folded, iPhone SE, <= 360px) */
@@ -880,8 +881,6 @@
     border-radius: 0;
     box-shadow: none;
     max-width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
   }
 
   .vcard-redesign-header {
@@ -999,8 +998,8 @@
   }
 }
 
-/* B. Standard Mobile Devices (361px to 480px) */
-@media (min-width: 361px) and (max-width: 480px) {
+/* B. Standard Mobile Devices (361px to 600px) */
+@media (min-width: 361px) and (max-width: 600px) {
   .vcard-redesign-viewport {
     padding: 0 0 20px;
     background: #ffffff;
@@ -1010,8 +1009,6 @@
     border-radius: 0;
     box-shadow: none;
     max-width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
   }
 
   .vcard-redesign-header {
@@ -1023,25 +1020,218 @@
   }
 }
 
-/* C. Tablets & Desktops (>= 481px) - Clean Centered Presentation */
-@media (min-width: 481px) {
+/* C. Tablets & Foldables (601px to 959px) */
+@media (min-width: 601px) and (max-width: 959px) {
   .vcard-redesign-viewport {
-    padding: 32px 16px 48px;
-    justify-content: center;
+    padding: 28px 20px 40px;
   }
 
   .vcard-redesign-shell {
-    border-radius: 28px;
-    max-width: 440px;
-    box-shadow: 0 24px 54px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    max-width: 680px;
+    border-radius: 24px;
+    box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  .vcard-redesign-header {
+    padding: 32px 24px 26px;
   }
 
   .vcard-content-body {
-    padding: 22px 18px 26px;
+    padding: 24px 22px 28px;
+    gap: 22px;
+  }
+
+  .vcard-actions-grid {
+    gap: 12px;
   }
 }
 
-/* D. Landscape Orientation on Mobile Devices (Short Viewport) */
+/* D. Laptops & Desktops (>= 960px) — Expansive, Multi-Column Desktop Experience */
+@media (min-width: 960px) {
+  .vcard-redesign-viewport {
+    padding: 36px 24px 50px;
+    justify-content: flex-start;
+  }
+
+  /* Shell expands into a spacious, wide business landing card */
+  .vcard-redesign-shell {
+    max-width: 1060px;
+    border-radius: 28px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+
+  /* Wide Hero Header */
+  .vcard-redesign-header {
+    padding: 42px 36px 36px;
+    min-height: 270px;
+    justify-content: center;
+  }
+
+  .vcard-status-pill {
+    top: 22px;
+    right: 28px;
+    font-size: 12px;
+    padding: 5px 13px;
+  }
+
+  .vcard-avatar-wrap {
+    width: 94px;
+    height: 94px;
+    margin-top: 0;
+    margin-bottom: 14px;
+  }
+
+  .vcard-biz-title {
+    font-size: 30px;
+    margin-bottom: 8px;
+    letter-spacing: -0.4px;
+  }
+
+  .vcard-category-badge {
+    font-size: 11.5px;
+    padding: 4px 14px;
+    margin-bottom: 12px;
+  }
+
+  .vcard-intro-text {
+    font-size: 14.5px;
+    max-width: 620px;
+    line-height: 1.55;
+  }
+
+  .vcard-hours-line {
+    font-size: 12.5px;
+    margin-top: 14px;
+    gap: 6px;
+  }
+
+  .vcard-hours-line svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  /* Desktop Multi-Column Grid Layout */
+  .vcard-content-body {
+    padding: 32px 36px 36px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "actions actions"
+      "social location";
+    gap: 28px;
+  }
+
+  .vcard-section-actions {
+    grid-area: actions;
+  }
+
+  /* 4 Actions in a single horizontal row on laptop screens */
+  .vcard-actions-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .vcard-action-tile {
+    padding: 18px 14px 16px;
+    min-height: 135px;
+    border-radius: 18px;
+  }
+
+  .vcard-action-icon-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+  }
+
+  .vcard-action-title {
+    font-size: 15.5px;
+  }
+
+  .vcard-action-subtitle {
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  .vcard-action-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    margin-top: 12px;
+  }
+
+  /* Left Column: Social Media */
+  .vcard-section-social {
+    grid-area: social;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .vcard-social-grid {
+    gap: 12px;
+    flex: 1;
+  }
+
+  .vcard-social-tile {
+    padding: 20px 10px 16px;
+    border-radius: 18px;
+  }
+
+  .vcard-social-icon-box {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    margin-bottom: 10px;
+  }
+
+  .vcard-social-label {
+    font-size: 13px;
+  }
+
+  /* Right Column: Find Us & Reviews */
+  .vcard-section-location {
+    grid-area: location;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .vcard-find-us-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    border-radius: 18px;
+    gap: 14px;
+  }
+
+  .vcard-address-main {
+    font-size: 13.5px;
+  }
+
+  .vcard-address-sub {
+    font-size: 12px;
+  }
+
+  .vcard-directions-btn {
+    padding: 13px 20px;
+    font-size: 13.5px;
+    border-radius: 14px;
+  }
+
+  .vcard-review-banner {
+    margin-top: 0;
+    padding: 13px 18px;
+    font-size: 13px;
+    border-radius: 14px;
+  }
+
+  .vcard-redesign-footer {
+    padding: 20px 36px 24px;
+  }
+}
+
+/* E. Landscape Orientation on Mobile Devices (Short Viewport) */
 @media (max-height: 520px) and (orientation: landscape) {
   .vcard-redesign-viewport {
     padding: 10px 12px 20px;
