@@ -32,13 +32,24 @@ function generateVCard(cardData) {
   return lines.join('\r\n');
 }
 
-export default function DigitalCardRedesignDemo({ businessId = 'default_business' }) {
-  const [cardData, setCardData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+export default function DigitalCardRedesignDemo({
+  businessId = 'default_business',
+  isPreview = false,
+  previewData = null,
+  onOpenEditor = null,
+}) {
+  const [cardData, setCardData] = useState(previewData);
+  const [isLoading, setIsLoading] = useState(!previewData);
   const [toastMessage, setToastMessage] = useState('');
   const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
 
   useEffect(() => {
+    if (previewData) {
+      setCardData(previewData);
+      setIsLoading(false);
+      return;
+    }
+
     let active = true;
     setIsLoading(true);
 

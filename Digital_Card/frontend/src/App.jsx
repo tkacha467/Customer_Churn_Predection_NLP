@@ -69,7 +69,7 @@ function App() {
           onSwitchTenant={(newId) => setBusinessId(newId)}
         />
       ) : (
-        <DigitalCard
+        <DigitalCardRedesignDemo
           businessId={businessId}
           onOpenEditor={() => setView('card-editor')}
         />
