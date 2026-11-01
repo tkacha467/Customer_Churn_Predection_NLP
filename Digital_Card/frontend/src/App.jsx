@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import './index.css';
-import DigitalCard from './components/DigitalCard';
 import DigitalCardEditor from './components/DigitalCardEditor';
 import DigitalCardRedesignDemo from './components/DigitalCardRedesignDemo';
 
@@ -58,7 +57,7 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
+    <div className={`min-h-screen font-sans antialiased ${view === 'card-editor' ? 'bg-slate-900 text-slate-100' : 'bg-[#0c1524] text-slate-900'}`}>
       {view === 'demo' ? (
         <DigitalCardRedesignDemo
           businessId={businessId}
