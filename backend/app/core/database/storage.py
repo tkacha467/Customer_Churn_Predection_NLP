@@ -219,6 +219,20 @@ class ReviewStore:
             now, now
         ))
 
+        # Seed default business owner for Digital Card & Review Studio
+        existing_owner = db.execute("SELECT id FROM users WHERE email = 'owner@nastaghar.com'").fetchone()
+        if not existing_owner:
+            from Backend.app.core.auth.auth import hash_password
+            owner_uid = str(uuid.uuid4())
+            db.execute("""
+                INSERT INTO users (id, email, password_hash, display_name, is_active, is_platform_admin, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 1, 1, ?, ?)
+            """, (owner_uid, "owner@nastaghar.com", hash_password("Owner123!"), "Nasta Ghar Owner", now, now))
+            db.execute("""
+                INSERT OR IGNORE INTO tenant_memberships (id, user_id, tenant_id, role, created_at)
+                VALUES (?, ?, 'default_business', 'owner', ?)
+            """, (str(uuid.uuid4()), owner_uid, now))
+
 
     def _connect(self):
         db = sqlite3.connect(self.path, timeout=10)
