@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import QRCode from 'qrcode';
 import { apiFetch } from '../lib/api';
 import './DigitalCardRedesign.css';
 
@@ -43,30 +42,12 @@ export default function DigitalCardRedesignDemo({
   const [isLoading, setIsLoading] = useState(!previewData);
   const [toastMessage, setToastMessage] = useState('');
   const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
-
-  // Generate QR Code for sharing across devices
-  useEffect(() => {
-    const currentUrl = window.location.href;
-    QRCode.toDataURL(currentUrl, {
-      width: 260,
-      margin: 1,
-      color: {
-        dark: '#102D52',
-        light: '#ffffff',
-      },
-    })
-      .then((url) => setQrCodeDataUrl(url))
-      .catch(() => {});
-  }, []);
 
   // Close modals on Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         setIsMenuModalOpen(false);
-        setIsShareModalOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -135,36 +116,6 @@ export default function DigitalCardRedesignDemo({
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      showToast('Link copied to clipboard! 📋');
-    } catch {
-      showToast('Could not copy link.');
-    }
-  };
-
-  const handleShare = async () => {
-    const shareData = {
-      title: cardData?.display_name || cardData?.business_name || 'Digital Business Card',
-      text: cardData?.welcome_message || cardData?.tagline || 'Connect with us on our Digital Business Card',
-      url: window.location.href,
-    };
-
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-      try {
-        await navigator.share(shareData);
-        showToast('Shared successfully!');
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          setIsShareModalOpen(true);
-        }
-      }
-    } else {
-      setIsShareModalOpen(true);
-    }
-  };
-
   const handleSaveContact = () => {
     if (!cardData) return;
     try {
@@ -208,457 +159,304 @@ export default function DigitalCardRedesignDemo({
         <span>{toastMessage}</span>
       </div>
 
-      {/* RESPONSIVE DESKTOP + MOBILE CONTAINER */}
-      <div className="vcard-responsive-container">
+      {/* 📱 MOBILE-FIRST DIGITAL BUSINESS CARD SHELL */}
+      <main className="vcard-redesign-shell" aria-label="Digital Business Card">
 
-        {/* 📱 MOBILE-FIRST DIGITAL BUSINESS CARD */}
-        <main className="vcard-redesign-shell" aria-label="Digital Business Card">
-
-          {/* 1. BUSINESS IDENTITY HEADER */}
-          <header
-            className="vcard-redesign-header"
-            style={{
-              backgroundImage: `linear-gradient(180deg, rgba(8, 22, 44, 0.70) 0%, rgba(10, 28, 54, 0.90) 100%), url("${coverImage}")`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-            }}
-          >
-            {/* Top Bar inside Header: Share/QR button + Open Now Pill */}
-            <div className="vcard-header-top-bar">
-              <button
-                type="button"
-                className="vcard-header-icon-btn"
-                onClick={handleShare}
-                title="Share or View QR Code"
-                aria-label="Share or View QR Code"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="18" cy="5" r="3" />
-                  <circle cx="6" cy="12" r="3" />
-                  <circle cx="18" cy="19" r="3" />
-                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                </svg>
-              </button>
-
-              <div className="vcard-status-pill">
-                <span className="vcard-status-dot" />
-                <span>Open Now</span>
-              </div>
-            </div>
-
-            {/* Avatar / Company Logo */}
-            <div className="vcard-avatar-wrap">
-              <div className="vcard-avatar-inner">
-                <img
-                  src={cardData?.logo_path || '/restaurant/nasta-ghar-logo.svg'}
-                  alt={bizTitle}
-                  className="vcard-avatar-img"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    if (e.currentTarget.nextSibling) {
-                      e.currentTarget.nextSibling.style.display = 'flex';
-                    }
-                  }}
-                />
-                <div
-                  className="vcard-avatar-fallback"
-                  style={{ display: 'none' }}
-                >
-                  {bizTitle
-                    .split(' ')
-                    .map((w) => w[0])
-                    .slice(0, 2)
-                    .join('')
-                    .toUpperCase()}
-                </div>
-              </div>
-            </div>
-
-            {/* Business Title */}
-            <h1 className="vcard-biz-title">
-              {bizTitle}
-            </h1>
-
-            {/* Category Badge */}
-            {cardData?.category && (
-              <span className="vcard-category-badge">
-                {cardData.category}
-              </span>
-            )}
-
-            {/* Introduction / Welcome text */}
-            <p className="vcard-intro-text">
-              {cardData?.welcome_message || cardData?.tagline || 'Authentic homestyle Gujarati breakfast, fresh snacks, and special kadak chai.'}
-            </p>
-
-            {/* Operating Hours */}
-            {cardData?.opening_hours && (
-              <div className="vcard-hours-line">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                <span>{cardData.opening_hours}</span>
-              </div>
-            )}
-          </header>
-
-          {/* MAIN BODY CONTENT */}
-          <div className="vcard-content-body">
-
-            {/* 2. CONNECT WITH US — SOCIAL MEDIA GRID */}
-            <section aria-label="Social Media Channels">
-              <div className="vcard-section-title">
-                <span>Connect with us</span>
-              </div>
-
-              <div className="vcard-social-grid">
-                {/* Instagram */}
-                <a
-                  href={cardData?.instagram_url || 'https://instagram.com'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="vcard-social-tile"
-                  aria-label="Visit Instagram page"
-                >
-                  <div className="vcard-social-icon-box instagram">
-                    <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
-                      <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#ffffff" strokeWidth="2.1" />
-                      <circle cx="12" cy="12" r="4.2" stroke="#ffffff" strokeWidth="2.1" />
-                      <circle cx="17.4" cy="6.6" r="1.3" fill="#ffffff" />
-                    </svg>
-                  </div>
-                  <span className="vcard-social-label">Instagram</span>
-                </a>
-
-                {/* Facebook */}
-                <a
-                  href={cardData?.facebook_url || 'https://facebook.com'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="vcard-social-tile"
-                  aria-label="Visit Facebook page"
-                >
-                  <div className="vcard-social-icon-box facebook">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                    </svg>
-                  </div>
-                  <span className="vcard-social-label">Facebook</span>
-                </a>
-
-                {/* YouTube */}
-                <a
-                  href={cardData?.youtube_url || 'https://youtube.com'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="vcard-social-tile"
-                  aria-label="Visit YouTube channel"
-                >
-                  <div className="vcard-social-icon-box youtube">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
-                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                    </svg>
-                  </div>
-                  <span className="vcard-social-label">YouTube</span>
-                </a>
-              </div>
-            </section>
-
-            {/* 3. BUSINESS ACTIONS SECTION */}
-            <section aria-label="Quick Actions">
-              <div className="vcard-section-title">
-                <span>Business actions</span>
-              </div>
-
-              <div className="vcard-actions-grid">
-
-                {/* ACTION A: VIEW MENU */}
-                <button
-                  type="button"
-                  onClick={() => setIsMenuModalOpen(true)}
-                  className="vcard-action-tile"
-                  aria-label="View menu document"
-                >
-                  <div className="vcard-action-icon-circle menu">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                    </svg>
-                  </div>
-                  <h2 className="vcard-action-title">View Menu</h2>
-                  <p className="vcard-action-subtitle">
-                    {primaryDoc ? `${primaryDoc.display_name} (PDF)` : 'Breakfast Menu (PDF)'}
-                  </p>
-                  <span className="vcard-action-badge orange">Open PDF ↗</span>
-                </button>
-
-                {/* ACTION B: SAVE CONTACT */}
-                <button
-                  type="button"
-                  onClick={handleSaveContact}
-                  className="vcard-action-tile"
-                  aria-label="Save contact to phone address book"
-                >
-                  <div className="vcard-action-icon-circle contact">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                      <circle cx="8.5" cy="7" r="4" />
-                      <line x1="20" y1="8" x2="20" y2="14" />
-                      <line x1="23" y1="11" x2="17" y2="11" />
-                    </svg>
-                  </div>
-                  <h2 className="vcard-action-title">Save Contact</h2>
-                  <p className="vcard-action-subtitle">Download vCard</p>
-                  <span className="vcard-action-badge blue">Save Contact ⤓</span>
-                </button>
-
-                {/* ACTION C: CALL US */}
-                <a
-                  href={cardData?.phone_number ? `tel:${cardData.phone_number}` : '#'}
-                  onClick={() => showToast(`Dialing ${cardData?.phone_number || 'business'}...`)}
-                  className="vcard-action-tile"
-                  aria-label={`Call ${cardData?.phone_number || 'business'}`}
-                >
-                  <div className="vcard-action-icon-circle call">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                    </svg>
-                  </div>
-                  <h2 className="vcard-action-title">Call Us</h2>
-                  <p className="vcard-action-subtitle">{cardData?.phone_number || '+91 98765 43210'}</p>
-                  <span className="vcard-action-badge sky">Direct Call 📞</span>
-                </a>
-
-                {/* ACTION D: WHATSAPP */}
-                <a
-                  href={cardData?.whatsapp_url || 'https://wa.me/919876543210'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => showToast('Opening WhatsApp Chat...')}
-                  className="vcard-action-tile"
-                  aria-label="Chat on WhatsApp"
-                >
-                  <div className="vcard-action-icon-circle whatsapp">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
-                      <path d="M12.031 0C5.394 0 0 5.394 0 12.031c0 2.122.553 4.195 1.603 6.016L.062 24l6.166-1.617c1.76.96 3.754 1.467 5.803 1.467 6.637 0 12.031-5.394 12.031-12.031S18.668 0 12.031 0zm0 21.848c-1.8 0-3.565-.484-5.105-1.399l-.366-.217-3.791.994 1.012-3.696-.238-.379c-1.006-1.6-1.537-3.463-1.537-5.37 0-5.518 4.488-10.006 10.025-10.006 5.518 0 10.006 4.488 10.006 10.006 0 5.536-4.488 10.067-10.006 10.067z" />
-                      <path d="M17.473 14.382c-.301-.15-1.782-.88-2.058-.98-.276-.1-.476-.15-.677.15-.201.3-.777.98-.953 1.18-.175.2-.351.226-.652.075-.301-.15-1.272-.469-2.423-1.496-.895-.798-1.5-1.784-1.676-2.085-.175-.301-.019-.464.132-.614.136-.135.301-.351.451-.527.151-.175.201-.301.301-.501.1-.201.05-.376-.025-.527-.075-.15-.677-1.631-.928-2.233-.244-.587-.493-.507-.677-.517-.175-.01-.376-.01-.577-.01s-.527.075-.803.376c-.276.3-1.053 1.029-1.053 2.509s1.079 2.91 1.229 3.11c.15.201 2.122 3.24 5.141 4.544.718.311 1.279.497 1.716.636.721.23 1.377.197 1.895.12.577-.086 1.782-.728 2.033-1.431.251-.703.251-1.305.176-1.431-.076-.126-.276-.201-.577-.351z" fill="#ffffff" />
-                    </svg>
-                  </div>
-                  <h2 className="vcard-action-title">WhatsApp</h2>
-                  <p className="vcard-action-subtitle">Chat with us</p>
-                  <span className="vcard-action-badge green">Instant Chat 💬</span>
-                </a>
-              </div>
-
-              {/* PRODUCT A GOOGLE REVIEW BUTTON */}
-              {cardData?.google_review_url && (
-                <a
-                  href={cardData.google_review_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="vcard-review-banner"
-                  aria-label="Review us on Google Maps"
-                >
-                  <span className="vcard-review-star">★</span>
-                  <span>Review us on Google Maps</span>
-                </a>
-              )}
-            </section>
-
-            {/* 4. FIND US SECTION */}
-            <section aria-label="Location and Directions">
-              <div className="vcard-section-title">
-                <span>Find Us</span>
-              </div>
-
-              <div className="vcard-find-us-card">
-                <div className="vcard-location-row">
-                  <div className="vcard-location-pin" aria-hidden="true">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                  </div>
-                  <div className="vcard-location-details">
-                    <p className="vcard-address-main">
-                      {cardData?.address || 'Near Jubilee Garden, Rajkot'}
-                    </p>
-                    <p className="vcard-address-sub">
-                      Gujarat 360001, India
-                    </p>
-                  </div>
-                </div>
-
-                {/* Get Directions Button */}
-                <a
-                  href={cardData?.map_url || `https://maps.google.com/?q=${encodeURIComponent(cardData?.address || 'Nasta Ghar Rajkot')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="vcard-directions-btn"
-                  aria-label="Open directions in Google Maps"
-                >
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                  </svg>
-                  <span>Get Directions</span>
-                </a>
-              </div>
-            </section>
-
+        {/* 1. BUSINESS IDENTITY HEADER */}
+        <header
+          className="vcard-redesign-header"
+          style={{
+            backgroundImage: `linear-gradient(180deg, rgba(8, 22, 44, 0.70) 0%, rgba(10, 28, 54, 0.90) 100%), url("${coverImage}")`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        >
+          {/* Status Indicator (Open Now) */}
+          <div className="vcard-status-pill">
+            <span className="vcard-status-dot" />
+            <span>Open Now</span>
           </div>
 
-          {/* 5. MINIMAL VRAJA AI FOOTER */}
-          <footer className="vcard-redesign-footer">
-            <p>
-              Powered by <strong>VRAJA AI</strong>
-            </p>
-            {onOpenEditor && (
-              <button
-                type="button"
-                onClick={onOpenEditor}
-                className="vcard-footer-editor-link"
-              >
-                Owner Studio ⚙️
-              </button>
-            )}
-          </footer>
-
-        </main>
-
-        {/* 💻 DESKTOP COMPANION SIDE PANEL (VISIBLE ON SCREENS >= 960px) */}
-        <aside className="vcard-desktop-side-panel" aria-label="Desktop Companion Panel">
-          <div className="vcard-desktop-panel-header">
-            <span className="vcard-desktop-badge">Smart Companion</span>
-            <h2 className="vcard-desktop-title">Take this card on your phone</h2>
-            <p className="vcard-desktop-desc">
-              Scan this QR code with your smartphone camera to save contact details, make direct calls, or open navigation instantly.
-            </p>
-          </div>
-
-          {qrCodeDataUrl ? (
-            <div className="vcard-desktop-qr-box">
+          {/* Avatar / Company Logo */}
+          <div className="vcard-avatar-wrap">
+            <div className="vcard-avatar-inner">
               <img
-                src={qrCodeDataUrl}
-                alt={`QR code for ${bizTitle}`}
-                className="vcard-desktop-qr-image"
+                src={cardData?.logo_path || '/restaurant/nasta-ghar-logo.svg'}
+                alt={bizTitle}
+                className="vcard-avatar-img"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  if (e.currentTarget.nextSibling) {
+                    e.currentTarget.nextSibling.style.display = 'flex';
+                  }
+                }}
               />
-              <span className="vcard-desktop-qr-hint">Scan with Camera 📷</span>
+              <div
+                className="vcard-avatar-fallback"
+                style={{ display: 'none' }}
+              >
+                {bizTitle
+                  .split(' ')
+                  .map((w) => w[0])
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()}
+              </div>
             </div>
-          ) : (
-            <div className="vcard-desktop-qr-placeholder">
-              <span>Generating QR...</span>
-            </div>
+          </div>
+
+          {/* Business Title */}
+          <h1 className="vcard-biz-title">
+            {bizTitle}
+          </h1>
+
+          {/* Category Badge */}
+          {cardData?.category && (
+            <span className="vcard-category-badge">
+              {cardData.category}
+            </span>
           )}
 
-          <div className="vcard-desktop-actions">
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              className="vcard-desktop-btn primary"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          {/* Introduction / Welcome text */}
+          <p className="vcard-intro-text">
+            {cardData?.welcome_message || cardData?.tagline || 'Authentic homestyle Gujarati breakfast, fresh snacks, and special kadak chai.'}
+          </p>
+
+          {/* Operating Hours */}
+          {cardData?.opening_hours && (
+            <div className="vcard-hours-line">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
               </svg>
-              <span>Copy Card Link</span>
-            </button>
+              <span>{cardData.opening_hours}</span>
+            </div>
+          )}
+        </header>
 
-            <button
-              type="button"
-              onClick={handleSaveContact}
-              className="vcard-desktop-btn secondary"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              <span>Download .vcf File</span>
-            </button>
-          </div>
+        {/* MAIN BODY CONTENT */}
+        <div className="vcard-content-body">
 
-          <div className="vcard-desktop-verified-row">
-            <span className="vcard-verified-dot" />
-            <span>Responsive Digital Card • Works on all iOS & Android devices</span>
-          </div>
-        </aside>
-
-      </div>
-
-      {/* SHARE / QR CODE MODAL FOR MOBILE & TABLET */}
-      {isShareModalOpen && (
-        <div
-          className="vcard-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsShareModalOpen(false);
-          }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="share-modal-title"
-        >
-          <div className="vcard-modal-content">
-            <div className="vcard-modal-header">
-              <div>
-                <h3 id="share-modal-title" className="vcard-modal-title">Share Digital Card</h3>
-                <p className="vcard-modal-sub">Scan QR or copy link</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsShareModalOpen(false)}
-                className="vcard-modal-close"
-                aria-label="Close share dialog"
-              >
-                ✕
-              </button>
+          {/* 2. CONNECT WITH US — SOCIAL MEDIA GRID */}
+          <section aria-label="Social Media Channels">
+            <div className="vcard-section-title">
+              <span>Connect with us</span>
             </div>
 
-            <div className="vcard-modal-body" style={{ alignItems: 'center', textAlign: 'center' }}>
-              {qrCodeDataUrl && (
-                <div className="vcard-modal-qr-wrap">
-                  <img
-                    src={qrCodeDataUrl}
-                    alt="Card QR code"
-                    className="vcard-modal-qr-img"
-                  />
+            <div className="vcard-social-grid">
+              {/* Instagram */}
+              <a
+                href={cardData?.instagram_url || 'https://instagram.com'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="vcard-social-tile"
+                aria-label="Visit Instagram page"
+              >
+                <div className="vcard-social-icon-box instagram">
+                  <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
+                    <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="#ffffff" strokeWidth="2.1" />
+                    <circle cx="12" cy="12" r="4.2" stroke="#ffffff" strokeWidth="2.1" />
+                    <circle cx="17.4" cy="6.6" r="1.3" fill="#ffffff" />
+                  </svg>
                 </div>
-              )}
-              <p style={{ fontSize: '13px', color: '#102D52', fontWeight: 700, margin: '8px 0 2px' }}>
-                {bizTitle}
-              </p>
-              <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>
-                Scan to open on any smartphone or tablet
-              </p>
+                <span className="vcard-social-label">Instagram</span>
+              </a>
 
+              {/* Facebook */}
+              <a
+                href={cardData?.facebook_url || 'https://facebook.com'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="vcard-social-tile"
+                aria-label="Visit Facebook page"
+              >
+                <div className="vcard-social-icon-box facebook">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                  </svg>
+                </div>
+                <span className="vcard-social-label">Facebook</span>
+              </a>
+
+              {/* YouTube */}
+              <a
+                href={cardData?.youtube_url || 'https://youtube.com'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="vcard-social-tile"
+                aria-label="Visit YouTube channel"
+              >
+                <div className="vcard-social-icon-box youtube">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                  </svg>
+                </div>
+                <span className="vcard-social-label">YouTube</span>
+              </a>
+            </div>
+          </section>
+
+          {/* 3. BUSINESS ACTIONS SECTION */}
+          <section aria-label="Quick Actions">
+            <div className="vcard-section-title">
+              <span>Business actions</span>
+            </div>
+
+            <div className="vcard-actions-grid">
+
+              {/* ACTION A: VIEW MENU */}
               <button
                 type="button"
-                onClick={handleCopyLink}
+                onClick={() => setIsMenuModalOpen(true)}
+                className="vcard-action-tile"
+                aria-label="View menu document"
+              >
+                <div className="vcard-action-icon-circle menu">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                  </svg>
+                </div>
+                <h2 className="vcard-action-title">View Menu</h2>
+                <p className="vcard-action-subtitle">
+                  {primaryDoc ? `${primaryDoc.display_name} (PDF)` : 'Breakfast Menu (PDF)'}
+                </p>
+                <span className="vcard-action-badge orange">Open PDF ↗</span>
+              </button>
+
+              {/* ACTION B: SAVE CONTACT */}
+              <button
+                type="button"
+                onClick={handleSaveContact}
+                className="vcard-action-tile"
+                aria-label="Save contact to phone address book"
+              >
+                <div className="vcard-action-icon-circle contact">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="8.5" cy="7" r="4" />
+                    <line x1="20" y1="8" x2="20" y2="14" />
+                    <line x1="23" y1="11" x2="17" y2="11" />
+                  </svg>
+                </div>
+                <h2 className="vcard-action-title">Save Contact</h2>
+                <p className="vcard-action-subtitle">Download vCard</p>
+                <span className="vcard-action-badge blue">Save Contact ⤓</span>
+              </button>
+
+              {/* ACTION C: CALL US */}
+              <a
+                href={cardData?.phone_number ? `tel:${cardData.phone_number}` : '#'}
+                onClick={() => showToast(`Dialing ${cardData?.phone_number || 'business'}...`)}
+                className="vcard-action-tile"
+                aria-label={`Call ${cardData?.phone_number || 'business'}`}
+              >
+                <div className="vcard-action-icon-circle call">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                </div>
+                <h2 className="vcard-action-title">Call Us</h2>
+                <p className="vcard-action-subtitle">{cardData?.phone_number || '+91 98765 43210'}</p>
+                <span className="vcard-action-badge sky">Direct Call 📞</span>
+              </a>
+
+              {/* ACTION D: WHATSAPP */}
+              <a
+                href={cardData?.whatsapp_url || 'https://wa.me/919876543210'}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => showToast('Opening WhatsApp Chat...')}
+                className="vcard-action-tile"
+                aria-label="Chat on WhatsApp"
+              >
+                <div className="vcard-action-icon-circle whatsapp">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
+                    <path d="M12.031 0C5.394 0 0 5.394 0 12.031c0 2.122.553 4.195 1.603 6.016L.062 24l6.166-1.617c1.76.96 3.754 1.467 5.803 1.467 6.637 0 12.031-5.394 12.031-12.031S18.668 0 12.031 0zm0 21.848c-1.8 0-3.565-.484-5.105-1.399l-.366-.217-3.791.994 1.012-3.696-.238-.379c-1.006-1.6-1.537-3.463-1.537-5.37 0-5.518 4.488-10.006 10.025-10.006 5.518 0 10.006 4.488 10.006 10.006 0 5.536-4.488 10.067-10.006 10.067z" />
+                    <path d="M17.473 14.382c-.301-.15-1.782-.88-2.058-.98-.276-.1-.476-.15-.677.15-.201.3-.777.98-.953 1.18-.175.2-.351.226-.652.075-.301-.15-1.272-.469-2.423-1.496-.895-.798-1.5-1.784-1.676-2.085-.175-.301-.019-.464.132-.614.136-.135.301-.351.451-.527.151-.175.201-.301.301-.501.1-.201.05-.376-.025-.527-.075-.15-.677-1.631-.928-2.233-.244-.587-.493-.507-.677-.517-.175-.01-.376-.01-.577-.01s-.527.075-.803.376c-.276.3-1.053 1.029-1.053 2.509s1.079 2.91 1.229 3.11c.15.201 2.122 3.24 5.141 4.544.718.311 1.279.497 1.716.636.721.23 1.377.197 1.895.12.577-.086 1.782-.728 2.033-1.431.251-.703.251-1.305.176-1.431-.076-.126-.276-.201-.577-.351z" fill="#ffffff" />
+                  </svg>
+                </div>
+                <h2 className="vcard-action-title">WhatsApp</h2>
+                <p className="vcard-action-subtitle">Chat with us</p>
+                <span className="vcard-action-badge green">Instant Chat 💬</span>
+              </a>
+            </div>
+
+            {/* PRODUCT A GOOGLE REVIEW BUTTON */}
+            {cardData?.google_review_url && (
+              <a
+                href={cardData.google_review_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="vcard-review-banner"
+                aria-label="Review us on Google Maps"
+              >
+                <span className="vcard-review-star">★</span>
+                <span>Review us on Google Maps</span>
+              </a>
+            )}
+          </section>
+
+          {/* 4. FIND US SECTION */}
+          <section aria-label="Location and Directions">
+            <div className="vcard-section-title">
+              <span>Find Us</span>
+            </div>
+
+            <div className="vcard-find-us-card">
+              <div className="vcard-location-row">
+                <div className="vcard-location-pin" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                </div>
+                <div className="vcard-location-details">
+                  <p className="vcard-address-main">
+                    {cardData?.address || 'Near Jubilee Garden, Rajkot'}
+                  </p>
+                  <p className="vcard-address-sub">
+                    Gujarat 360001, India
+                  </p>
+                </div>
+              </div>
+
+              {/* Get Directions Button */}
+              <a
+                href={cardData?.map_url || `https://maps.google.com/?q=${encodeURIComponent(cardData?.address || 'Nasta Ghar Rajkot')}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="vcard-directions-btn"
-                style={{ width: '100%', boxSizing: 'border-box' }}
+                aria-label="Open directions in Google Maps"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="3 11 22 2 13 21 11 13 3 11" />
                 </svg>
-                <span>Copy Card Link</span>
-              </button>
+                <span>Get Directions</span>
+              </a>
             </div>
+          </section>
 
-            <div className="vcard-modal-actions">
-              <button
-                type="button"
-                onClick={() => setIsShareModalOpen(false)}
-                className="vcard-modal-cancel-btn"
-                style={{ width: '100%' }}
-              >
-                Done
-              </button>
-            </div>
-          </div>
         </div>
-      )}
+
+        {/* 5. MINIMAL VRAJA AI FOOTER */}
+        <footer className="vcard-redesign-footer">
+          <p>
+            Powered by <strong>VRAJA AI</strong>
+          </p>
+          {onOpenEditor && (
+            <button
+              type="button"
+              onClick={onOpenEditor}
+              className="vcard-footer-editor-link"
+            >
+              Owner Studio ⚙️
+            </button>
+          )}
+        </footer>
+
+      </main>
 
       {/* PDF VIEWER MODAL */}
       {isMenuModalOpen && (
