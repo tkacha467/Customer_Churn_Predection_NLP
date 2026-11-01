@@ -51,7 +51,11 @@
 
 /* 1. Business Identity Header */
 .vcard-redesign-header {
-  background: #102D52;
+  background-color: #102D52;
+  background-image: linear-gradient(180deg, rgba(8, 22, 44, 0.68) 0%, rgba(10, 28, 54, 0.88) 100%), url("/restaurant/scene-phone.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: #ffffff;
   padding: 28px 20px 24px;
   display: flex;
@@ -61,6 +65,7 @@
   position: relative;
   border-bottom-left-radius: 20px;
   border-bottom-right-radius: 20px;
+  overflow: hidden;
 }
 
 /* Status Indicator (Open Now) */

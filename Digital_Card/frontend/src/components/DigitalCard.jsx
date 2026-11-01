@@ -318,7 +318,7 @@ export default function DigitalCard({
 
   // Appearance fields
   const primaryAccent = cardData.primary_accent || '#078BFF';
-  const coverImagePath = cardData.cover_image_path || '';
+  const coverImagePath = cardData.cover_image_path || '/restaurant/scene-phone.webp';
   const backgroundPreset = cardData.background_preset || 'default_navy';
   const overlayOpacity = typeof cardData.overlay_opacity === 'number' ? cardData.overlay_opacity : 0.75;
 

@@ -122,6 +122,7 @@ export default function DigitalCardRedesignDemo({ businessId = 'default_business
   }
 
   const primaryDoc = cardData?.documents?.[0];
+  const coverImage = cardData?.cover_image_path || '/restaurant/scene-phone.webp';
 
   return (
     <div className="vcard-redesign-viewport">
@@ -136,7 +137,15 @@ export default function DigitalCardRedesignDemo({ businessId = 'default_business
       <div className="vcard-redesign-shell">
 
         {/* 1. BUSINESS IDENTITY HEADER */}
-        <header className="vcard-redesign-header">
+        <header
+          className="vcard-redesign-header"
+          style={{
+            backgroundImage: `linear-gradient(180deg, rgba(8, 22, 44, 0.68) 0%, rgba(10, 28, 54, 0.88) 100%), url("${coverImage}")`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        >
           
           {/* Status Indicator (Open Now) */}
           <div className="vcard-status-pill">
