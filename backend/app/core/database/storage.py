@@ -202,8 +202,8 @@ class ReviewStore:
             INSERT OR IGNORE INTO business_profiles (
                 tenant_id, tagline, display_name, category, opening_hours, welcome_message,
                 phone_number, address, website_url, primary_accent, background_preset,
-                is_published, show_review_button, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+                logo_path, is_published, show_review_button, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
         """, (
             "default_business",
             "Authentic Gujarati Breakfast & Chai",
@@ -216,6 +216,7 @@ class ReviewStore:
             "https://maps.google.com",
             "#f97316",
             "amber",
+            "/restaurant/nasta-ghar-logo.svg",
             now, now
         ))
 

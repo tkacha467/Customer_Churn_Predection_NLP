@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="ngBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fff7ed"/>
+    </linearGradient>
+
+    <!-- Warm Saffron Brand Gradient -->
+    <linearGradient id="ngBrandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="50%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+
+    <!-- Steam Gradient -->
+    <linearGradient id="steamGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Outer Ring Shadow -->
+    <filter id="subtleShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Circular Base Badge -->
+  <circle cx="60" cy="60" r="56" fill="url(#ngBgGrad)" stroke="url(#ngBrandGrad)" stroke-width="3.5" filter="url(#subtleShadow)"/>
+
+  <!-- Inner Decorative Ring -->
+  <circle cx="60" cy="60" r="50" fill="none" stroke="#fed7aa" stroke-width="1.2" stroke-dasharray="3 3"/>
+
+  <!-- Steaming Tea / Chai Motif -->
+  <!-- Steam Curves -->
+  <path d="M52 38 C50 32, 54 28, 52 23" fill="none" stroke="url(#steamGrad)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M60 36 C58 30, 62 26, 60 20" fill="none" stroke="url(#steamGrad)" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M68 38 C66 32, 70 28, 68 23" fill="none" stroke="url(#steamGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Chai Cup / Kadak Chai Bowl -->
+  <path d="M42 45 L78 45 C78 45, 77 64, 60 64 C43 64, 42 45, 42 45 Z" fill="url(#ngBrandGrad)"/>
+  <!-- Cup Rim -->
+  <ellipse cx="60" cy="45" rx="18" ry="3.5" fill="#fed7aa"/>
+  <ellipse cx="60" cy="45" rx="16" ry="2.2" fill="#9a3412"/>
+
+  <!-- Cup Handle -->
+  <path d="M76 48 C83 48, 83 58, 74 59" fill="none" stroke="#ea580c" stroke-width="2.8" stroke-linecap="round"/>
+
+  <!-- Saucer / Plate -->
+  <path d="M37 66 C48 69, 72 69, 83 66" fill="none" stroke="#f97316" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Brand Initials / Name Badge -->
+  <g transform="translate(60, 83)">
+    <!-- Pill banner -->
+    <rect x="-34" y="-10" width="68" height="20" rx="10" fill="url(#ngBrandGrad)"/>
+    <text x="0" y="4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="1.2">NASTA GHAR</text>
+  </g>
+
+  <!-- Star accents -->
+  <circle cx="21" cy="60" r="1.8" fill="#f97316"/>
+  <circle cx="99" cy="60" r="1.8" fill="#f97316"/>
+</svg>

@@ -153,10 +153,31 @@ export default function DigitalCardRedesignDemo({ businessId = 'default_business
             <span>Open Now</span>
           </div>
 
-          {/* Avatar / Logo */}
+          {/* Avatar / Company Logo */}
           <div className="vcard-avatar-wrap">
             <div className="vcard-avatar-inner">
-              🍳
+              <img
+                src={cardData?.logo_path || '/restaurant/nasta-ghar-logo.svg'}
+                alt={cardData?.display_name || cardData?.business_name || 'Customer Company Logo'}
+                className="vcard-avatar-img"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  if (e.currentTarget.nextSibling) {
+                    e.currentTarget.nextSibling.style.display = 'flex';
+                  }
+                }}
+              />
+              <div
+                className="vcard-avatar-fallback"
+                style={{ display: 'none' }}
+              >
+                {(cardData?.display_name || cardData?.business_name || 'NG')
+                  .split(' ')
+                  .map(w => w[0])
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()}
+              </div>
             </div>
           </div>
 
