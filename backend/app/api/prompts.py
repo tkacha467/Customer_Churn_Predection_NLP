@@ -124,13 +124,59 @@ def generate_candidate_ideas(
     category: Optional[str] = None
 ) -> List[Dict[str, str]]:
     """
-    Generates 5 distinct, human-sounding review candidate ideas based on user input,
-    supporting English, Roman Hindi (Hinglish), and Roman Gujarati (Gujlish).
+    Generates up to 3 distinct, strictly factually grounded review candidate ideas:
+    1. Short & Natural
+    2. Detailed & Expressive
+    3. Simple & Personal
+    Adheres strictly to zero fabrication (no fake staff hospitality, no fake family,
+    no fake cleanliness, no unverified revisit claims), sentiment fidelity,
+    and natural Roman-script Hinglish/Gujlish.
     """
     lang = normalize_language(language)
     cleaned_aspects = [a.lower().strip() for a in aspects if a.strip()]
+    has_breakfast = any("breakfast" in a or "nasto" in a or "nasta" in a for a in cleaned_aspects)
+    has_coffee = any("coffee" in a or "chai" in a or "tea" in a or "drink" in a or "beverage" in a for a in cleaned_aspects)
+    has_food = any("food" in a or "taste" in a or "breakfast" in a or "snack" in a or "pasta" in a or "pizza" in a or "bakery" in a for a in cleaned_aspects)
+    has_service = any("service" in a or "staff" in a for a in cleaned_aspects)
+    has_ambience = any("ambience" in a or "atmosphere" in a or "vibe" in a for a in cleaned_aspects)
+    has_clean = any("clean" in a or "sitting" in a for a in cleaned_aspects)
+    has_wait = any("wait" in a or "delay" in a or "slow" in a for a in cleaned_aspects)
+    has_value = any("value" in a or "price" in a or "pocket" in a or "rate" in a for a in cleaned_aspects)
 
-    # Safely inject user note without creating ungrounded facts
+    # Derive strictly customer-selected topic summary
+    if has_breakfast and has_coffee:
+        topic_en = "breakfast and chai"
+        topic_hi = "breakfast aur chai"
+        topic_gu = "breakfast ane chai"
+    elif has_breakfast:
+        topic_en = "breakfast"
+        topic_hi = "breakfast"
+        topic_gu = "breakfast"
+    elif has_coffee:
+        topic_en = "coffee and tea"
+        topic_hi = "chai"
+        topic_gu = "chai"
+    elif has_food:
+        topic_en = "food"
+        topic_hi = "khana"
+        topic_gu = "food"
+    elif has_service:
+        topic_en = "service"
+        topic_hi = "service"
+        topic_gu = "service"
+    elif has_ambience:
+        topic_en = "atmosphere"
+        topic_hi = "atmosphere"
+        topic_gu = "atmosphere"
+    elif has_clean:
+        topic_en = "sitting area"
+        topic_hi = "sitting area"
+        topic_gu = "sitting area"
+    else:
+        topic_en = ""
+        topic_hi = ""
+        topic_gu = ""
+
     note_fragment = ""
     if user_note and user_note.strip():
         n = user_note.strip().rstrip(".!")
@@ -138,131 +184,162 @@ def generate_candidate_ideas(
 
     if lang == "hindi":
         if rating == 5:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Bahut hi tasty khana aur best chai!{note_fragment} Maza aa gaya 🍳☕"},
-                {"id": "idea_2", "focus": "Food & Taste", "text": f"Khana ekdum fresh aur lajawab tha.{note_fragment} Service bhi kaafi quick thi ☕😋"},
-                {"id": "idea_3", "focus": "Staff & Ambience", "text": f"Staff bahut polite hai aur safai ka pura dhyan rakha hai.{note_fragment} Family ke sath visit ke liye best jagah 😊✨"},
-                {"id": "idea_4", "focus": "Taste & Value", "text": f"Har cheez garam aur fresh mili. Snacks aur chai bahut acche the aur price bhi sahi hai.{note_fragment} Zaroor try karein 👌🍲"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall experience bahut shandar raha at {business_name}. Khana aur service dono top notch the.{note_fragment} Phir zaroor aayenge! 👨‍👩‍👧‍👦❤️"},
-            ]
+            if topic_hi:
+                short_text = f"{business_name} me {topic_hi} bahut pasand aaya!{note_fragment} Maza aa gaya 🍳☕"
+                detailed_text = f"{business_name} me {topic_hi} ka experience lajawab raha.{note_fragment} Sab kuch accha manage kiya hua tha 😊✨"
+                personal_text = f"Personal taur par {business_name} me {topic_hi} bahut accha laga.{note_fragment} Very happy with the visit ❤️"
+            else:
+                short_text = f"Bahut hi accha anubhav raha at {business_name}!{note_fragment} Maza aa gaya 😊✨"
+                detailed_text = f"Overall visit bahut shandar rahi at {business_name}.{note_fragment} Sab kuch kaafi accha arrange kiya hua tha 😊✨"
+                personal_text = f"Personal taur par {business_name} ki visit bahut pasand aayi.{note_fragment} Very happy with the visit ❤️"
+
         elif rating == 4:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Accha khana aur tasty chai!{note_fragment} Morning ke liye badhiya choice 🍳"},
-                {"id": "idea_2", "focus": "Food & Service", "text": f"Breakfast fresh tha aur service bhi fast thi.{note_fragment} Staff ka behaviour kaafi polite tha 👍☕"},
-                {"id": "idea_3", "focus": "Clean & Fair", "text": f"Clean sitting area aur achhi food quality.{note_fragment} Rates bhi pocket friendly hain 😊"},
-                {"id": "idea_4", "focus": "Snacks & Tea", "text": f"Snacks aur garam chai enjoy kiya. Food time pe serve hua aur taste accha tha.{note_fragment} Quick bite ke liye acchi jagah 🥪🍲"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Kaafi accha visit raha. Good taste, clean tables aur friendly service.{note_fragment} Definitely visit karne jaisa hai 🌟👍"},
-            ]
+            if topic_hi:
+                short_text = f"Accha {topic_hi} at {business_name}.{note_fragment} Good visit 👍"
+                detailed_text = f"{business_name} me {topic_hi} ka anubhav accha aur enjoyable raha.{note_fragment} Overall arrangement comfortable thi 😊"
+                personal_text = f"Mujhe {business_name} me {topic_hi} pasand aaya.{note_fragment} Definitely ek pleasant visit rahi 👍"
+            else:
+                short_text = f"Kaafi accha anubhav raha at {business_name}.{note_fragment} Good visit 👍"
+                detailed_text = f"Overall visit kaafi enjoyable rahi at {business_name}.{note_fragment} Sab kuch theek se manage hua 😊"
+                personal_text = f"Mujhe {business_name} ki visit pasand aayi.{note_fragment} Definitely ek pleasant visit rahi 👍"
+
         elif rating == 3:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Khana theek tha, lekin service thodi slow lagi aaj.{note_fragment} 🙂"},
-                {"id": "idea_2", "focus": "Food & Wait", "text": f"Chai acchi thi par snacks thode thande the.{note_fragment} Average experience raha 🙂☕"},
-                {"id": "idea_3", "focus": "Service Pace", "text": f"Staff polite tha par order ke liye wait karna pada.{note_fragment} Decent visit 🙂"},
-                {"id": "idea_4", "focus": "Crowd & Cleaning", "text": f"Aaj bheed kaafi thi. Food taste theek tha lekin table cleaning mein thoda time lag gaya.{note_fragment} Hope agli baar fast service mile 🙂🥪"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall theek experience tha. Seating comfortable hai par service mein thoda improvement chahiye.{note_fragment} Okay visit 🙂"},
-            ]
+            if topic_hi:
+                short_text = f"{business_name} me {topic_hi} ka theek anubhav raha.{note_fragment} Standard visit 🙂"
+                detailed_text = f"{business_name} me {topic_hi} average raha.{note_fragment} Anubhav theek tha, par thode aur improvement ki gunjaish hai 🙂"
+                personal_text = f"{topic_hi.capitalize()} ka anubhav mere liye ordinary raha at {business_name}.{note_fragment} Decent visit 🙂"
+            else:
+                short_text = f"Average anubhav raha aaj at {business_name}.{note_fragment} Standard visit 🙂"
+                detailed_text = f"Overall visit theek rahi at {business_name}.{note_fragment} Kuch baatein theek thin, thoda aur better ho sakta tha 🙂"
+                personal_text = f"Visit ordinary rahi mere liye at {business_name}.{note_fragment} Decent experience overall 🙂"
+
         elif rating == 2:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Khana theek tha par wait time bahut zyada tha aaj.{note_fragment} 😕"},
-                {"id": "idea_2", "focus": "Order Delay", "text": f"Aaj service se khush nahi huye.{note_fragment} Order kaafi late aaya aur khana bhi lukewarm tha 😕"},
-                {"id": "idea_3", "focus": "Staff Attention", "text": f"Staff ka dhyaan nahi tha aur service kaafi slow thi.{note_fragment} Better service expected thi 😕"},
-                {"id": "idea_4", "focus": "Slow Service", "text": f"Khaane ke liye kaafi wait karna pada aur tables quickly clean nahi huye.{note_fragment} Service improve karni chahiye 😕⏳"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Disappointing visit raha. Chai theek thi par snacks fresh nahi the aur service slow thi.{note_fragment} Umeed hai agle baar sudhar hoga 😕"},
-            ]
+            if topic_hi:
+                short_text = f"{business_name} me {topic_hi} expectation se kam raha.{note_fragment} 😕"
+                detailed_text = f"{business_name} me {topic_hi} se thodi nirasha hui.{note_fragment} Quality aur care me improvement ki zaroorat hai 😕"
+                personal_text = f"Mujhe {business_name} me {topic_hi} se aisi umeed nahi thi.{note_fragment} Hope things improve 😕"
+            else:
+                short_text = f"Experience kuch khass nahi raha aaj at {business_name}.{note_fragment} 😕"
+                detailed_text = f"Visit se thodi nirasha hui at {business_name}.{note_fragment} Service aur arrangement me improvement ki zaroorat hai 😕"
+                personal_text = f"Mujhe aisi umeed nahi thi at {business_name}.{note_fragment} Hope things improve 😕"
+
         else: # 1 star
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Bahut slow service aur khana bhi thanda mila aaj.{note_fragment} 😞"},
-                {"id": "idea_2", "focus": "Order Issue", "text": f"Kharab experience raha aaj.{note_fragment} Bahut der wait kiya aur order bhi galat aaya 😞"},
-                {"id": "idea_3", "focus": "Cleanliness", "text": f"Staff unorganized tha aur tables bilkul clean nahi the.{note_fragment} Poor service 😞"},
-                {"id": "idea_4", "focus": "Food & Wait", "text": f"Disappointed with the visit. Khaana aane mein bahut time laga aur taste fresh nahi tha.{note_fragment} Koi theek se attend nahi kar raha tha 😞👎"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Kaafi poor experience raha. Long waiting time, cold food aur careless staff.{note_fragment} Major improvement ki zaroorat hai 😞"},
-            ]
+            if topic_hi:
+                short_text = f"{business_name} me {topic_hi} ka kharab experience raha.{note_fragment} 😞"
+                detailed_text = f"{business_name} me {topic_hi} se bilkul santusht nahi huye.{note_fragment} Bade sudhar ki zaroorat hai 😞"
+                personal_text = f"{business_name} me {topic_hi} se bahut nirashajanak anubhav raha.{note_fragment} Very poor 😞"
+            else:
+                short_text = f"Kharab anubhav raha aaj at {business_name}.{note_fragment} 😞"
+                detailed_text = f"Aaj ki visit se bilkul santusht nahi huye at {business_name}.{note_fragment} Bade sudhar ki zaroorat hai 😞"
+                personal_text = f"Bahut nirashajanak raha at {business_name}.{note_fragment} Poor experience 😞"
 
     elif lang == "gujarati":
         if rating == 5:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Ahiya nu food ekdum mast hatu ane chai pan jordar!{note_fragment} Khub majja aavi 🍳☕"},
-                {"id": "idea_2", "focus": "Food & Taste", "text": f"Nasto ekdum fresh ane taste lajawab hato.{note_fragment} Service pan ekdum quick hati ☕😋"},
-                {"id": "idea_3", "focus": "Staff & Ambience", "text": f"Staff khub polite chhe ane chokkhai pan saras chhe.{note_fragment} Family sathe aavva mate best jagya 😊✨"},
-                {"id": "idea_4", "focus": "Taste & Value", "text": f"Badhu garam ane fresh malyu. Snacks ane chai bahu saras hata ane bhav pan fair chhe.{note_fragment} Jarur try karva jevu chhe 👌🍲"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall experience bahu j saras rahyo at {business_name}. Food ane service banne top class.{note_fragment} Fari thi jarur aavishu! 👨‍👩‍👧‍👦❤️"},
-            ]
+            if topic_gu:
+                short_text = f"{business_name} ma {topic_gu} khub j saras hatu!{note_fragment} Majja aavi gai 🍳☕"
+                detailed_text = f"{business_name} ma {topic_gu} no anubhav khub saro rahyo.{note_fragment} Ek memorable visit rahi 😊✨"
+                personal_text = f"Mane {business_name} ma {topic_gu} khub j gamyu.{note_fragment} Very happy with the visit ❤️"
+            else:
+                short_text = f"Bahu j saras anubhav rahyo at {business_name}!{note_fragment} Khub majja aavi 😊✨"
+                detailed_text = f"Samagra mulakat khub j sari rahi at {business_name}.{note_fragment} Ek memorable visit rahi 😊✨"
+                personal_text = f"Mane {business_name} ni visit khub j gami.{note_fragment} Very happy with the visit ❤️"
+
         elif rating == 4:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Saras khavanu ane kadak chai!{note_fragment} Savarni saras sharuat 🍳"},
-                {"id": "idea_2", "focus": "Food & Service", "text": f"Breakfast fresh hatu ane quick service mali.{note_fragment} Staff no swabhav pan vinamra hato 👍☕"},
-                {"id": "idea_3", "focus": "Clean & Fair", "text": f"Clean sitting area ane sari food quality.{note_fragment} Rates pan reasonable chhe 😊"},
-                {"id": "idea_4", "focus": "Snacks & Tea", "text": f"Snacks ane garam chai ni maja aavi. Food jaldi aavyu ane taste saro hato.{note_fragment} Quick bite mate saras jagya 🥪🍲"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Samagra mulakat khub sari rahi. Saro taste, clean tables ane friendly service.{note_fragment} Fari aavva jevu chhe 🌟👍"},
-            ]
+            if topic_gu:
+                short_text = f"Saras {topic_gu} at {business_name}.{note_fragment} Saro anubhav 👍"
+                detailed_text = f"{business_name} ma {topic_gu} no saro anubhav rahyo.{note_fragment} Vyavastha sari lagi 😊"
+                personal_text = f"Mari aaje {business_name} ma {topic_gu} mate sari visit rahi.{note_fragment} Saro time spend thayo 👍"
+            else:
+                short_text = f"Sari mulakat rahi at {business_name}.{note_fragment} Saro anubhav 👍"
+                detailed_text = f"Overall experience saro rahyo at {business_name}.{note_fragment} Vyavastha sari lagi 😊"
+                personal_text = f"Mari aaje sari visit rahi at {business_name}.{note_fragment} Saro time spend thayo 👍"
+
         elif rating == 3:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Food thik hatu, pan service thodi slow lagi aaje.{note_fragment} 🙂"},
-                {"id": "idea_2", "focus": "Food & Wait", "text": f"Chai sari hati pan snacks thoda thanda hata.{note_fragment} Samanya anubhav rahyo 🙂☕"},
-                {"id": "idea_3", "focus": "Service Pace", "text": f"Staff saro hato pan order mate thodi vaar lagi.{note_fragment} Average visit 🙂"},
-                {"id": "idea_4", "focus": "Crowd & Cleaning", "text": f"Bheed vadhare hati aaje. Taste barabar hato pan table cleaning ma time lagyo.{note_fragment} Aavti vakhte better service ni apeksha 🙂🥪"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall thik anubhav rahyo. Seating comfortable chhe pan service thodi improve karvani jarur chhe.{note_fragment} Okay visit 🙂"},
-            ]
+            if topic_gu:
+                short_text = f"{business_name} ma {topic_gu} samanya rahyu.{note_fragment} Thik visit hati 🙂"
+                detailed_text = f"{business_name} ma {topic_gu} theek hatu.{note_fragment} Thoda sudhara ni apeksha chhe 🙂"
+                personal_text = f"{topic_gu.capitalize()} mate anubhav ordinary rahyo at {business_name}.{note_fragment} Decent visit 🙂"
+            else:
+                short_text = f"Average anubhav rahyo aaje at {business_name}.{note_fragment} Thik visit hati 🙂"
+                detailed_text = f"Overall mulakat theek rahi at {business_name}.{note_fragment} Thodo sudharo thavo joie 🙂"
+                personal_text = f"Mari mulakat ordinary rahi at {business_name}.{note_fragment} Decent experience 🙂"
+
         elif rating == 2:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Food thik hatu pan wait bahu karvu padyu aaje.{note_fragment} 😕"},
-                {"id": "idea_2", "focus": "Order Delay", "text": f"Aaje service thi santosh na thayo.{note_fragment} Order late aavyo ane food pan lukewarm hatu 😕"},
-                {"id": "idea_3", "focus": "Staff Attention", "text": f"Staff dhyan nhato aapi rahyo ane service slow hati.{note_fragment} Better service expected hati 😕"},
-                {"id": "idea_4", "focus": "Slow Service", "text": f"Order mate ghano wait karyo ane tables pan quickly clean na thaya.{note_fragment} Customer service improve karvani jarur chhe 😕⏳"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Nirashajanak visit rahi. Chai thik hati pan snacks fresh nahota ane service slow hati.{note_fragment} Management sudharo kare evi aasha 😕"},
-            ]
+            if topic_gu:
+                short_text = f"{business_name} ma {topic_gu} expectation karta ochu rahyu.{note_fragment} 😕"
+                detailed_text = f"{business_name} ma {topic_gu} thi thodi nirasha thai.{note_fragment} Sudharo karvo zaroori chhe 😕"
+                personal_text = f"Mane {business_name} ma {topic_gu} mate aavi apeksha nahoti.{note_fragment} 😕"
+            else:
+                short_text = f"Experience saro na rahyo aaje at {business_name}.{note_fragment} 😕"
+                detailed_text = f"Mulakat thi thodi nirasha thai at {business_name}.{note_fragment} Sudharo karvo zaroori chhe 😕"
+                personal_text = f"Mane aavi apeksha nahoti at {business_name}.{note_fragment} 😕"
+
         else: # 1 star
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Bahu j slow service ane thandu khavanu aapyu aaje.{note_fragment} 😞"},
-                {"id": "idea_2", "focus": "Order Issue", "text": f"Kharab anubhav rahyo aaje.{note_fragment} Ghani vaar ubha rakhya ane order pan wrong aavyo 😞"},
-                {"id": "idea_3", "focus": "Cleanliness", "text": f"Staff unorganized hato ane tables bilkul clean nahota.{note_fragment} Bahu poor service 😞"},
-                {"id": "idea_4", "focus": "Food & Wait", "text": f"Disappointed with the visit. Food aavva ma khub time lagyo ane taste fresh nahoto.{note_fragment} Koi barabar attend pan na karyu 😞👎"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Experience bilkul saro na rahyo. Long waiting time, thandu food ane careless staff.{note_fragment} Service ma mota sudhara ni jarur chhe 😞"},
-            ]
+            if topic_gu:
+                short_text = f"{business_name} ma {topic_gu} no kharab anubhav rahyo.{note_fragment} 😞"
+                detailed_text = f"{business_name} ma {topic_gu} thi bilkul santusht na thaya.{note_fragment} Mota sudhara ni jarur chhe 😞"
+                personal_text = f"{business_name} ma {topic_gu} thi khub j nirashajanak mulakat rahi.{note_fragment} 😞"
+            else:
+                short_text = f"Bahu j kharab anubhav rahyo at {business_name}.{note_fragment} 😞"
+                detailed_text = f"Aaje bilkul santusht na thaya at {business_name}.{note_fragment} Mota sudhara ni jarur chhe 😞"
+                personal_text = f"Khub j nirashajanak mulakat rahi at {business_name}.{note_fragment} 😞"
 
     else: # English
         if rating == 5:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Amazing breakfast and best chai in town!{note_fragment} Loved it 🍳☕"},
-                {"id": "idea_2", "focus": "Food & Tea", "text": f"The food was fresh and the tea was super tasty.{note_fragment} Quick service too ☕😋"},
-                {"id": "idea_3", "focus": "Staff & Place", "text": f"Very friendly staff and clean place.{note_fragment} We had a great time here 😊✨"},
-                {"id": "idea_4", "focus": "Taste & Value", "text": f"Everything was hot, fresh and full of flavour. The snacks and chai were really good and the price is also fair.{note_fragment} Must try 👌🍲"},
-                {"id": "idea_5", "focus": "Family Visit", "text": f"Had a wonderful breakfast with family at {business_name}. Great food, friendly people, and relaxed vibe.{note_fragment} Will surely visit again! 👨‍👩‍👧‍👦❤️"},
-            ]
-        elif rating == 4:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Good food and tasty chai!{note_fragment} Nice start to the morning 🍳"},
-                {"id": "idea_2", "focus": "Food & Service", "text": f"Fresh breakfast and quick service.{note_fragment} Staff was polite and helpful 👍☕"},
-                {"id": "idea_3", "focus": "Clean & Fair", "text": f"Clean sitting area and good food quality.{note_fragment} Prices are also reasonable 😊"},
-                {"id": "idea_4", "focus": "Snacks & Tea", "text": f"Enjoyed the snacks and hot tea. Food was served quickly and tasted nice.{note_fragment} Worth a visit for a quick bite 🥪🍲"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Overall a very pleasant visit. Good taste, clean tables, and friendly service.{note_fragment} Will definitely come back again 🌟👍"},
-            ]
-        elif rating == 3:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Decent food, but the service was a bit slow today.{note_fragment} 🙂"},
-                {"id": "idea_2", "focus": "Food & Tea", "text": f"The chai was nice, but the snacks could have been hotter.{note_fragment} Okay experience overall 🙂☕"},
-                {"id": "idea_3", "focus": "Wait Time", "text": f"Staff was polite, but we had to wait some time for our order.{note_fragment} Average visit 🙂"},
-                {"id": "idea_4", "focus": "Busy Hours", "text": f"The place was quite crowded today. Food taste was fine, but table cleaning took longer than expected.{note_fragment} Hope it gets faster next time 🙂🥪"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Fair experience overall. Tea was good and seating is comfortable, but service needs a little improvement.{note_fragment} It was an okay visit 🙂"},
-            ]
-        elif rating == 2:
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Food was okay, but wait time was too long today.{note_fragment} 😕"},
-                {"id": "idea_2", "focus": "Order Delay", "text": f"Not satisfied with the service today.{note_fragment} Order was delayed and food was lukewarm 😕"},
-                {"id": "idea_3", "focus": "Attention", "text": f"The place was noisy and staff was not paying attention.{note_fragment} Expected better service 😕"},
-                {"id": "idea_4", "focus": "Slow Service", "text": f"We had to wait a long time to get our food and tables were not cleaned quickly.{note_fragment} Need to improve customer service 😕⏳"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Disappointing visit today. The chai was fine but snacks were not fresh and service was very slow.{note_fragment} Hope management fixes this 😕"},
-            ]
-        else: # 1 star
-            ideas = [
-                {"id": "idea_1", "focus": "Short & Sweet", "text": f"Very slow service and cold food today.{note_fragment} 😞"},
-                {"id": "idea_2", "focus": "Order Issue", "text": f"Bad experience today.{note_fragment} Waited very long and our order was wrong 😞"},
-                {"id": "idea_3", "focus": "Cleanliness", "text": f"Staff was unorganized and tables were not clean.{note_fragment} Very poor service 😞"},
-                {"id": "idea_4", "focus": "Food & Wait", "text": f"Disappointed with the visit. Food took forever to arrive and tasted stale.{note_fragment} Nobody came to attend us properly 😞👎"},
-                {"id": "idea_5", "focus": "Overall Visit", "text": f"Extremely poor experience today. Long waiting time, cold food, and careless staff.{note_fragment} Needs major improvement in service 😞"},
-            ]
+            if topic_en:
+                short_text = f"Really enjoyed the {topic_en} at {business_name}!{note_fragment} Loved it 🍳☕"
+                detailed_text = f"Had a lovely visit at {business_name}. The {topic_en} was wonderful and prepared nicely.{note_fragment} Truly enjoyed it 😊✨"
+                personal_text = f"The {topic_en} at {business_name} was delicious today.{note_fragment} Very happy with my visit ❤️"
+            else:
+                short_text = f"Had a wonderful visit at {business_name}! Really enjoyed every moment.{note_fragment} Loved it 😊✨"
+                detailed_text = f"Had a lovely and wonderful visit at {business_name}. Everything was handled nicely.{note_fragment} Truly enjoyed it 😊✨"
+                personal_text = f"I genuinely enjoyed my time at {business_name}.{note_fragment} Very happy with my visit ❤️"
 
-    return ideas
+        elif rating == 4:
+            if topic_en:
+                short_text = f"Good {topic_en} at {business_name}.{note_fragment} Nice visit 👍"
+                detailed_text = f"Solid and enjoyable experience with the {topic_en} at {business_name}.{note_fragment} Well managed throughout 😊"
+                personal_text = f"Had a good experience with the {topic_en} at {business_name}.{note_fragment} Happy with my visit overall 👍"
+            else:
+                short_text = f"Very pleasant visit at {business_name}.{note_fragment} Good spot to stop by 👍"
+                detailed_text = f"Overall a solid and enjoyable experience at {business_name}.{note_fragment} Everything was well arranged 😊"
+                personal_text = f"Had a good visit at {business_name}.{note_fragment} Happy with my experience overall 👍"
+
+        elif rating == 3:
+            if topic_en:
+                short_text = f"Decent visit for {topic_en} at {business_name}.{note_fragment} Standard experience 🙂"
+                detailed_text = f"The {topic_en} at {business_name} was fine overall.{note_fragment} An average visit with room for minor improvement 🙂"
+                personal_text = f"It was a pretty average experience for {topic_en} at {business_name}.{note_fragment} Decent visit overall 🙂"
+            else:
+                short_text = f"Decent visit today at {business_name}.{note_fragment} Standard experience 🙂"
+                detailed_text = f"Overall a fair and average experience at {business_name}. A few good points, but there is room for improvement.{note_fragment} Decent visit 🙂"
+                personal_text = f"It was a pretty average visit for me at {business_name}.{note_fragment} Fair experience overall 🙂"
+
+        elif rating == 2:
+            if topic_en:
+                short_text = f"The {topic_en} at {business_name} fell below expectations today.{note_fragment} 😕"
+                detailed_text = f"Disappointed with the {topic_en} at {business_name}.{note_fragment} The experience needs attention and improvement 😕"
+                personal_text = f"Expected a better experience with the {topic_en} at {business_name}.{note_fragment} Hope to see improvements 😕"
+            else:
+                short_text = f"Visit fell below expectations today at {business_name}.{note_fragment} 😕"
+                detailed_text = f"Somewhat disappointed with the visit at {business_name}.{note_fragment} Several areas need attention and better care 😕"
+                personal_text = f"Expected a better experience than what I had at {business_name} today.{note_fragment} Hope to see improvements 😕"
+
+        else: # 1 star
+            if topic_en:
+                short_text = f"Very disappointing experience with the {topic_en} at {business_name}.{note_fragment} 😞"
+                detailed_text = f"Unsatisfied with the {topic_en} during today's visit to {business_name}.{note_fragment} Major improvements are needed 😞"
+                personal_text = f"Really unhappy with the {topic_en} at {business_name} today.{note_fragment} Disappointed with how things went 😞"
+            else:
+                short_text = f"Very disappointing experience today at {business_name}.{note_fragment} 😞"
+                detailed_text = f"Extremely unsatisfied with today's visit at {business_name}.{note_fragment} Major improvements are needed in service and quality 😞"
+                personal_text = f"Really unhappy with the experience today.{note_fragment} Disappointed with how things were handled at {business_name} 😞"
+
+    return [
+        {"id": "idea_1", "focus": "Short & Natural", "text": short_text},
+        {"id": "idea_2", "focus": "Detailed & Expressive", "text": detailed_text},
+        {"id": "idea_3", "focus": "Simple & Personal", "text": personal_text},
+    ]
 
 
 def humanize_review_draft(

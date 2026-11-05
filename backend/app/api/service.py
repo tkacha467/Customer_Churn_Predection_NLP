@@ -32,6 +32,7 @@ class ReviewService:
         self._store = ReviewStore()
         self._analytics_events: List[Dict[str, Any]] = self._store.list_events()
         self._private_tickets: List[Dict[str, Any]] = self._store.list_tickets(limit=5000)
+        self._recent_submissions: Dict[str, Dict[str, Any]] = {}
 
     def check_rate_limit(self, client_key: str, max_per_minute: int = 30) -> bool:
         """Sliding-window rate limiter per client IP."""
@@ -189,6 +190,23 @@ class ReviewService:
 
     def submit_private_feedback(self, req: PrivateFeedbackRequest) -> PrivateFeedbackResponse:
         """Stores optional direct diner notes for restaurant management without rating manipulation."""
+        # Lightweight idempotency: prevent duplicate tickets within 60s for identical content
+        now = time.time()
+        note_hash = f"{req.business_id}:{req.rating}:{req.diner_note.strip()}"
+        if note_hash in self._recent_submissions:
+            prev = self._recent_submissions[note_hash]
+            if now - prev["timestamp"] < 60.0:
+                return PrivateFeedbackResponse(
+                    status="escalated",
+                    ticket_id=prev["ticket_id"],
+                    message="Your feedback has been shared with the restaurant team. Thank you for helping us improve!"
+                )
+
+        # Purge entries older than 5 minutes to keep memory negligible
+        self._recent_submissions = {
+            k: v for k, v in self._recent_submissions.items() if now - v["timestamp"] < 300.0
+        }
+
         ticket_id = f"TICK-{uuid.uuid4().hex[:6].upper()}"
         ticket = {
             "ticket_id": ticket_id,
@@ -198,11 +216,12 @@ class ReviewService:
             "diner_note": req.diner_note,
             "aspects": req.aspects,
             "guest_contact": req.guest_contact,
-            "timestamp": time.time(),
+            "timestamp": now,
             "status": "OPEN"
         }
         self._private_tickets.append(ticket)
         self._store.add_ticket(ticket)
+        self._recent_submissions[note_hash] = {"ticket_id": ticket_id, "timestamp": now}
         self.record_event(
             "private_feedback_submitted",
             metadata={"business_id": req.business_id, "ticket_id": ticket_id, "rating": req.rating}

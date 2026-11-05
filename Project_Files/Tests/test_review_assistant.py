@@ -342,3 +342,22 @@ def test_hospitality_specific_topics_configuration():
     assert res.status_code == 200
     topics = res.json()["topics"]
     assert "Chai / Coffee" in topics or "Food & Taste" in topics or "Cleanliness" in topics
+
+def test_duplicate_submission_protection_idempotency():
+    """Rapid duplicate submissions with identical payload return the existing ticket idempotently."""
+    payload = {
+        "business_id": "default_business",
+        "rating": 2,
+        "diner_note": "Soup was cold today and tea was delayed.",
+        "aspects": ["Food & Taste"],
+        "guest_contact": ""
+    }
+    res1 = client.post("/api/reviews/private-feedback", json=payload)
+    assert res1.status_code == 200
+    ticket_id_1 = res1.json()["ticket_id"]
+
+    # Immediate second submission (rapid duplicate)
+    res2 = client.post("/api/reviews/private-feedback", json=payload)
+    assert res2.status_code == 200
+    ticket_id_2 = res2.json()["ticket_id"]
+    assert ticket_id_1 == ticket_id_2, "Rapid duplicate feedback must return idempotent ticket_id"

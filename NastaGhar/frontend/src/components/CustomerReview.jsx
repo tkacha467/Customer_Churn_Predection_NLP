@@ -3,7 +3,6 @@ import RestaurantWorld from './RestaurantWorld';
 import { apiFetch } from '../lib/api';
 
 // ─── NASTA GHAR BRAND CONSTANTS ──────────────────────────────────────────────
-// These are hardcoded. The API enriches config but NEVER overrides the name.
 const BRAND = {
   name: 'Nasta Ghar',
   googleMapUrl:
@@ -21,12 +20,22 @@ const DEFAULT_TOPICS = [
   { label: 'Quick Service', icon: '⚡' },
 ];
 
-const RATING_LABELS = {
-  5: { text: 'Loved it!', emoji: '🤩' },
-  4: { text: 'Really good', emoji: '😊' },
-  3: { text: 'It was okay', emoji: '🙂' },
-  2: { text: 'Disappointed', emoji: '😕' },
-  1: { text: 'Not good', emoji: '😞' },
+export const detectBrowserLanguage = () => {
+  try {
+    const browserLangs = Array.isArray(navigator?.languages) && navigator.languages.length > 0
+      ? navigator.languages
+      : [navigator?.language || ''];
+    for (const lang of browserLangs) {
+      if (!lang) continue;
+      const l = String(lang).toLowerCase().trim();
+      if (l.startsWith('gu')) return 'gujarati';
+      if (l.startsWith('hi')) return 'hindi';
+      if (l.startsWith('en')) return 'english';
+    }
+  } catch {
+    // Restricted environment fallback
+  }
+  return 'english';
 };
 
 const getLanguageLabel = (l) => {
@@ -35,141 +44,417 @@ const getLanguageLabel = (l) => {
   return 'English';
 };
 
-const getFallbackIdeas = (r, note, lang = 'english', bizName = BRAND.name) => {
-  const noteText = note && note.trim() ? ` ${note.trim().replace(/[.!]+$/, '')}.` : '';
+// ─── COMPREHENSIVE UI LOCALIZATION DICTIONARY ─────────────────────────────────
+export const UI_STRINGS = {
+  english: {
+    howWasVisit: 'How was your visit?',
+    tapStar: 'Tap a star to rate your experience',
+    continueBtn: 'Continue →',
+    ratings: {
+      5: { text: 'Loved it!', emoji: '🤩' },
+      4: { text: 'Really good', emoji: '😊' },
+      3: { text: 'It was okay', emoji: '🙂' },
+      2: { text: 'Disappointed', emoji: '😕' },
+      1: { text: 'Not good', emoji: '😞' },
+    },
+    whatStoodOut: 'What stood out?',
+    pickMatched: 'Pick anything that matched your visit',
+    nothingSpecific: 'Nothing specific',
+    personalNote: 'Personal note',
+    optional: 'optional',
+    notePlaceholder: 'e.g. The poha was absolutely perfect! 😋',
+    reviewIdeas: 'Review ideas',
+    tapFavourite: 'Tap your favourite to copy & open Google Review',
+    refiningIdeas: 'Refining ideas...',
+    useThisReview: 'Use this review →',
+    writeOwn: '✍️ Write my own review',
+    writeTitle: 'Write your review',
+    chars: 'chars',
+    writeSub: "Edit anything before posting — it's your words!",
+    makeNatural: '✨ Make it more natural',
+    refiningNatural: '✨ Refining...',
+    backToIdeas: '← Back to review ideas',
+    googleNotice: "Your words, your review. Paste the copy into Google and post it yourself.",
+    copyAndOpenGoogle: 'Copy & open Google Review',
+    privatePromptGood: 'Want to tell us privately? ',
+    privatePromptBad: 'Want to tell the team what could have been better? ',
+    sendPrivateNote: 'Send private note',
+    directNoteTo: 'Direct note to',
+    sharePrivately: "Share anything you'd like our team to know privately.",
+    feedbackPlaceholder: 'Share your thoughts, suggestions, or anything else...',
+    contactPlaceholder: 'Your name or contact (optional)',
+    sendToTeam: 'Send to Team',
+    sending: 'Sending...',
+    cancel: 'Cancel',
+    close: 'Close',
+    thankYou: 'Thank you!',
+    feedbackSentMsg: 'Your message has been sent directly to the team.',
+    errorRefresh: 'Could not refresh live suggestions. You can retry or write your own review.',
+    retry: '🔄 Retry',
+    retrying: 'Retrying...',
+    cookieMsg: 'Your review is copied when you choose it. Paste it into Google and submit it yourself.',
+    gotIt: 'Got it ✓',
+  },
+  hindi: {
+    howWasVisit: 'Aapka anubhav kaisa raha?',
+    tapStar: 'Apne anubhav ke anusaar star chunein',
+    continueBtn: 'Aage badhein →',
+    ratings: {
+      5: { text: 'Bahut pasand aaya!', emoji: '🤩' },
+      4: { text: 'Kaafi accha laga', emoji: '😊' },
+      3: { text: 'Thik-thak raha', emoji: '🙂' },
+      2: { text: 'Khaas nahi tha', emoji: '😕' },
+      1: { text: 'Accha nahi laga', emoji: '😞' },
+    },
+    whatStoodOut: 'Kya sabse accha laga?',
+    pickMatched: 'Jo aapki visit me accha raha use chunein',
+    nothingSpecific: 'Kuch khaas nahi',
+    personalNote: 'Personal note',
+    optional: 'optional',
+    notePlaceholder: 'Jaise ki poha bahut tasty tha! 😋',
+    reviewIdeas: 'Review suggestions',
+    tapFavourite: 'Pasandida review chunein aur Google Review kholein',
+    refiningIdeas: 'Ideas taiyar ho rahe hain...',
+    useThisReview: 'Yeh review use karein →',
+    writeOwn: '✍️ Apna khud ka review likhein',
+    writeTitle: 'Apna review likhein',
+    chars: 'chars',
+    writeSub: 'Post karne se pehle kuch bhi badal sakte hain!',
+    makeNatural: '✨ Aur natural banayein',
+    refiningNatural: '✨ Refining...',
+    backToIdeas: '← Wapas suggestions par jayein',
+    googleNotice: 'Aapka review, aapke shabd. Google par paste karke post karein.',
+    copyAndOpenGoogle: 'Copy karke Google Review kholein',
+    privatePromptGood: 'Kya hume privately kuch batana chahte hain? ',
+    privatePromptBad: 'Kya team ko batana chahte hain kya behtar ho sakta tha? ',
+    sendPrivateNote: 'Private note bhejein',
+    directNoteTo: 'Direct note to',
+    sharePrivately: 'Aap humari team se privately kuch bhi share kar sakte hain.',
+    feedbackPlaceholder: 'Apne vichar, sujhav ya shikayat yahan likhein...',
+    contactPlaceholder: 'Aapka naam ya contact (optional)',
+    sendToTeam: 'Team ko bhejein',
+    sending: 'Bheja ja raha hai...',
+    cancel: 'Cancel',
+    close: 'Band karein',
+    thankYou: 'Dhanyawad!',
+    feedbackSentMsg: 'Aapka message sidhe team ko pahunch gaya hai.',
+    errorRefresh: 'Live suggestions load nahi ho sake. Dobara koshish karein ya apna review likhein.',
+    retry: '🔄 Dobara koshish karein',
+    retrying: 'Koshish jaari hai...',
+    cookieMsg: 'Review select karne par clipboard par copy ho jayega. Google par paste karke submit karein.',
+    gotIt: 'Samajh gaya ✓',
+  },
+  gujarati: {
+    howWasVisit: 'Tamaro anubhav kevo rahyo?',
+    tapStar: 'Tamara anubhav mujab star pasand karo',
+    continueBtn: 'Aagal vadho →',
+    ratings: {
+      5: { text: 'Khub j saras!', emoji: '🤩' },
+      4: { text: 'Gamyu', emoji: '😊' },
+      3: { text: 'Thik hatu', emoji: '🙂' },
+      2: { text: 'Khas na hatu', emoji: '😕' },
+      1: { text: 'Saras na hatu', emoji: '😞' },
+    },
+    whatStoodOut: 'Shu sabthi vadhu gamyu?',
+    pickMatched: 'Tamara anubhav mujab pasand karo',
+    nothingSpecific: 'Khas kai nahi',
+    personalNote: 'Personal note',
+    optional: 'optional',
+    notePlaceholder: 'Jem ke poha khub tasty hata! 😋',
+    reviewIdeas: 'Review suggestions',
+    tapFavourite: 'Tamaro pasandida review tap karo ane Google Review kholo',
+    refiningIdeas: 'Ideas taiyar thai rahya chhe...',
+    useThisReview: 'Aa review vapro →',
+    writeOwn: '✍️ Tamaro potano review lakho',
+    writeTitle: 'Tamaro review lakho',
+    chars: 'chars',
+    writeSub: 'Post karta pahela tame kai pan badli shako chho!',
+    makeNatural: '✨ Vadhu natural banavo',
+    refiningNatural: '✨ Refining...',
+    backToIdeas: '← Pacha suggestions par jao',
+    googleNotice: 'Tamaro review, tamara shabdo. Google par paste kari post karo.',
+    copyAndOpenGoogle: 'Copy kari Google Review kholo',
+    privatePromptGood: 'Shu amne privately kai janavva mango chho? ',
+    privatePromptBad: 'Shu team ne janavva mango chho ke shu sudhari shakay? ',
+    sendPrivateNote: 'Private note moklo',
+    directNoteTo: 'Direct note to',
+    sharePrivately: 'Tame amari team sathe privately kai pan share kari shako chho.',
+    feedbackPlaceholder: 'Tamara vichar ke suchan ahiya lakho...',
+    contactPlaceholder: 'Tamaru naam ke contact (optional)',
+    sendToTeam: 'Team ne moklo',
+    sending: 'Moklay rahyu chhe...',
+    cancel: 'Cancel',
+    close: 'Band karo',
+    thankYou: 'Aabhar!',
+    feedbackSentMsg: 'Tamaro sandesho sidho team sudhi pahonchi gayo chhe.',
+    errorRefresh: 'Live suggestions load na thai shakya. Fari prayas karo athva potano review lakho.',
+    retry: '🔄 Fari prayas karo',
+    retrying: 'Prayas chalu chhe...',
+    cookieMsg: 'Review pasand karta j clipboard par copy thai jashe. Google par paste kari submit karo.',
+    gotIt: 'Samji gaya ✓',
+  },
+};
+
+// ─── DRAFT RECOVERY UTILITIES (Session & Tenant Isolated) ────────────────────
+const DRAFT_MAX_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+const getDraftStorageKey = (bId) => `nastaGhar_draft_${bId || 'default'}`;
+
+const loadDraft = (bId) => {
+  try {
+    const raw = sessionStorage.getItem(getDraftStorageKey(bId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (parsed.savedAt && Date.now() - parsed.savedAt > DRAFT_MAX_AGE_MS) {
+      sessionStorage.removeItem(getDraftStorageKey(bId));
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const saveDraft = (bId, updates) => {
+  try {
+    const current = loadDraft(bId) || {};
+    const merged = { ...current, ...updates, savedAt: Date.now() };
+    sessionStorage.setItem(getDraftStorageKey(bId), JSON.stringify(merged));
+  } catch {}
+};
+
+const clearSessionDraft = (bId) => {
+  try {
+    sessionStorage.removeItem(getDraftStorageKey(bId));
+    sessionStorage.removeItem('nastaGharSelectedReview');
+    sessionStorage.removeItem('nastaGharSelectedReviewId');
+    sessionStorage.removeItem('nastaGharDraftReview');
+    sessionStorage.removeItem('nastaGharSelectedRating');
+    sessionStorage.removeItem('nastaGharSelectedTopics');
+    sessionStorage.removeItem('nastaGharNothingSpecific');
+    sessionStorage.removeItem('nastaGharPersonalNote');
+    sessionStorage.removeItem('nastaGharReviewStarted');
+    sessionStorage.removeItem('nastaGharClipboardCopied');
+  } catch {}
+};
+
+// ─── STRICT GROUNDED FALLBACK SUGGESTIONS ───────────────────────────────────
+const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, aspects = []) => {
+  const noteFragment = note && note.trim() ? ` ${note.trim().replace(/[.!]+$/, '')}.` : '';
   const l = (lang || 'english').toLowerCase();
   const name = bizName || BRAND.name;
 
+  const cleanedAspects = Array.isArray(aspects) ? aspects.map((a) => String(a).toLowerCase().trim()).filter(Boolean) : [];
+  const hasBreakfast = cleanedAspects.some((a) => a.includes('breakfast') || a.includes('nasto') || a.includes('nasta'));
+  const hasCoffee = cleanedAspects.some((a) => a.includes('coffee') || a.includes('chai') || a.includes('tea') || a.includes('drink') || a.includes('beverage'));
+  const hasFood = cleanedAspects.some((a) => a.includes('food') || a.includes('taste') || a.includes('breakfast') || a.includes('snack') || a.includes('bakery'));
+  const hasService = cleanedAspects.some((a) => a.includes('service') || a.includes('staff'));
+  const hasAmbience = cleanedAspects.some((a) => a.includes('ambience') || a.includes('atmosphere') || a.includes('vibe'));
+  const hasClean = cleanedAspects.some((a) => a.includes('clean') || a.includes('sitting'));
+
+  let topicEn = '';
+  let topicHi = '';
+  let topicGu = '';
+
+  if (hasBreakfast && hasCoffee) {
+    topicEn = 'breakfast and chai';
+    topicHi = 'breakfast aur chai';
+    topicGu = 'breakfast ane chai';
+  } else if (hasBreakfast) {
+    topicEn = 'breakfast';
+    topicHi = 'breakfast';
+    topicGu = 'breakfast';
+  } else if (hasCoffee) {
+    topicEn = 'coffee and tea';
+    topicHi = 'chai';
+    topicGu = 'chai';
+  } else if (hasFood) {
+    topicEn = 'food';
+    topicHi = 'khana';
+    topicGu = 'food';
+  } else if (hasService) {
+    topicEn = 'service';
+    topicHi = 'service';
+    topicGu = 'service';
+  } else if (hasAmbience) {
+    topicEn = 'atmosphere';
+    topicHi = 'atmosphere';
+    topicGu = 'atmosphere';
+  } else if (hasClean) {
+    topicEn = 'sitting area';
+    topicHi = 'sitting area';
+    topicGu = 'sitting area';
+  }
+
+  let shortText = '';
+  let detailedText = '';
+  let personalText = '';
+
   if (l.includes('hin')) {
     if (r === 5) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Bahut hi tasty khana aur best chai!${noteText} Maza aa gaya 🍳☕` },
-        { id: 'opt2', focus: 'Food & Taste', text: `Khana ekdum fresh aur lajawab tha.${noteText} Quick service too ☕😋` },
-        { id: 'opt3', focus: 'Staff & Ambience', text: `Staff bahut polite hai aur safai ka pura dhyan rakha hai.${noteText} Family ke sath visit ke liye best jagah 😊✨` },
-        { id: 'opt4', focus: 'Taste & Value', text: `Har cheez garam aur fresh mili. Snacks aur chai bahut acche the aur price bhi sahi hai.${noteText} Zaroor try karein 👌🍲` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall experience bahut shandar raha at ${name}. Khana aur service dono top notch the.${noteText} Phir zaroor aayenge! 👨‍👩‍👧‍👦❤️` },
-      ];
+      if (topicHi) {
+        shortText = `${name} me ${topicHi} bahut pasand aaya!${noteFragment} Maza aa gaya 🍳☕`;
+        detailedText = `${name} me ${topicHi} ka experience lajawab raha.${noteFragment} Sab kuch accha manage kiya hua tha 😊✨`;
+        personalText = `Personal taur par ${name} me ${topicHi} bahut accha laga.${noteFragment} Very happy with the visit ❤️`;
+      } else {
+        shortText = `Bahut hi accha anubhav raha at ${name}!${noteFragment} Maza aa gaya 😊✨`;
+        detailedText = `Overall visit bahut shandar rahi at ${name}.${noteFragment} Sab kuch kaafi accha arrange tha 👍`;
+        personalText = `Mere liye ${name} ka visit kaafi positive raha.${noteFragment} Happy with my visit ❤️`;
+      }
     } else if (r === 4) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Accha khana aur tasty chai!${noteText} Morning ke liye badhiya choice 🍳` },
-        { id: 'opt2', focus: 'Food & Service', text: `Breakfast fresh tha aur service bhi fast thi.${noteText} Staff ka behaviour kaafi polite tha 👍☕` },
-        { id: 'opt3', focus: 'Clean & Fair', text: `Clean sitting area aur achhi food quality.${noteText} Rates bhi pocket friendly hain 😊` },
-        { id: 'opt4', focus: 'Snacks & Tea', text: `Snacks aur garam chai enjoy kiya. Food time pe serve hua aur taste accha tha.${noteText} Quick bite ke liye acchi jagah 🥪🍲` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Kaafi accha visit raha. Good taste, clean tables aur friendly service.${noteText} Definitely visit karne jaisa hai 🌟👍` },
-      ];
+      if (topicHi) {
+        shortText = `${name} me ${topicHi} kaafi accha tha.${noteFragment} Accha anubhav raha 👍`;
+        detailedText = `${name} me ${topicHi} ka overall experience accha raha.${noteFragment} Visit se khushi hui 🙂`;
+        personalText = `${name} ka visit pasand aaya, khas taur par ${topicHi}.${noteFragment} Good visit overall 👍`;
+      } else {
+        shortText = `Accha anubhav raha at ${name}.${noteFragment} Thik se sab manage tha 👍`;
+        detailedText = `Overall visit acchi rahi at ${name}.${noteFragment} Satisfied with today's visit 🙂`;
+        personalText = `Mere liye ${name} ka visit accha raha.${noteFragment} Thik thaak arrange tha 👍`;
+      }
     } else if (r === 3) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Khana theek tha, lekin service thodi slow lagi aaj.${noteText} 🙂` },
-        { id: 'opt2', focus: 'Food & Wait', text: `Chai acchi thi par snacks thode thande the.${noteText} Average experience raha 🙂☕` },
-        { id: 'opt3', focus: 'Service Pace', text: `Staff polite tha par order ke liye wait karna pada.${noteText} Decent visit 🙂` },
-        { id: 'opt4', focus: 'Crowd & Cleaning', text: `Aaj bheed kaafi thi. Food taste theek tha lekin table cleaning mein thoda time lag gaya.${noteText} Hope agli baar fast service mile 🙂🥪` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall theek experience tha. Seating comfortable hai par service mein thoda improvement chahiye.${noteText} Okay visit 🙂` },
-      ];
+      if (topicHi) {
+        shortText = `${name} me ${topicHi} thik-thak raha.${noteFragment} Average experience 🙂`;
+        detailedText = `${name} me ${topicHi} theek tha par kuch cheezein aur behtar ho sakti hain.${noteFragment} Standard visit 🙂`;
+        personalText = `Mere hisab se ${name} me ${topicHi} average tha.${noteFragment} Normal visit overall 🙂`;
+      } else {
+        shortText = `Aaj ${name} ka anubhav thik-thak raha.${noteFragment} Normal visit 🙂`;
+        detailedText = `Overall thik experience tha at ${name}.${noteFragment} Kuch sudhar ki gunjaish hai 🙂`;
+        personalText = `Mera experience at ${name} average raha.${noteFragment} Standard experience 🙂`;
+      }
     } else if (r === 2) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Khana theek tha par wait time bahut zyada tha aaj.${noteText} 😕` },
-        { id: 'opt2', focus: 'Order Delay', text: `Aaj service se khush nahi huye.${noteText} Order kaafi late aaya aur khana bhi lukewarm tha 😕` },
-        { id: 'opt3', focus: 'Staff Attention', text: `Staff ka dhyaan nahi tha aur service kaafi slow thi.${noteText} Better service expected thi 😕` },
-        { id: 'opt4', focus: 'Slow Service', text: `Khaane ke liye kaafi wait karna pada aur tables quickly clean nahi huye.${noteText} Service improve karni chahiye 😕⏳` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Disappointing visit raha. Chai theek thi par snacks fresh nahi the aur service slow thi.${noteText} Umeed hai agle baar sudhar hoga 😕` },
-      ];
+      if (topicHi) {
+        shortText = `${name} me ${topicHi} ummeed ke mutabik nahi tha.${noteFragment} 😕`;
+        detailedText = `${name} me ${topicHi} se thodi nirasha hui.${noteFragment} Sudhar ki zaroorat hai 😕`;
+        personalText = `${name} me ${topicHi} se jaisi ummeed thi waisa anubhav nahi mila.${noteFragment} 😕`;
+      } else {
+        shortText = `Aaj ${name} ka anubhav ummeed se kam raha.${noteFragment} 😕`;
+        detailedText = `${name} ka visit satisfactory nahi raha.${noteFragment} Kafi cheezon par dhyan dene ki zaroorat hai 😕`;
+        personalText = `Mujhe aaj ${name} ka visit pasand nahi aaya.${noteFragment} Needs improvement 😕`;
+      }
     } else {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Bahut slow service aur khana bhi thanda mila aaj.${noteText} 😞` },
-        { id: 'opt2', focus: 'Order Issue', text: `Kharab experience raha aaj.${noteText} Bahut der wait kiya aur order bhi galat aaya 😞` },
-        { id: 'opt3', focus: 'Cleanliness', text: `Staff unorganized tha aur tables bilkul clean nahi the.${noteText} Poor service 😞` },
-        { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Khaana aane mein bahut time laga aur taste fresh nahi tha.${noteText} Koi theek se attend nahi kar raha tha 😞👎` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Kaafi poor experience raha. Long waiting time, cold food aur careless staff.${noteText} Major improvement ki zaroorat hai 😞` },
-      ];
+      if (topicHi) {
+        shortText = `${name} me ${topicHi} ka anubhav bahut niraashajanak raha.${noteFragment} 😞`;
+        detailedText = `Aaj ${name} me ${topicHi} se bilkul santusht nahi huye.${noteFragment} Bada sudhar chahiye 😞`;
+        personalText = `${name} me ${topicHi} ka visit mere liye kafi kharab raha.${noteFragment} 😞`;
+      } else {
+        shortText = `Aaj ${name} me bahut kharab anubhav raha.${noteFragment} 😞`;
+        detailedText = `${name} me aaj ka visit bilkul accha nahi raha.${noteFragment} Quality aur dhyan dono me kami thi 😞`;
+        personalText = `Mujhe aaj ${name} me bilkul accha anubhav nahi mila.${noteFragment} Highly dissatisfied 😞`;
+      }
     }
-  }
-
-  if (l.includes('guj')) {
+  } else if (l.includes('guj')) {
     if (r === 5) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Ahiya nu food ekdum mast hatu ane chai pan jordar!${noteText} Khub majja aavi 🍳☕` },
-        { id: 'opt2', focus: 'Food & Taste', text: `Nasto ekdum fresh ane taste lajawab hato.${noteText} Quick service too ☕😋` },
-        { id: 'opt3', focus: 'Staff & Ambience', text: `Staff khub polite chhe ane chokkhai pan saras chhe.${noteText} Family sathe aavva mate best jagya 😊✨` },
-        { id: 'opt4', focus: 'Taste & Value', text: `Badhu garam ane fresh malyu. Snacks ane chai bahu saras hata ane bhav pan fair chhe.${noteText} Jarur try karva jevu chhe 👌🍲` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall experience bahu j saras rahyo at ${name}. Food ane service banne top class.{noteText} Fari thi jarur aavishu! 👨‍👩‍👧‍👦❤️` },
-      ];
+      if (topicGu) {
+        shortText = `${name} ma ${topicGu} khub j gamyu!${noteFragment} Majo avi gayo ✨`;
+        detailedText = `${name} ma ${topicGu} no anubhav lajawab rahyo.${noteFragment} Badhu vyavasthit hatu 😊`;
+        personalText = `Mane ${name} ma ${topicGu} khub saras lagyu.${noteFragment} Khub santosh thayo ❤️`;
+      } else {
+        shortText = `Khub j saras anubhav rahyo at ${name}!${noteFragment} Majo avi gayo ✨`;
+        detailedText = `${name} ni mulakat khub shandar rahi.${noteFragment} Badhi vyavastha saras hati 😊`;
+        personalText = `Mane ${name} ni mulakat khub j pasand avi.${noteFragment} Khub anand thayo ❤️`;
+      }
     } else if (r === 4) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Saras khavanu ane kadak chai!${noteText} Savarni saras sharuat 🍳` },
-        { id: 'opt2', focus: 'Food & Service', text: `Breakfast fresh hatu ane quick service mali.${noteText} Staff no swabhav pan vinamra hato 👍☕` },
-        { id: 'opt3', focus: 'Clean & Fair', text: `Clean sitting area ane sari food quality.${noteText} Rates pan reasonable chhe 😊` },
-        { id: 'opt4', focus: 'Snacks & Tea', text: `Snacks ane garam chai ni maja aavi. Food jaldi aavyu ane taste saro hato.${noteText} Quick bite mate saras jagya 🥪🍲` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Samagra mulakat khub sari rahi. Saro taste, clean tables ane friendly service.${noteText} Fari aavva jevu chhe 🌟👍` },
-      ];
+      if (topicGu) {
+        shortText = `${name} ma ${topicGu} saru hatu.${noteFragment} Saras anubhav 👍`;
+        detailedText = `${name} ma ${topicGu} no anubhav ekandare saras rahyo.${noteFragment} Khushi thai 🙂`;
+        personalText = `Mane ${name} ma ${topicGu} pasand aavyu.${noteFragment} Good experience overall 👍`;
+      } else {
+        shortText = `Saras anubhav rahyo at ${name}.${noteFragment} Badhu barabar hatu 👍`;
+        detailedText = `${name} ni mulakat ekandare sari rahi.${noteFragment} Santoshjanak anubhav 🙂`;
+        personalText = `Mane ${name} ni mulakat sari lagi.${noteFragment} Overall good visit 👍`;
+      }
     } else if (r === 3) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Food thik hatu, pan service thodi slow lagi aaje.${noteText} 🙂` },
-        { id: 'opt2', focus: 'Food & Wait', text: `Chai sari hati pan snacks thoda thanda hata.${noteText} Samanya anubhav rahyo 🙂☕` },
-        { id: 'opt3', focus: 'Service Pace', text: `Staff saro hato pan order mate thodi vaar lagi.${noteText} Average visit 🙂` },
-        { id: 'opt4', focus: 'Crowd & Cleaning', text: `Bheed vadhare hati aaje. Taste barabar hato pan table cleaning ma time lagyo.${noteText} Aavti vakhte better service ni apeksha 🙂🥪` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Overall thik anubhav rahyo. Seating comfortable chhe pan service thodi improve karvani jarur chhe.${noteText} Okay visit 🙂` },
-      ];
+      if (topicGu) {
+        shortText = `${name} ma ${topicGu} thik-thak hatu.${noteFragment} Sadharan anubhav 🙂`;
+        detailedText = `${name} ma ${topicGu} thik hatu pan thodu sudhari shakay em chhe.${noteFragment} Average visit 🙂`;
+        personalText = `Mara mate ${name} ma ${topicGu} sadharan rahyu.${noteFragment} Normal experience 🙂`;
+      } else {
+        shortText = `Aaj no anubhav at ${name} thik-thak rahyo.${noteFragment} Sadharan mulakat 🙂`;
+        detailedText = `${name} ni mulakat ekandare average rahi.${noteFragment} Sudhara ni jarur chhe 🙂`;
+        personalText = `Mane ${name} no anubhav average lagyo.${noteFragment} Normal experience 🙂`;
+      }
     } else if (r === 2) {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Food thik hatu pan wait bahu karvu padyu aaje.${noteText} 😕` },
-        { id: 'opt2', focus: 'Order Delay', text: `Aaje service thi santosh na thayo.${noteText} Order late aavyo ane food pan lukewarm hatu 😕` },
-        { id: 'opt3', focus: 'Staff Attention', text: `Staff dhyan nhato aapi rahyo ane service slow hati.${noteText} Better service expected hati 😕` },
-        { id: 'opt4', focus: 'Slow Service', text: `Order mate ghano wait karyo ane tables pan quickly clean na thaya.${noteText} Customer service improve karvani jarur chhe 😕⏳` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Nirashajanak visit rahi. Chai thik hati pan snacks fresh nahota ane service slow hati.${noteText} Management sudharo kare evi aasha 😕` },
-      ];
+      if (topicGu) {
+        shortText = `${name} ma ${topicGu} apeksha mujab na hatu.${noteFragment} 😕`;
+        detailedText = `${name} ma ${topicGu} no anubhav thodo nirashajanak rahyo.${noteFragment} Sudhar ni jarur chhe 😕`;
+        personalText = `Mane ${name} ma ${topicGu} thi jash na malyo.${noteFragment} 😕`;
+      } else {
+        shortText = `Aaj ni mulakat at ${name} apeksha karata ochhi rahi.${noteFragment} 😕`;
+        detailedText = `${name} ni mulakat santoshjanak na rahi.${noteFragment} Dhyan aapvani jarur chhe 😕`;
+        personalText = `Mane aaj no anubhav at ${name} pasand na aavyo.${noteFragment} 😕`;
+      }
     } else {
-      return [
-        { id: 'opt1', focus: 'Short & Sweet', text: `Bahu j slow service ane thandu khavanu aapyu aaje.${noteText} 😞` },
-        { id: 'opt2', focus: 'Order Issue', text: `Kharab anubhav rahyo aaje.${noteText} Ghani vaar ubha rakhya ane order pan wrong aavyo 😞` },
-        { id: 'opt3', focus: 'Cleanliness', text: `Staff unorganized hato ane tables bilkul clean nahota.${noteText} Bahu poor service 😞` },
-        { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Food aavva ma khub time lagyo ane taste fresh nahoto.${noteText} Koi barabar attend pan na karyu 😞👎` },
-        { id: 'opt5', focus: 'Overall Visit', text: `Experience bilkul saro na rahyo. Long waiting time, thandu food ane careless staff.${noteText} Service ma mota sudhara ni jarur chhe 😞` },
-      ];
+      if (topicGu) {
+        shortText = `${name} ma ${topicGu} ange khub nirasha thai.${noteFragment} 😞`;
+        detailedText = `${name} ma ${topicGu} no anubhav bilkul saras na rahyo.${noteFragment} Sudharo jaruri chhe 😞`;
+        personalText = `Mane ${name} ma ${topicGu} thi bilkul santosh na thayo.${noteFragment} 😞`;
+      } else {
+        shortText = `Aaj no anubhav at ${name} khub kharab rahyo.${noteFragment} 😞`;
+        detailedText = `${name} ni mulakat bilkul sari na rahi.${noteFragment} Motu sudhar jaruri chhe 😞`;
+        personalText = `Mane aaj no anubhav at ${name} bilkul pasand na aavyo.${noteFragment} 😞`;
+      }
+    }
+  } else {
+    // English
+    if (r === 5) {
+      if (topicEn) {
+        shortText = `Really enjoyed the ${topicEn} at ${name}!${noteFragment} Great experience ✨`;
+        detailedText = `Had a wonderful time with the ${topicEn} at ${name}.${noteFragment} Everything went smoothly 😊`;
+        personalText = `Personally loved the ${topicEn} at ${name}.${noteFragment} Very pleased with this visit 👍`;
+      } else {
+        shortText = `Excellent experience at ${name}!${noteFragment} Thoroughly enjoyed it ✨`;
+        detailedText = `Everything went smoothly during today's visit to ${name}.${noteFragment} Really pleased with the experience 😊`;
+        personalText = `A truly great visit to ${name} for me.${noteFragment} Very satisfied with everything 👍`;
+      }
+    } else if (r === 4) {
+      if (topicEn) {
+        shortText = `Good experience with the ${topicEn} at ${name}.${noteFragment} 👍`;
+        detailedText = `Overall a solid experience with the ${topicEn} at ${name}.${noteFragment} Glad I visited 🙂`;
+        personalText = `Had a good visit for ${topicEn} at ${name}.${noteFragment} Happy with how things went 👍`;
+      } else {
+        shortText = `Good visit overall at ${name}.${noteFragment} Everything was in order 👍`;
+        detailedText = `Overall a solid and enjoyable experience at ${name}.${noteFragment} Everything was well arranged 😊`;
+        personalText = `Had a good visit at ${name}.${noteFragment} Happy with my experience overall 👍`;
+      }
+    } else if (r === 3) {
+      if (topicEn) {
+        shortText = `Decent visit for ${topicEn} at ${name}.${noteFragment} Standard experience 🙂`;
+        detailedText = `The ${topicEn} at ${name} was fine overall.${noteFragment} An average visit with room for minor improvement 🙂`;
+        personalText = `It was a pretty average experience for ${topicEn} at ${name}.${noteFragment} Decent visit overall 🙂`;
+      } else {
+        shortText = `Decent visit today at ${name}.${noteFragment} Standard experience 🙂`;
+        detailedText = `Overall a fair and average experience at ${name}. A few good points, but there is room for improvement.${noteFragment} Decent visit 🙂`;
+        personalText = `It was a pretty average visit for me at ${name}.${noteFragment} Fair experience overall 🙂`;
+      }
+    } else if (r === 2) {
+      if (topicEn) {
+        shortText = `The ${topicEn} at ${name} fell below expectations today.${noteFragment} 😕`;
+        detailedText = `Disappointed with the ${topicEn} at ${name}.${noteFragment} The experience needs attention and improvement 😕`;
+        personalText = `Expected a better experience with the ${topicEn} at ${name}.${noteFragment} Hope to see improvements 😕`;
+      } else {
+        shortText = `Visit fell below expectations today at ${name}.${noteFragment} 😕`;
+        detailedText = `Somewhat disappointed with the visit at ${name}.${noteFragment} Several areas need attention and better care 😕`;
+        personalText = `Expected a better experience than what I had at ${name} today.${noteFragment} Hope to see improvements 😕`;
+      }
+    } else {
+      if (topicEn) {
+        shortText = `Very disappointing experience with the ${topicEn} at ${name} today.${noteFragment} 😞`;
+        detailedText = `Unsatisfied with the ${topicEn} during today's visit to ${name}.${noteFragment} Major improvements are needed 😞`;
+        personalText = `Really unhappy with the ${topicEn} at ${name} today.${noteFragment} Disappointed with how things went 😞`;
+      } else {
+        shortText = `Very disappointing experience today at ${name}.${noteFragment} 😞`;
+        detailedText = `Extremely unsatisfied with today's visit at ${name}.${noteFragment} Major improvements are needed in service and quality 😞`;
+        personalText = `Really unhappy with the experience today.${noteFragment} Disappointed with how things were handled at ${name} 😞`;
+      }
     }
   }
 
-  // English fallback
-  if (r === 5) {
-    return [
-      { id: 'opt1', focus: 'Short & Sweet', text: `Amazing breakfast and best chai in town!${noteText} Loved it 🍳☕` },
-      { id: 'opt2', focus: 'Food & Tea', text: `The food was fresh and the tea was super tasty.${noteText} Quick service too ☕😋` },
-      { id: 'opt3', focus: 'Staff & Place', text: `Very friendly staff and clean place.${noteText} We had a great time here 😊✨` },
-      { id: 'opt4', focus: 'Taste & Value', text: `Everything was hot, fresh and full of flavour. The snacks and chai were really good and the price is also fair.${noteText} Must try 👌🍲` },
-      { id: 'opt5', focus: 'Family Visit', text: `Had a wonderful breakfast with family at ${name}. Great food, friendly people, and relaxed vibe.${noteText} Will surely visit again! 👨‍👩‍👧‍👦❤️` },
-    ];
-  } else if (r === 4) {
-    return [
-      { id: 'opt1', focus: 'Short & Sweet', text: `Good food and tasty chai!${noteText} Nice start to the morning 🍳` },
-      { id: 'opt2', focus: 'Food & Service', text: `Fresh breakfast and quick service.${noteText} Staff was polite and helpful 👍☕` },
-      { id: 'opt3', focus: 'Clean & Fair', text: `Clean sitting area and good food quality.${noteText} Prices are also reasonable 😊` },
-      { id: 'opt4', focus: 'Snacks & Tea', text: `Enjoyed the snacks and hot tea. Food was served quickly and tasted nice.${noteText} Worth a visit for a quick bite 🥪🍲` },
-      { id: 'opt5', focus: 'Overall Visit', text: `Overall a very pleasant visit. Good taste, clean tables, and friendly service.${noteText} Will definitely come back again 🌟👍` },
-    ];
-  } else if (r === 3) {
-    return [
-      { id: 'opt1', focus: 'Short & Sweet', text: `Decent food, but the service was a bit slow today.${noteText} 🙂` },
-      { id: 'opt2', focus: 'Food & Tea', text: `The chai was nice, but the snacks could have been hotter.${noteText} Okay experience overall 🙂☕` },
-      { id: 'opt3', focus: 'Wait Time', text: `Staff was polite, but we had to wait some time for our order.${noteText} Average visit 🙂` },
-      { id: 'opt4', focus: 'Busy Hours', text: `The place was quite crowded today. Food taste was fine, but table cleaning took longer than expected.${noteText} Hope it gets faster next time 🙂🥪` },
-      { id: 'opt5', focus: 'Overall Visit', text: `Fair experience overall. Tea was good and seating is comfortable, but service needs a little improvement.${noteText} It was an okay visit 🙂` },
-    ];
-  } else if (r === 2) {
-    return [
-      { id: 'opt1', focus: 'Short & Sweet', text: `Food was okay, but wait time was too long today.${noteText} 😕` },
-      { id: 'opt2', focus: 'Order Delay', text: `Not satisfied with the service today.${noteText} Order was delayed and food was lukewarm 😕` },
-      { id: 'opt3', focus: 'Attention', text: `The place was noisy and staff was not paying attention.${noteText} Expected better service 😕` },
-      { id: 'opt4', focus: 'Slow Service', text: `We had to wait a long time to get our food and tables were not cleaned quickly.${noteText} Need to improve customer service 😕⏳` },
-      { id: 'opt5', focus: 'Overall Visit', text: `Disappointing visit today. The chai was fine but snacks were not fresh and service was very slow.${noteText} Hope management fixes this 😕` },
-    ];
-  } else {
-    return [
-      { id: 'opt1', focus: 'Short & Sweet', text: `Very slow service and cold food today.${noteText} 😞` },
-      { id: 'opt2', focus: 'Order Issue', text: `Bad experience today.${noteText} Waited very long and our order was wrong 😞` },
-      { id: 'opt3', focus: 'Cleanliness', text: `Staff was unorganized and tables were not clean.${noteText} Very poor service 😞` },
-      { id: 'opt4', focus: 'Food & Wait', text: `Disappointed with the visit. Food took forever to arrive and tasted stale.${noteText} Nobody came to attend us properly 😞👎` },
-      { id: 'opt5', focus: 'Overall Visit', text: `Extremely poor experience today. Long waiting time, cold food, and careless staff.${noteText} Needs major improvement in service 😞` },
-    ];
-  }
+  return [
+    { id: 'opt1', focus: 'Short & Natural', text: shortText },
+    { id: 'opt2', focus: 'Detailed & Expressive', text: detailedText },
+    { id: 'opt3', focus: 'Simple & Personal', text: personalText },
+  ];
 };
 
 export default function CustomerReview({
@@ -181,34 +466,23 @@ export default function CustomerReview({
   const tableParam = urlParams.get('table') || null;
   const isPreviewMode = isPreview || urlParams.get('preview') === 'true';
 
+  // Automatic browser-side language detection ONLY (no manual UI, consistent across all components)
+  const language = detectBrowserLanguage();
+  const t = UI_STRINGS[language] || UI_STRINGS.english;
+
   // Custom editor view toggle (inline)
   const [showCustomEditor, setShowCustomEditor] = useState(false);
   const reviewCardRef = useRef(null);
   const editorRef = useRef(null);
+  const topicsSectionRef = useRef(null);
+
+  // Load existing session draft if valid and not expired
+  const initialDraft = loadDraft(businessId);
 
   // Rating
-  const [rating, setRating] = useState(() => {
-    try {
-      const savedRating = Number(sessionStorage.getItem('nastaGharSelectedRating'));
-      return savedRating >= 1 && savedRating <= 5 ? savedRating : 5;
-    } catch {
-      return 5;
-    }
-  });
+  const [rating, setRating] = useState(() => (initialDraft?.rating >= 1 && initialDraft?.rating <= 5 ? initialDraft.rating : 5));
   const [hoverRating, setHoverRating] = useState(0);
-  const [reviewStarted, setReviewStarted] = useState(false);
-  const topicsSectionRef = useRef(null);
-  const languageSectionRef = useRef(null);
-
-  // Language selection: 'english' | 'hindi' | 'gujarati'
-  const [language, setLanguage] = useState(() => {
-    try {
-      const savedLang = sessionStorage.getItem('nastaGharSelectedLanguage');
-      return ['english', 'hindi', 'gujarati'].includes(savedLang) ? savedLang : 'english';
-    } catch {
-      return 'english';
-    }
-  });
+  const [reviewStarted, setReviewStarted] = useState(() => Boolean(initialDraft?.reviewStarted));
 
   // Business Category & Dynamic Branding
   const [businessName, setBusinessName] = useState(() => (businessId === 'default_business' || businessId === 'nasta_ghar' ? BRAND.name : ''));
@@ -220,21 +494,23 @@ export default function CustomerReview({
 
   // Topics
   const [availableTopics, setAvailableTopics] = useState(DEFAULT_TOPICS);
-  const [selectedTopics, setSelectedTopics] = useState(['Breakfast', 'Chai & Tea']);
-  const [nothingSpecific, setNothingSpecific] = useState(false);
-  const [personalNote, setPersonalNote] = useState('');
+  const [selectedTopics, setSelectedTopics] = useState(() => (Array.isArray(initialDraft?.selectedTopics) ? initialDraft.selectedTopics : ['Breakfast', 'Chai & Tea']));
+  const [nothingSpecific, setNothingSpecific] = useState(() => Boolean(initialDraft?.nothingSpecific));
+  const [personalNote, setPersonalNote] = useState(() => initialDraft?.personalNote || '');
 
   // Keep Google Maps pointed at the restaurant's selected destination.
   const [googleReviewUrl, setGoogleReviewUrl] = useState(BRAND.googleMapUrl);
 
   // Ideas initialized with fallback ideas (no empty screen, instant feedback)
-  const [ideas, setIdeas] = useState(() => getFallbackIdeas(rating, '', language, businessName || BRAND.name));
+  const [ideas, setIdeas] = useState(() => getFallbackIdeas(rating, personalNote, language, businessName || BRAND.name, nothingSpecific ? [] : selectedTopics));
   const [loadingIdeas, setLoadingIdeas] = useState(false);
-  const [selectedIdeaId, setSelectedIdeaId] = useState(null);
+  const [ideasError, setIdeasError] = useState(false);
+  const isFetchingIdeasRef = useRef(false);
+  const [selectedIdeaId, setSelectedIdeaId] = useState(() => initialDraft?.selectedIdeaId || null);
   const fetchIdeasDebounceRef = useRef(null);
 
   // Editor
-  const [draftReview, setDraftReview] = useState('');
+  const [draftReview, setDraftReview] = useState(() => initialDraft?.draftReview || '');
   const [isRegenerating, setIsRegenerating] = useState(false);
 
   // Session & analytics
@@ -253,38 +529,38 @@ export default function CustomerReview({
   const [privateContact, setPrivateContact] = useState('');
   const [privateSent, setPrivateSent] = useState(false);
   const [privateError, setPrivateError] = useState('');
+  const [isSubmittingPrivate, setIsSubmittingPrivate] = useState(false);
 
   // Clean tenant storage isolation when switching between businesses
   useEffect(() => {
     try {
-      const savedReview = sessionStorage.getItem('nastaGharSelectedReview');
-      const savedBusinessId = sessionStorage.getItem('nastaGharBusinessId');
+      const savedBusinessId = sessionStorage.getItem('nastaGharActiveBusinessId');
       if (savedBusinessId && savedBusinessId !== businessId) {
-        // Clear stale data from previous business
-        sessionStorage.removeItem('nastaGharSelectedReview');
-        sessionStorage.removeItem('nastaGharSelectedReviewId');
-        sessionStorage.removeItem('nastaGharSelectedRating');
-        sessionStorage.removeItem('nastaGharClipboardCopied');
-        sessionStorage.removeItem('nastaGharGoogleMapsDestination');
+        clearSessionDraft(savedBusinessId);
         setDraftReview('');
         setSelectedIdeaId(null);
+        setSelectedTopics(['Breakfast', 'Chai & Tea']);
+        setNothingSpecific(false);
+        setPersonalNote('');
+        setReviewStarted(false);
         setCopied(false);
         setHandoffOpen(false);
-        sessionStorage.setItem('nastaGharBusinessId', businessId);
-        return;
       }
-      if (!savedReview || savedBusinessId !== businessId) return;
-      setDraftReview(savedReview);
-      setSelectedIdeaId(sessionStorage.getItem('nastaGharSelectedReviewId'));
-      setRating(Number(sessionStorage.getItem('nastaGharSelectedRating')) || 5);
-      setCopied(sessionStorage.getItem('nastaGharClipboardCopied') === 'true');
-      setHandoffOpen(true);
+      sessionStorage.setItem('nastaGharActiveBusinessId', businessId);
+      const activeDraft = loadDraft(businessId);
+      if (activeDraft) {
+        if (activeDraft.rating) setRating(activeDraft.rating);
+        if (activeDraft.selectedTopics) setSelectedTopics(activeDraft.selectedTopics);
+        if (activeDraft.personalNote) setPersonalNote(activeDraft.personalNote);
+        if (activeDraft.draftReview) setDraftReview(activeDraft.draftReview);
+        if (activeDraft.reviewStarted) setReviewStarted(true);
+      }
     } catch {
-      // Session storage can be unavailable in restricted browser contexts.
+      // Session storage can be unavailable in restricted contexts.
     }
   }, [businessId]);
 
-  // Acknowledgement for the clipboard handoff instructions.
+  // Acknowledgement for clipboard handoff instructions
   const [cookieConsent, setCookieConsent] = useState(() => {
     try {
       return localStorage.getItem('ng_clipboard_notice_seen') === 'true';
@@ -328,15 +604,18 @@ export default function CustomerReview({
         if (d.primary_accent) setPrimaryAccent(d.primary_accent);
         if (d.description) setBusinessDescription(d.description);
         if (d.topics && d.topics.length > 0) {
-          const enriched = d.topics.map((t) => ({
-            label: t,
-            icon: getTopicIcon(t),
+          const enriched = d.topics.map((item) => ({
+            label: item,
+            icon: getTopicIcon(item),
           }));
           setAvailableTopics(enriched);
-          setSelectedTopics(d.topics.slice(0, 2));
+          const currentDraft = loadDraft(businessId);
+          if (!currentDraft?.selectedTopics) {
+            setSelectedTopics(d.topics.slice(0, 2));
+            saveDraft(businessId, { selectedTopics: d.topics.slice(0, 2) });
+          }
         }
-        // Update initial ideas with loaded business name
-        setIdeas(getFallbackIdeas(rating, personalNote, language, resolvedName));
+        setIdeas(getFallbackIdeas(rating, personalNote, language, resolvedName, nothingSpecific ? [] : selectedTopics));
       })
       .catch(() => {
         if (businessId === 'default_business' || businessId === 'nasta_ghar') {
@@ -359,7 +638,6 @@ export default function CustomerReview({
       .catch(() => { if (active) setSessionId(`local-${Date.now()}`); });
 
     return () => { active = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId, tableParam]);
 
   function getTopicIcon(label) {
@@ -373,10 +651,6 @@ export default function CustomerReview({
     if (l.includes('value') || l.includes('money') || l.includes('price')) return '💰';
     if (l.includes('quick') || l.includes('fast') || l.includes('speed')) return '⚡';
     if (l.includes('atmosphere') || l.includes('vibe') || l.includes('ambience')) return '🌟';
-    if (l.includes('room') || l.includes('bed')) return '🛏️';
-    if (l.includes('comfort')) return '🛋️';
-    if (l.includes('location')) return '📍';
-    if (l.includes('hair') || l.includes('salon') || l.includes('result') || l.includes('treatment')) return '💇';
     return '👍';
   }
 
@@ -431,28 +705,23 @@ export default function CustomerReview({
   // ─── HANDLERS ───────────────────────────────────────────────────────────────
   const handleRating = (s) => {
     setRating(s);
-    try { sessionStorage.setItem('nastaGharSelectedRating', String(s)); } catch {}
+    saveDraft(businessId, { rating: s });
     logEvent('rating_selected', { rating: s });
-  };
-
-  const handleLanguageSelect = (langKey) => {
-    setLanguage(langKey);
-    try { sessionStorage.setItem('nastaGharSelectedLanguage', langKey); } catch {}
-    logEvent('language_selected', { language: langKey });
-    setIdeas(getFallbackIdeas(rating, personalNote, langKey));
   };
 
   const handleContinueReview = () => {
     setReviewStarted(true);
+    saveDraft(businessId, { reviewStarted: true });
     setTimeout(() => {
-      languageSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      topicsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 60);
   };
 
   const toggleTopic = (label) => {
     setNothingSpecific(false);
     setSelectedTopics((prev) => {
-      const next = prev.includes(label) ? prev.filter((t) => t !== label) : [...prev, label];
+      const next = prev.includes(label) ? prev.filter((item) => item !== label) : [...prev, label];
+      saveDraft(businessId, { selectedTopics: next, nothingSpecific: false });
       logEvent('aspects_selected', { aspects: next });
       return next;
     });
@@ -461,45 +730,60 @@ export default function CustomerReview({
   const handleNothingSpecific = () => {
     setNothingSpecific(true);
     setSelectedTopics([]);
+    saveDraft(businessId, { selectedTopics: [], nothingSpecific: true });
     logEvent('aspects_selected', { aspects: [] });
   };
 
-  // Automatically keep ideas synchronized with rating, topics, language, and personal note
-  useEffect(() => {
-    // 1. Instant fallback update for 0ms perceived latency
-    setIdeas(getFallbackIdeas(rating, personalNote, language));
+  // Dedicated fetcher for candidate ideas with concurrent lock and explicit retry
+  const fetchAiIdeas = async (isManualRetry = false) => {
+    if (isFetchingIdeasRef.current) return;
+    isFetchingIdeasRef.current = true;
+    setLoadingIdeas(true);
+    if (isManualRetry) setIdeasError(false);
 
-    // 2. Debounce background request to enrich with AI-crafted candidate ideas
+    try {
+      const res = await apiFetch('/api/reviews/ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_id: businessId,
+          rating,
+          aspects: nothingSpecific ? [] : selectedTopics,
+          user_note: personalNote.trim(),
+          language,
+          category: businessCategory,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ideas && Array.isArray(data.ideas) && data.ideas.length > 0) {
+          setIdeas(data.ideas.slice(0, 3));
+          setIdeasError(false);
+        } else {
+          setIdeasError(true);
+        }
+      } else {
+        setIdeasError(true);
+      }
+    } catch {
+      setIdeasError(true);
+    } finally {
+      setLoadingIdeas(false);
+      isFetchingIdeasRef.current = false;
+    }
+  };
+
+  // Automatically keep ideas synchronized with rating, topics, and personal note
+  useEffect(() => {
+    setIdeas(getFallbackIdeas(rating, personalNote, language, businessName || BRAND.name, nothingSpecific ? [] : selectedTopics));
+    setIdeasError(false);
+
     if (fetchIdeasDebounceRef.current) {
       clearTimeout(fetchIdeasDebounceRef.current);
     }
 
-    fetchIdeasDebounceRef.current = setTimeout(async () => {
-      setLoadingIdeas(true);
-      try {
-        const res = await apiFetch(`/api/reviews/ideas`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            business_id: businessId,
-            rating,
-            aspects: nothingSpecific ? [] : selectedTopics,
-            user_note: personalNote.trim(),
-            language,
-            category: businessCategory,
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.ideas && data.ideas.length >= 3) {
-            setIdeas(data.ideas);
-          }
-        }
-      } catch {
-        // Fallback ideas are already in place
-      } finally {
-        setLoadingIdeas(false);
-      }
+    fetchIdeasDebounceRef.current = setTimeout(() => {
+      fetchAiIdeas(false);
     }, 350);
 
     return () => {
@@ -509,8 +793,8 @@ export default function CustomerReview({
     };
   }, [rating, selectedTopics, nothingSpecific, personalNote, businessId, language, businessCategory]);
 
-  // Begin the handoff from the customer's tap; clipboard access is requested immediately.
   const handlePostDirectly = async (idea) => {
+    if (copyingReview) return;
     await startReviewHandoff(idea.text, idea.id);
   };
 
@@ -526,33 +810,24 @@ export default function CustomerReview({
     logEvent('review_approved', { length: reviewText.length, direct_post: true });
     logEvent('google_review_handoff_started', { review_id: reviewId });
 
-    try {
-      sessionStorage.setItem('nastaGharSelectedReview', reviewText);
-      sessionStorage.setItem('nastaGharSelectedRating', String(rating));
-      sessionStorage.setItem('nastaGharSelectedReviewId', String(reviewId ?? ''));
-      sessionStorage.setItem('nastaGharSelectedAt', new Date().toISOString());
-      sessionStorage.setItem('nastaGharBusinessId', businessId);
-      sessionStorage.setItem('nastaGharGoogleMapsDestination', googleReviewUrl);
-    } catch {
-      // Continue the handoff even when session storage is unavailable.
-    }
+    saveDraft(businessId, { draftReview: reviewText, selectedIdeaId: reviewId });
 
     const copiedSuccessfully = await copyTextToClipboard(reviewText);
     setCopyingReview(false);
     setCopied(copiedSuccessfully);
     setShowCopyToast(true);
     setTimeout(() => setShowCopyToast(false), 3500);
-    try { sessionStorage.setItem('nastaGharClipboardCopied', String(copiedSuccessfully)); } catch {}
     logEvent(copiedSuccessfully ? 'review_clipboard_success' : 'review_clipboard_failed', { review_id: reviewId });
 
     if (copiedSuccessfully) {
       logEvent('google_maps_redirect', { destination: googleReviewUrl });
       logEvent('google_review_link_opened');
+      // Clear draft upon successful completion so customer or new session does not restore stale draft
+      clearSessionDraft(businessId);
       window.location.href = googleReviewUrl;
       return;
     }
 
-    // Keep the exact review visible with a retry and an explicit Maps fallback CTA.
     setHandoffOpen(true);
   };
 
@@ -574,7 +849,10 @@ export default function CustomerReview({
         }),
       });
       const data = await res.json();
-      if (data.review) setDraftReview(data.review);
+      if (data.review) {
+        setDraftReview(data.review);
+        saveDraft(businessId, { draftReview: data.review });
+      }
     } catch { /* keep current */ }
     finally { setIsRegenerating(false); }
   };
@@ -586,7 +864,8 @@ export default function CustomerReview({
 
   const handlePrivateFeedback = async (e) => {
     e.preventDefault();
-    if (!privateNote.trim()) return;
+    if (isSubmittingPrivate || !privateNote.trim()) return;
+    setIsSubmittingPrivate(true);
     setPrivateError('');
     try {
       const response = await apiFetch(`/api/reviews/private-feedback`, {
@@ -604,13 +883,17 @@ export default function CustomerReview({
       if (!response.ok) throw new Error('Feedback request failed');
       setPrivateSent(true);
       logEvent('private_feedback_sent');
+      // Clear draft upon completed private submission
+      clearSessionDraft(businessId);
     } catch {
       setPrivateError('We couldn’t send your message right now. Please try again.');
+    } finally {
+      setIsSubmittingPrivate(false);
     }
   };
 
   const activeRating = hoverRating || rating;
-  const ratingLabel = RATING_LABELS[activeRating] || RATING_LABELS[5];
+  const ratingLabel = t.ratings[activeRating] || t.ratings[5];
 
   // ─── RENDER ─────────────────────────────────────────────────────────────────
   if (notFound) {
@@ -694,8 +977,8 @@ export default function CustomerReview({
 
         {/* ── SECTION 1: RATING ─────────────────────────────────────────── */}
         <section className="ng-section" aria-label="Rating selection">
-          <h2 className="ng-section-title">How was your visit?</h2>
-          <p className="ng-section-sub">Tap a star to rate your experience</p>
+          <h2 className="ng-section-title">{t.howWasVisit}</h2>
+          <p className="ng-section-sub">{t.tapStar}</p>
 
           <div className="ng-stars-row" role="radiogroup" aria-label="Star rating">
             {[1, 2, 3, 4, 5].map((s) => (
@@ -707,6 +990,7 @@ export default function CustomerReview({
                 onMouseEnter={() => setHoverRating(s)}
                 onMouseLeave={() => setHoverRating(0)}
                 aria-label={`${s} star${s > 1 ? 's' : ''}`}
+                aria-pressed={activeRating >= s}
               >
                 ★
               </button>
@@ -724,7 +1008,7 @@ export default function CustomerReview({
               className="ng-btn-primary ng-btn-continue-initial"
               onClick={handleContinueReview}
             >
-              Continue →
+              {t.continueBtn}
             </button>
           )}
         </section>
@@ -733,201 +1017,201 @@ export default function CustomerReview({
           <>
             <div className="ng-section-divider" aria-hidden="true" />
 
-            {/* ── SECTION: LANGUAGE SELECTION ────────────────────────── */}
-            <section ref={languageSectionRef} className="ng-section ng-fade-in" aria-label="Language selection">
-              <h2 className="ng-section-title">Which language feels most natural to you?</h2>
-              <p className="ng-section-sub">Choose your preferred language for the review</p>
+            {/* ── SECTION 2: TOPICS / HIGHLIGHTS (Automatic detected language applied, no manual language selector) ── */}
+            <section ref={topicsSectionRef} className="ng-section ng-fade-in" aria-label="Visit highlights">
+              <h2 className="ng-section-title">{t.whatStoodOut}</h2>
+              <p className="ng-section-sub">{t.pickMatched}</p>
 
-              <div className="ng-lang-row" role="radiogroup" aria-label="Review language">
-                {[
-                  { id: 'english', label: 'English' },
-                  { id: 'hindi', label: 'Hindi' },
-                  { id: 'gujarati', label: 'Gujarati' },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`ng-lang-btn ${language === item.id ? 'active' : ''}`}
-                    onClick={() => handleLanguageSelect(item.id)}
-                    role="radio"
-                    aria-checked={language === item.id}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+              <div className="ng-chips-grid">
+                {availableTopics.map(({ label, icon }) => {
+                  const selected = selectedTopics.includes(label);
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      className={`ng-chip ${selected ? 'selected' : ''}`}
+                      onClick={() => toggleTopic(label)}
+                      aria-pressed={selected}
+                    >
+                      <span className="ng-chip-icon">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  className={`ng-chip ng-chip-neutral ${nothingSpecific ? 'selected' : ''}`}
+                  onClick={handleNothingSpecific}
+                  aria-pressed={nothingSpecific}
+                >
+                  <span className="ng-chip-icon">—</span>
+                  <span>{t.nothingSpecific}</span>
+                </button>
+              </div>
+
+              <div className="ng-note-wrap">
+                <label htmlFor="ng-note" className="ng-note-label">
+                  {t.personalNote} <span className="ng-optional">({t.optional})</span>
+                </label>
+                <input
+                  id="ng-note"
+                  type="text"
+                  className="ng-note-input"
+                  placeholder={t.notePlaceholder}
+                  value={personalNote}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPersonalNote(val);
+                    saveDraft(businessId, { personalNote: val });
+                  }}
+                  maxLength={100}
+                  data-gramm="false"
+                  data-enable-grammarly="false"
+                />
               </div>
             </section>
 
             <div className="ng-section-divider" aria-hidden="true" />
 
-            {/* ── SECTION 2: TOPICS / HIGHLIGHTS ────────────────────────────── */}
-            <section ref={topicsSectionRef} className="ng-section ng-fade-in" aria-label="Visit highlights">
-          <h2 className="ng-section-title">What stood out?</h2>
-          <p className="ng-section-sub">Pick anything that matched your visit</p>
-
-          <div className="ng-chips-grid">
-            {availableTopics.map(({ label, icon }) => {
-              const selected = selectedTopics.includes(label);
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  className={`ng-chip ${selected ? 'selected' : ''}`}
-                  onClick={() => toggleTopic(label)}
-                >
-                  <span className="ng-chip-icon">{icon}</span>
-                  <span>{label}</span>
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              className={`ng-chip ng-chip-neutral ${nothingSpecific ? 'selected' : ''}`}
-              onClick={handleNothingSpecific}
-            >
-              <span className="ng-chip-icon">—</span>
-              <span>Nothing specific</span>
-            </button>
-          </div>
-
-          <div className="ng-note-wrap">
-            <label htmlFor="ng-note" className="ng-note-label">
-              Personal note <span className="ng-optional">(optional)</span>
-            </label>
-            <input
-              id="ng-note"
-              type="text"
-              className="ng-note-input"
-              placeholder="e.g. The poha was absolutely perfect! 😋"
-              value={personalNote}
-              onChange={(e) => setPersonalNote(e.target.value)}
-              maxLength={100}
-              data-gramm="false"
-              data-enable-grammarly="false"
-            />
-          </div>
-        </section>
-
-        <div className="ng-section-divider" aria-hidden="true" />
-
-        {/* ── SECTION 3: REVIEW IDEAS / CUSTOM EDITOR ───────────────────── */}
-        {!showCustomEditor ? (
-          <section className="ng-section" aria-label="Review suggestions">
-            <div className="ng-ideas-header">
-              <h2 className="ng-section-title">Review ideas</h2>
-              <p className="ng-section-sub">
-                Tap your favourite to copy & open Google Review
-              </p>
-              {loadingIdeas && (
-                <div className="ng-updating-badge">
-                  <span>✨</span>
-                  <span>Refining ideas...</span>
+            {/* ── SECTION 3: REVIEW IDEAS / CUSTOM EDITOR ───────────────────── */}
+            {!showCustomEditor ? (
+              <section className="ng-section" aria-label="Review suggestions">
+                <div className="ng-ideas-header">
+                  <h2 className="ng-section-title">{t.reviewIdeas}</h2>
+                  <p className="ng-section-sub">{t.tapFavourite}</p>
+                  {loadingIdeas && (
+                    <div className="ng-updating-badge">
+                      <span>✨</span>
+                      <span>{t.refiningIdeas}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="ng-ideas-list">
-              {ideas.map((idea, i) => (
-                <div
-                  key={idea.id || i}
-                  className={`ng-idea-card ${selectedIdeaId === idea.id ? 'picked' : ''}`}
-                  onClick={() => handlePostDirectly(idea)}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Option ${i + 1}: ${idea.text}`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handlePostDirectly(idea);
-                    }
+                {ideasError && (
+                  <div className="ng-ideas-error-banner" role="alert">
+                    <div className="ng-ideas-error-content">
+                      <span className="ng-ideas-error-icon">⚠️</span>
+                      <span className="ng-ideas-error-text">{t.errorRefresh}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="ng-btn-retry-ideas"
+                      onClick={() => fetchAiIdeas(true)}
+                      disabled={loadingIdeas}
+                    >
+                      {loadingIdeas ? t.retrying : t.retry}
+                    </button>
+                  </div>
+                )}
+
+                <div className="ng-ideas-list">
+                  {ideas.map((idea, i) => (
+                    <div
+                      key={idea.id || i}
+                      className={`ng-idea-card ${selectedIdeaId === idea.id ? 'picked' : ''}`}
+                      onClick={() => handlePostDirectly(idea)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Option ${i + 1}: ${idea.text}`}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handlePostDirectly(idea);
+                        }
+                      }}
+                    >
+                      <div className="ng-idea-meta">
+                        <span className="ng-idea-num">{idea.focus || `Option ${i + 1}`}</span>
+                        <span className="ng-idea-lang">{getLanguageLabel(language)}</span>
+                        <span className="ng-idea-stars">{'★'.repeat(rating)}</span>
+                      </div>
+                      <p className="ng-idea-text">"{idea.text}"</p>
+                      <div className="ng-idea-action">
+                        <span>{t.useThisReview}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="ng-divider"><span>or</span></div>
+
+                <button
+                  type="button"
+                  className="ng-btn-write-own"
+                  aria-expanded={showCustomEditor}
+                  aria-controls="ng-custom-editor-section"
+                  onClick={() => {
+                    setSelectedIdeaId('custom');
+                    if (!draftReview) setDraftReview('');
+                    setShowCustomEditor(true);
+                    setTimeout(() => editorRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
                   }}
                 >
-                  <div className="ng-idea-meta">
-                    <span className="ng-idea-num">Option {i + 1}</span>
-                    <span className="ng-idea-lang">{getLanguageLabel(language)}</span>
-                    <span className="ng-idea-stars">{'★'.repeat(rating)}</span>
-                  </div>
-                  <p className="ng-idea-text">"{idea.text}"</p>
-                  <div className="ng-idea-action">
-                    <span>Use this review →</span>
-                  </div>
+                  {t.writeOwn}
+                </button>
+              </section>
+            ) : (
+              <section id="ng-custom-editor-section" ref={editorRef} className="ng-section ng-fade-in" aria-label="Custom review editor">
+                <div className="ng-editor-header">
+                  <h2 className="ng-section-title" style={{ margin: 0 }}>{t.writeTitle}</h2>
+                  <span className="ng-char-pill">{draftReview.length} {t.chars}</span>
                 </div>
-              ))}
-            </div>
+                <p className="ng-section-sub">{t.writeSub}</p>
 
-            <div className="ng-divider"><span>or</span></div>
+                <div className="ng-textarea-wrap">
+                  <textarea
+                    className="ng-textarea"
+                    rows={5}
+                    value={draftReview}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDraftReview(val);
+                      saveDraft(businessId, { draftReview: val });
+                    }}
+                    placeholder={t.feedbackPlaceholder}
+                    data-gramm="false"
+                    data-enable-grammarly="false"
+                  />
+                </div>
 
-            <button
-              type="button"
-              className="ng-btn-write-own"
-              onClick={() => {
-                setSelectedIdeaId('custom');
-                if (!draftReview) setDraftReview('');
-                setShowCustomEditor(true);
-                setTimeout(() => editorRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-              }}
-            >
-              ✍️ Write my own review
-            </button>
-          </section>
-        ) : (
-          <section ref={editorRef} className="ng-section ng-fade-in" aria-label="Custom review editor">
-            <div className="ng-editor-header">
-              <h2 className="ng-section-title" style={{ margin: 0 }}>Write your review</h2>
-              <span className="ng-char-pill">{draftReview.length} chars</span>
-            </div>
-            <p className="ng-section-sub">Edit anything before posting — it's your words!</p>
+                <div className="ng-editor-tools">
+                  <button
+                    type="button"
+                    className="ng-btn-tool"
+                    onClick={handleMakeNatural}
+                    disabled={isRegenerating || !draftReview.trim()}
+                  >
+                    {isRegenerating ? t.refiningNatural : t.makeNatural}
+                  </button>
+                  <button
+                    type="button"
+                    className="ng-btn-tool"
+                    onClick={() => setShowCustomEditor(false)}
+                  >
+                    {t.backToIdeas}
+                  </button>
+                </div>
 
-            <div className="ng-textarea-wrap">
-              <textarea
-                className="ng-textarea"
-                rows={5}
-                value={draftReview}
-                onChange={(e) => setDraftReview(e.target.value)}
-                placeholder="Write your review here..."
-                data-gramm="false"
-                data-enable-grammarly="false"
-              />
-            </div>
+                <div className="ng-google-notice">
+                  {t.googleNotice}
+                </div>
 
-            <div className="ng-editor-tools">
-              <button
-                type="button"
-                className="ng-btn-tool"
-                onClick={handleMakeNatural}
-                disabled={isRegenerating || !draftReview.trim()}
-              >
-                {isRegenerating ? '✨ Refining...' : '✨ Make it more natural'}
-              </button>
-              <button
-                type="button"
-                className="ng-btn-tool"
-                onClick={() => setShowCustomEditor(false)}
-              >
-                ← Back to review ideas
-              </button>
-            </div>
-
-            <div className="ng-google-notice">
-              Your words, your review. Paste the copy into Google and post it yourself.
-            </div>
-
-            <button
-              type="button"
-              className="ng-btn-primary ng-btn-cta"
-              onClick={handleContinueToGoogle}
-              disabled={!draftReview.trim()}
-            >
-              Copy & open Google Review
-            </button>
-          </section>
-        )}
+                <button
+                  type="button"
+                  className="ng-btn-primary ng-btn-cta"
+                  onClick={handleContinueToGoogle}
+                  disabled={!draftReview.trim()}
+                >
+                  {t.copyAndOpenGoogle}
+                </button>
+              </section>
+            )}
 
             {/* ── SECTION 4: PRIVATE FEEDBACK PROMPT ────────────────────────── */}
             <div className="ng-private-prompt">
-              {rating <= 3 ? "Want to tell the team what could have been better? " : "Want to tell us privately? "}
+              {rating <= 3 ? t.privatePromptBad : t.privatePromptGood}
               <button type="button" className="ng-link-btn" onClick={() => setShowPrivate(true)}>
-                Send private note
+                {t.sendPrivateNote}
               </button>
             </div>
           </>
@@ -1057,7 +1341,6 @@ export default function CustomerReview({
                   const ok = await copyTextToClipboard(draftReview);
                   setCopied(ok);
                   setCopyAgainSuccess(ok);
-                  try { sessionStorage.setItem('nastaGharClipboardCopied', String(ok)); } catch {}
                   logEvent(ok ? 'review_clipboard_success' : 'review_clipboard_failed', { review_id: selectedIdeaId });
                   if (ok) setTimeout(() => setCopyAgainSuccess(false), 2000);
                 }}
@@ -1078,6 +1361,7 @@ export default function CustomerReview({
                 onClick={() => {
                   logEvent('google_maps_redirect', { destination: googleReviewUrl });
                   logEvent('google_review_link_opened');
+                  clearSessionDraft(businessId);
                   window.location.href = googleReviewUrl;
                 }}
               >
@@ -1099,21 +1383,21 @@ export default function CustomerReview({
       {showPrivate && (
         <div className="ng-modal-backdrop">
           <div className="ng-modal ng-modal-bounce">
-            <h3 className="ng-modal-title">Direct note to {businessName || BRAND.name}</h3>
-            <p className="ng-modal-body">Share anything you'd like our team to know privately.</p>
+            <h3 className="ng-modal-title">{t.directNoteTo} {businessName || BRAND.name}</h3>
+            <p className="ng-modal-body">{t.sharePrivately}</p>
 
             {privateSent ? (
               <div className="ng-private-success">
                 <span style={{ fontSize: '2rem' }}>💌</span>
-                <h4>Thank you!</h4>
-                <p>Your message has been sent directly to the team.</p>
+                <h4>{t.thankYou}</h4>
+                <p>{t.feedbackSentMsg}</p>
                 <button
                   type="button"
                   className="ng-btn-primary"
                   onClick={() => setShowPrivate(false)}
                   style={{ marginTop: '1rem' }}
                 >
-                  Close
+                  {t.close}
                 </button>
               </div>
             ) : (
@@ -1122,7 +1406,7 @@ export default function CustomerReview({
                 <textarea
                   className="ng-textarea"
                   rows={4}
-                  placeholder="Share your thoughts, suggestions, or anything else..."
+                  placeholder={t.feedbackPlaceholder}
                   value={privateNote}
                   onChange={(e) => setPrivateNote(e.target.value)}
                   required
@@ -1132,15 +1416,17 @@ export default function CustomerReview({
                 <input
                   type="text"
                   className="ng-note-input"
-                  placeholder="Your name or contact (optional)"
+                  placeholder={t.contactPlaceholder}
                   value={privateContact}
                   onChange={(e) => setPrivateContact(e.target.value)}
                   style={{ marginTop: '0.75rem' }}
                 />
                 <div className="ng-modal-actions" style={{ marginTop: '1.25rem' }}>
-                  <button type="submit" className="ng-btn-primary">Send to Team</button>
+                  <button type="submit" className="ng-btn-primary" disabled={isSubmittingPrivate}>
+                    {isSubmittingPrivate ? t.sending : t.sendToTeam}
+                  </button>
                   <button type="button" className="ng-btn-secondary" onClick={() => setShowPrivate(false)}>
-                    Cancel
+                    {t.cancel}
                   </button>
                 </div>
               </form>
@@ -1151,11 +1437,11 @@ export default function CustomerReview({
 
       {/* ════════ CLIPBOARD INFORMATION ════════ */}
       {!cookieConsent && (
-          <div className="ng-cookie-bar" role="region" aria-label="Review and clipboard information">
+        <div className="ng-cookie-bar" role="region" aria-label="Review and clipboard information">
           <div className="ng-cookie-content">
             <span className="ng-cookie-emoji">🍪</span>
             <div className="ng-cookie-msg">
-              <strong>Your review is copied when you choose it.</strong> Paste it into Google and submit it yourself.
+              {t.cookieMsg}
             </div>
           </div>
           <button
@@ -1163,7 +1449,7 @@ export default function CustomerReview({
             className="ng-cookie-btn"
             onClick={handleAcceptConsent}
           >
-            Got it ✓
+            {t.gotIt}
           </button>
         </div>
       )}
