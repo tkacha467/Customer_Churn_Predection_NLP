@@ -7,8 +7,10 @@ import os
 import time
 import uuid
 import hmac
+import hashlib
 import re
 from fastapi import APIRouter, HTTPException, Request, Response, Depends, UploadFile, File, Form
+from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 
 from Backend.app.core.database.storage import ReviewStore
@@ -18,6 +20,7 @@ from Backend.app.api.document_storage import (
     MAX_DOCUMENT_SIZE_BYTES,
     sanitize_filename,
 )
+from Backend.app.api.svg_sanitizer import sanitize_svg
 from Backend.app.core.entitlements.entitlements import (
     check_tenant_entitlement,
     ENTITLEMENT_REVIEW_MANAGER,
@@ -353,6 +356,36 @@ async def switch_tenant(
     )
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/auth/change-password")
+async def change_password(
+    req: ChangePasswordRequest,
+    ctx: TenantContext = Depends(require_auth_context)
+):
+    if len(req.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters long.")
+
+    store = get_store()
+    user = store.get_user_by_id(ctx.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User account not found.")
+
+    if not verify_password(req.current_password, user["password_hash"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+
+    new_hash = hash_password(req.new_password)
+    with store._connect() as db:
+        db.execute(
+            "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?",
+            (new_hash, time.time(), ctx.user_id)
+        )
+    return {"status": "success", "message": "Password updated successfully."}
+
+
 # ---------------------------------------------------------
 # Customer Review Flow Endpoints (Public)
 # ---------------------------------------------------------
@@ -420,19 +453,31 @@ async def validate_review(req: ReviewValidateRequest, request: Request):
 async def create_review_session(req: ReviewSessionCreateRequest, request: Request):
     if not review_service.check_rate_limit(f"session:{get_client_ip(request)}", max_per_minute=30):
         raise HTTPException(status_code=429, detail="Rate limit reached. Please wait a moment.")
+    valid_id = validate_business_id(req.business_id)
+    store = get_store()
+    if not store.tenant_exists(valid_id):
+        raise HTTPException(status_code=404, detail=f"Business '{valid_id}' not found.")
+    tenant = store.get_tenant(valid_id)
+    if tenant and tenant.get("status") != "active":
+        raise HTTPException(status_code=403, detail=f"Business '{valid_id}' is inactive or suspended.")
+    if not check_tenant_entitlement(valid_id, ENTITLEMENT_REVIEW_MANAGER):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Module '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{valid_id}'."
+        )
     session_id = str(uuid.uuid4())
     review_service.record_event(
         "session_created",
         session_id=session_id,
         metadata={
-            "business_id": req.business_id,
+            "business_id": valid_id,
             "table_number": req.table_number,
             "dining_type": req.dining_type
         }
     )
     return ReviewSessionResponse(
         session_id=session_id,
-        business_id=req.business_id,
+        business_id=valid_id,
         table_number=req.table_number,
         created_at=str(time.time())
     )
@@ -450,6 +495,14 @@ async def record_analytics_event(ev: AnalyticsEventRequest, request: Request):
     store = get_store()
     if not store.tenant_exists(valid_id):
         raise HTTPException(status_code=404, detail=f"Business '{valid_id}' not found.")
+    tenant = store.get_tenant(valid_id)
+    if tenant and tenant.get("status") != "active":
+        raise HTTPException(status_code=403, detail=f"Business '{valid_id}' is inactive or suspended.")
+    if not check_tenant_entitlement(valid_id, ENTITLEMENT_REVIEW_MANAGER):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Module '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{valid_id}'."
+        )
 
     review_service.record_event(
         event_name=ev.event_name,
@@ -467,6 +520,14 @@ async def submit_private_feedback(req: PrivateFeedbackRequest, request: Request)
     store = get_store()
     if not store.tenant_exists(valid_id):
         raise HTTPException(status_code=404, detail=f"Business '{valid_id}' not found.")
+    tenant = store.get_tenant(valid_id)
+    if tenant and tenant.get("status") != "active":
+        raise HTTPException(status_code=403, detail=f"Business '{valid_id}' is inactive or suspended.")
+    if not check_tenant_entitlement(valid_id, ENTITLEMENT_REVIEW_MANAGER):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Module '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{valid_id}'."
+        )
     try:
         return review_service.submit_private_feedback(req)
     except Exception as e:
@@ -526,6 +587,13 @@ async def get_business_by_domain(domain: str):
     info = google_review_manager.get_review_url(tenant["id"])
     if not info:
         raise HTTPException(status_code=404, detail=f"Business configuration for '{tenant['id']}' not found.")
+    if info.get("status") == "suspended":
+        raise HTTPException(status_code=403, detail=f"Business '{tenant['id']}' is inactive or suspended.")
+    if not check_tenant_entitlement(tenant["id"], ENTITLEMENT_REVIEW_MANAGER):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Module '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{tenant['id']}'."
+        )
     return BusinessReviewLinkResponse(
         business_id=tenant["id"],
         platform=info.get("platform", "google"),
@@ -548,11 +616,12 @@ async def get_business_by_domain(domain: str):
 @router.get("/reviews/analytics")
 async def get_analytics(
     business_id: Optional[str] = None,
+    timezone: Optional[str] = "Asia/Kolkata",
     ctx: TenantContext = Depends(require_tenant_access("staff", required_entitlement="review_manager"))
 ):
     target = business_id or ctx.tenant_id
     validate_business_id(target)
-    return review_service.get_analytics_summary(business_id=target)
+    return review_service.get_analytics_summary(business_id=target, timezone_str=timezone or "Asia/Kolkata")
 
 
 @router.get("/reviews/private-tickets")
@@ -563,6 +632,26 @@ async def get_private_tickets(
     target = business_id or ctx.tenant_id
     validate_business_id(target)
     return review_service.get_private_tickets(business_id=target)
+
+
+class TicketStatusUpdateRequest(BaseModel):
+    status: str
+
+
+@router.patch("/reviews/private-tickets/{ticket_id}/status")
+async def update_private_ticket_status(
+    ticket_id: str,
+    req: TicketStatusUpdateRequest,
+    ctx: TenantContext = Depends(require_tenant_access("manager", required_entitlement="review_manager"))
+):
+    norm_status = req.status.strip().upper()
+    if norm_status not in ("OPEN", "RESOLVED", "ESCALATED"):
+        raise HTTPException(status_code=400, detail="Invalid status. Must be OPEN, RESOLVED, or ESCALATED.")
+    
+    success = review_service.update_ticket_status(ticket_id=ticket_id, status=norm_status, tenant_id=ctx.tenant_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Ticket not found or does not belong to this tenant.")
+    return {"status": "success", "ticket_id": ticket_id, "new_status": norm_status}
 
 
 @router.post("/reviews/manager-reply", response_model=ManagerReplyResponse)
@@ -581,7 +670,7 @@ async def generate_manager_reply(
 async def update_business_config(
     business_id: str,
     cfg: BusinessConfigUpdateRequest,
-    ctx: TenantContext = Depends(require_tenant_access("owner"))
+    ctx: TenantContext = Depends(require_tenant_access("owner", required_entitlement=ENTITLEMENT_REVIEW_MANAGER))
 ):
     valid_id = validate_business_id(business_id)
     # Only platform admins can modify entitlements; tenant owners cannot self-assign packages
@@ -1234,6 +1323,14 @@ async def upload_tenant_image(
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
+    if ext == ".svg":
+        try:
+            content = sanitize_svg(content)
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=f"SVG validation failed: {str(e)}")
+
+    sha256_hash = hashlib.sha256(content).hexdigest()
+
     tenant_dir = doc_service._resolve_tenant_dir(target_id)
     images_dir = (tenant_dir / "images").resolve()
     images_dir.mkdir(parents=True, exist_ok=True)
@@ -1281,6 +1378,7 @@ async def upload_tenant_image(
         "filename": unique_name,
         "size_bytes": len(content),
         "mime_type": media_type,
+        "sha256": sha256_hash,
     }
 
 
@@ -1324,14 +1422,18 @@ async def serve_tenant_image(
     }
     media_type = media_map.get(ext, "application/octet-stream")
 
+    headers = {
+        "Content-Type": media_type,
+        "Cache-Control": "public, max-age=86400",
+        "X-Content-Type-Options": "nosniff",
+    }
+    if ext == ".svg":
+        headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+
     return Response(
         content=file_path.read_bytes(),
         media_type=media_type,
-        headers={
-            "Content-Type": media_type,
-            "Cache-Control": "public, max-age=86400",
-            "X-Content-Type-Options": "nosniff",
-        }
+        headers=headers,
     )
 
 

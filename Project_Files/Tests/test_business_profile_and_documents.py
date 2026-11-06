@@ -378,7 +378,8 @@ def test_backup_manifest_integrity_for_document_assets(monkeypatch, isolated_env
     with open(manifest_path, "r", encoding="utf-8") as f:
         manifest = json.load(f)
 
-    assert manifest["table_counts"]["business_profiles"] == 1
+    # Database contains 1 default seeded business profile ('default_business') + 1 for 'tenant_card_a'
+    assert manifest["table_counts"]["business_profiles"] == 2
     assert manifest["table_counts"]["tenant_documents"] == 2
     assert manifest["documents"] is not None
     assert len(manifest["documents"]) == 2
@@ -398,7 +399,7 @@ def test_backup_manifest_integrity_for_document_assets(monkeypatch, isolated_env
 
     # Check restored table counts
     restored_counts = get_table_counts(restore_target / "reviews.sqlite3")
-    assert restored_counts["business_profiles"] == 1
+    assert restored_counts["business_profiles"] == 2
     assert restored_counts["tenant_documents"] == 2
 
 

@@ -20,6 +20,18 @@ def _normalize_profile_url(url: Optional[str]) -> str:
     return s
 
 
+def normalize_tenant_id(tenant_id: Optional[str]) -> Optional[str]:
+    """Authoritative tenant mapping: resolves default aliases, preserves valid tenant strings, maps empties to None."""
+    if not tenant_id:
+        return None
+    tid = str(tenant_id).strip()
+    if not tid:
+        return None
+    if tid in ("default_business", "nasta_ghar", "nasta-ghar"):
+        return "default_business"
+    return tid
+
+
 class ReviewStore:
     def __init__(self, database_path: str | None = None):
         _repo_root = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[5])
@@ -36,14 +48,16 @@ class ReviewStore:
                 CREATE TABLE IF NOT EXISTS analytics_events (
                     event_id TEXT PRIMARY KEY,
                     created_at REAL NOT NULL,
-                    payload TEXT NOT NULL
+                    payload TEXT NOT NULL,
+                    tenant_id TEXT
                 )
             """)
             db.execute("""
                 CREATE TABLE IF NOT EXISTS private_tickets (
                     ticket_id TEXT PRIMARY KEY,
                     created_at REAL NOT NULL,
-                    payload TEXT NOT NULL
+                    payload TEXT NOT NULL,
+                    tenant_id TEXT
                 )
             """)
             db.execute("""
@@ -156,6 +170,8 @@ class ReviewStore:
 
             # Upgrade existing schemas safely
             for stmt in (
+                "ALTER TABLE analytics_events ADD COLUMN tenant_id TEXT",
+                "ALTER TABLE private_tickets ADD COLUMN tenant_id TEXT",
                 "ALTER TABLE tenants ADD COLUMN domain TEXT DEFAULT ''",
                 "ALTER TABLE tenants ADD COLUMN entitlements_json TEXT DEFAULT '[\"review_manager\"]'",
                 "ALTER TABLE users ADD COLUMN is_platform_admin INTEGER NOT NULL DEFAULT 0",
@@ -174,10 +190,42 @@ class ReviewStore:
                 except sqlite3.OperationalError:
                     pass
 
+            # Composite indexes for tenant-scoped analytics and tickets
+            db.execute("CREATE INDEX IF NOT EXISTS idx_analytics_tenant_created ON analytics_events(tenant_id, created_at DESC)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_tickets_tenant_created ON private_tickets(tenant_id, created_at DESC)")
+
             # Auto-seed initial tenants from business_links.json if database is newly initialized
             count = db.execute("SELECT COUNT(*) FROM tenants").fetchone()[0]
             if count == 0:
                 self._seed_initial_tenants(db)
+
+            # Idempotent backfill of tenant_id for historical records
+            # 1. Authoritative default business aliases
+            db.execute("""
+                UPDATE analytics_events
+                SET tenant_id = 'default_business'
+                WHERE tenant_id IS NULL
+                  AND json_extract(payload, '$.metadata.business_id') IN ('default_business', 'nasta_ghar', 'nasta-ghar')
+            """)
+            db.execute("""
+                UPDATE private_tickets
+                SET tenant_id = 'default_business'
+                WHERE tenant_id IS NULL
+                  AND json_extract(payload, '$.business_id') IN ('default_business', 'nasta_ghar', 'nasta-ghar')
+            """)
+            # 2. Authoritative known registered tenants (unmapped/null remain NULL for tenant isolation)
+            db.execute("""
+                UPDATE analytics_events
+                SET tenant_id = json_extract(payload, '$.metadata.business_id')
+                WHERE tenant_id IS NULL
+                  AND json_extract(payload, '$.metadata.business_id') IN (SELECT id FROM tenants)
+            """)
+            db.execute("""
+                UPDATE private_tickets
+                SET tenant_id = json_extract(payload, '$.business_id')
+                WHERE tenant_id IS NULL
+                  AND json_extract(payload, '$.business_id') IN (SELECT id FROM tenants)
+            """)
 
     def _seed_initial_tenants(self, db):
         from Backend.app.core.tenants.google_reviews import DEFAULT_TOPICS
@@ -566,85 +614,124 @@ class ReviewStore:
         return user
 
     # ---------------------------------------------------------
-    # Analytics & Private Tickets (Preserved)
+    # Analytics & Private Tickets (Optimized with Indexed tenant_id)
     # ---------------------------------------------------------
-    def add_event(self, event: dict[str, Any]) -> None:
-        b_id = event.get("metadata", {}).get("business_id", "default_business")
+    def add_event(self, event: dict[str, Any], tenant_id: str | None = None) -> None:
+        raw_bid = tenant_id or event.get("metadata", {}).get("business_id")
+        resolved_tid = normalize_tenant_id(raw_bid)
         with self._connect() as db:
             db.execute(
-                "INSERT INTO analytics_events(event_id, created_at, payload) VALUES (?, ?, ?)",
-                (event["event_id"], event["timestamp"], json.dumps(event, ensure_ascii=False)),
+                "INSERT INTO analytics_events(event_id, created_at, payload, tenant_id) VALUES (?, ?, ?, ?)",
+                (event["event_id"], event["timestamp"], json.dumps(event, ensure_ascii=False), resolved_tid),
             )
-            # Per-tenant retention: prune only events for THIS business if exceeding 2000
-            db.execute("""
-                DELETE FROM analytics_events WHERE event_id IN (
-                    SELECT event_id FROM analytics_events
-                    WHERE json_extract(payload, '$.metadata.business_id') = ?
-                       OR (? = 'default_business' AND json_extract(payload, '$.metadata.business_id') IS NULL)
-                    ORDER BY created_at DESC, rowid DESC
-                    LIMIT -1 OFFSET 2000
-                )
-            """, (b_id, b_id))
+            # Per-tenant retention: prune only events for THIS tenant if exceeding 2000
+            if resolved_tid:
+                db.execute("""
+                    DELETE FROM analytics_events WHERE event_id IN (
+                        SELECT event_id FROM analytics_events
+                        WHERE tenant_id = ?
+                        ORDER BY created_at DESC
+                        LIMIT -1 OFFSET 2000
+                    )
+                """, (resolved_tid,))
 
     def list_events(self, business_id: str | None = None) -> list[dict[str, Any]]:
+        tid = normalize_tenant_id(business_id)
         with self._connect() as db:
-            if business_id:
+            if tid:
                 rows = db.execute("""
                     SELECT payload FROM analytics_events
-                    WHERE json_extract(payload, '$.metadata.business_id') = ?
-                       OR (? = 'default_business' AND json_extract(payload, '$.metadata.business_id') IS NULL)
-                    ORDER BY created_at DESC, rowid DESC LIMIT 2000
-                """, (business_id, business_id)).fetchall()
+                    WHERE tenant_id = ?
+                    ORDER BY created_at DESC LIMIT 2000
+                """, (tid,)).fetchall()
             else:
                 rows = db.execute(
-                    "SELECT payload FROM analytics_events ORDER BY created_at DESC, rowid DESC LIMIT 2000"
+                    "SELECT payload FROM analytics_events ORDER BY created_at DESC LIMIT 2000"
                 ).fetchall()
         return [json.loads(row["payload"]) for row in reversed(rows)]
 
-    def add_ticket(self, ticket: dict[str, Any]) -> None:
-        b_id = ticket.get("business_id", "default_business")
+    def add_ticket(self, ticket: dict[str, Any], tenant_id: str | None = None) -> None:
+        raw_bid = tenant_id or ticket.get("business_id")
+        resolved_tid = normalize_tenant_id(raw_bid)
         with self._connect() as db:
             db.execute(
-                "INSERT INTO private_tickets(ticket_id, created_at, payload) VALUES (?, ?, ?)",
-                (ticket["ticket_id"], ticket["timestamp"], json.dumps(ticket, ensure_ascii=False)),
+                "INSERT INTO private_tickets(ticket_id, created_at, payload, tenant_id) VALUES (?, ?, ?, ?)",
+                (ticket["ticket_id"], ticket["timestamp"], json.dumps(ticket, ensure_ascii=False), resolved_tid),
             )
-            # Per-tenant retention: prune only tickets for THIS business if exceeding 5000
-            db.execute("""
-                DELETE FROM private_tickets WHERE ticket_id IN (
-                    SELECT ticket_id FROM private_tickets
-                    WHERE json_extract(payload, '$.business_id') = ?
-                       OR (? = 'default_business' AND json_extract(payload, '$.business_id') IS NULL)
-                    ORDER BY created_at DESC, rowid DESC
-                    LIMIT -1 OFFSET 5000
-                )
-            """, (b_id, b_id))
+            # Per-tenant retention: prune only tickets for THIS tenant if exceeding 5000
+            if resolved_tid:
+                db.execute("""
+                    DELETE FROM private_tickets WHERE ticket_id IN (
+                        SELECT ticket_id FROM private_tickets
+                        WHERE tenant_id = ?
+                        ORDER BY created_at DESC
+                        LIMIT -1 OFFSET 5000
+                    )
+                """, (resolved_tid,))
 
     def list_tickets(self, business_id: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        tid = normalize_tenant_id(business_id)
         with self._connect() as db:
-            if business_id:
+            if tid:
                 rows = db.execute("""
                     SELECT payload FROM private_tickets
-                    WHERE json_extract(payload, '$.business_id') = ?
-                       OR (? = 'default_business' AND json_extract(payload, '$.business_id') IS NULL)
-                    ORDER BY created_at DESC, rowid DESC LIMIT ?
-                """, (business_id, business_id, limit)).fetchall()
+                    WHERE tenant_id = ?
+                    ORDER BY created_at DESC LIMIT ?
+                """, (tid, limit)).fetchall()
             else:
                 rows = db.execute(
-                    "SELECT payload FROM private_tickets ORDER BY created_at DESC, rowid DESC LIMIT ?",
+                    "SELECT payload FROM private_tickets ORDER BY created_at DESC LIMIT ?",
                     (limit,),
                 ).fetchall()
         return [json.loads(row["payload"]) for row in reversed(rows)]
 
     def ticket_count(self, business_id: str | None = None) -> int:
+        tid = normalize_tenant_id(business_id)
         with self._connect() as db:
-            if business_id:
+            if tid:
                 row = db.execute("""
                     SELECT COUNT(*) FROM private_tickets
-                    WHERE json_extract(payload, '$.business_id') = ?
-                       OR (? = 'default_business' AND json_extract(payload, '$.business_id') IS NULL)
-                """, (business_id, business_id)).fetchone()
+                    WHERE tenant_id = ?
+                """, (tid,)).fetchone()
                 return int(row[0]) if row else 0
             return int(db.execute("SELECT COUNT(*) FROM private_tickets").fetchone()[0])
+
+    def update_ticket_status(self, ticket_id: str, status: str, tenant_id: str | None = None) -> bool:
+        tid = normalize_tenant_id(tenant_id)
+        norm_status = status.strip().upper()
+        if norm_status not in ("OPEN", "RESOLVED", "ESCALATED"):
+            raise ValueError(f"Invalid ticket status: {status}")
+        with self._connect() as db:
+            if tid:
+                row = db.execute(
+                    "SELECT payload FROM private_tickets WHERE ticket_id = ? AND tenant_id = ?",
+                    (ticket_id, tid)
+                ).fetchone()
+            else:
+                row = db.execute(
+                    "SELECT payload FROM private_tickets WHERE ticket_id = ?",
+                    (ticket_id,)
+                ).fetchone()
+
+            if not row:
+                return False
+
+            data = json.loads(row["payload"])
+            data["status"] = norm_status
+            data["updated_at"] = time.time()
+            new_payload = json.dumps(data, ensure_ascii=False)
+
+            if tid:
+                db.execute(
+                    "UPDATE private_tickets SET payload = ? WHERE ticket_id = ? AND tenant_id = ?",
+                    (new_payload, ticket_id, tid)
+                )
+            else:
+                db.execute(
+                    "UPDATE private_tickets SET payload = ? WHERE ticket_id = ?",
+                    (new_payload, ticket_id)
+                )
+            return True
 
     # ---------------------------------------------------------
     # Shared Business Profile Operations (Product 2 & Combined)

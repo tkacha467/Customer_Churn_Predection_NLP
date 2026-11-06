@@ -144,9 +144,9 @@ function App() {
     <div className="product-layout">
       <div className="app-mode-bar">
         <div className="mode-bar-brand">
-          <span className="mode-logo">🍳</span>
-          <span className="mode-title">Nasta Ghar</span>
-          <span className="mode-badge">Owner Dashboard</span>
+          <span className="mode-logo">✨</span>
+          <span className="mode-title">VRAJA AI</span>
+          <span className="mode-badge">Client Portal</span>
         </div>
         <div className="mode-toggle-group">
           <button
