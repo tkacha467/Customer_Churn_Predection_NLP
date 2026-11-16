@@ -38,10 +38,73 @@ export const detectBrowserLanguage = () => {
   return 'english';
 };
 
-const getLanguageLabel = (l) => {
-  if (l === 'hindi') return 'Hindi';
-  if (l === 'gujarati') return 'Gujarati';
+export const getLanguageLabel = (l) => {
+  if (l === 'hindi') return 'हिन्दी';
+  if (l === 'gujarati') return 'ગુજરાતી';
   return 'English';
+};
+
+export const getStyleLabel = (focus, lang) => {
+  const f = String(focus || '').toLowerCase();
+  const l = (lang || 'english').toLowerCase();
+  if (l.includes('guj')) {
+    if (f.includes('short') || f.includes('ટૂંકું')) return 'ટૂંકું અને સ્વાભાવિક';
+    if (f.includes('detail') || f.includes('વિગતવાર')) return 'વિગતવાર અને અભિવ્યક્તિપૂર્ણ';
+    if (f.includes('simple') || f.includes('person') || f.includes('સરળ')) return 'સરળ અને વ્યક્તિગત';
+    return focus || 'વિકલ્પ';
+  }
+  if (l.includes('hin')) {
+    if (f.includes('short') || f.includes('छोटा')) return 'छोटा और स्वाभाविक';
+    if (f.includes('detail') || f.includes('विस्तृत')) return 'विस्तृत और स्पष्ट';
+    if (f.includes('simple') || f.includes('person') || f.includes('सरल')) return 'सरल और व्यक्तिगत';
+    return focus || 'विकल्प';
+  }
+  if (f.includes('short')) return 'Short & Natural';
+  if (f.includes('detail')) return 'Detailed & Expressive';
+  if (f.includes('simple') || f.includes('person')) return 'Simple & Personal';
+  return focus || 'Option';
+};
+
+export const TOPIC_TRANSLATIONS = {
+  gujarati: {
+    'Breakfast': 'નાસ્તો',
+    'Chai & Tea': 'ચા અને પીણાં',
+    'Snacks': 'ફરસાણ અને સ્નેક્સ',
+    'Taste & Flavour': 'સ્વાદ અને ગુણવત્તા',
+    'Friendly Staff': 'સ્ટાફનો વ્યવહાર',
+    'Cleanliness': 'સ્વચ્છતા',
+    'Value for Money': 'વાજબી ભાવ',
+    'Quick Service': 'ઝડપી સર્વિસ',
+    'Chai / Coffee': 'ચા / કૉફી',
+    'Food & Taste': 'ભોજન અને સ્વાદ',
+    'Ambience': 'વાતાવરણ',
+    'Sitting Area': 'બેઠક વ્યવસ્થા',
+  },
+  hindi: {
+    'Breakfast': 'नाश्ता',
+    'Chai & Tea': 'चाय और पेय',
+    'Snacks': 'नाश्ता और स्नैक्स',
+    'Taste & Flavour': 'स्वाद और गुणवत्ता',
+    'Friendly Staff': 'मिलनसार स्टाफ',
+    'Cleanliness': 'साफ़-सफ़ाई',
+    'Value for Money': 'किफ़ायती दाम',
+    'Quick Service': 'तेज़ सर्विस',
+    'Chai / Coffee': 'चाय / कॉफ़ी',
+    'Food & Taste': 'खाना और स्वाद',
+    'Ambience': 'माहौल',
+    'Sitting Area': 'बैठक व्यवस्था',
+  },
+};
+
+export const getLocalizedTopic = (label, lang) => {
+  const l = (lang || 'english').toLowerCase();
+  if (l.includes('guj')) {
+    return TOPIC_TRANSLATIONS.gujarati[label] || label;
+  }
+  if (l.includes('hin')) {
+    return TOPIC_TRANSLATIONS.hindi[label] || label;
+  }
+  return label;
 };
 
 // ─── COMPREHENSIVE UI LOCALIZATION DICTIONARY ─────────────────────────────────
@@ -96,102 +159,102 @@ export const UI_STRINGS = {
     gotIt: 'Got it ✓',
   },
   hindi: {
-    howWasVisit: 'Aapka anubhav kaisa raha?',
-    tapStar: 'Apne anubhav ke anusaar star chunein',
-    continueBtn: 'Aage badhein →',
+    howWasVisit: 'आपका अनुभव कैसा रहा?',
+    tapStar: 'अपने अनुभव के अनुसार स्टार चुनें',
+    continueBtn: 'आगे बढ़ें →',
     ratings: {
-      5: { text: 'Bahut pasand aaya!', emoji: '🤩' },
-      4: { text: 'Kaafi accha laga', emoji: '😊' },
-      3: { text: 'Thik-thak raha', emoji: '🙂' },
-      2: { text: 'Khaas nahi tha', emoji: '😕' },
-      1: { text: 'Accha nahi laga', emoji: '😞' },
+      5: { text: 'बहुत पसंद आया!', emoji: '🤩' },
+      4: { text: 'काफी अच्छा लगा', emoji: '😊' },
+      3: { text: 'ठीक-ठाक रहा', emoji: '🙂' },
+      2: { text: 'खास नहीं था', emoji: '😕' },
+      1: { text: 'अच्छा नहीं लगा', emoji: '😞' },
     },
-    whatStoodOut: 'Kya sabse accha laga?',
-    pickMatched: 'Jo aapki visit me accha raha use chunein',
-    nothingSpecific: 'Kuch khaas nahi',
-    personalNote: 'Personal note',
-    optional: 'optional',
-    notePlaceholder: 'Jaise ki poha bahut tasty tha! 😋',
-    reviewIdeas: 'Review suggestions',
-    tapFavourite: 'Pasandida review chunein aur Google Review kholein',
-    refiningIdeas: 'Ideas taiyar ho rahe hain...',
-    useThisReview: 'Yeh review use karein →',
-    writeOwn: '✍️ Apna khud ka review likhein',
-    writeTitle: 'Apna review likhein',
-    chars: 'chars',
-    writeSub: 'Post karne se pehle kuch bhi badal sakte hain!',
-    makeNatural: '✨ Aur natural banayein',
-    refiningNatural: '✨ Refining...',
-    backToIdeas: '← Wapas suggestions par jayein',
-    googleNotice: 'Aapka review, aapke shabd. Google par paste karke post karein.',
-    copyAndOpenGoogle: 'Copy karke Google Review kholein',
-    privatePromptGood: 'Kya hume privately kuch batana chahte hain? ',
-    privatePromptBad: 'Kya team ko batana chahte hain kya behtar ho sakta tha? ',
-    sendPrivateNote: 'Private note bhejein',
-    directNoteTo: 'Direct note to',
-    sharePrivately: 'Aap humari team se privately kuch bhi share kar sakte hain.',
-    feedbackPlaceholder: 'Apne vichar, sujhav ya shikayat yahan likhein...',
-    contactPlaceholder: 'Aapka naam ya contact (optional)',
-    sendToTeam: 'Team ko bhejein',
-    sending: 'Bheja ja raha hai...',
-    cancel: 'Cancel',
-    close: 'Band karein',
-    thankYou: 'Dhanyawad!',
-    feedbackSentMsg: 'Aapka message sidhe team ko pahunch gaya hai.',
-    errorRefresh: 'Live suggestions load nahi ho sake. Dobara koshish karein ya apna review likhein.',
-    retry: '🔄 Dobara koshish karein',
-    retrying: 'Koshish jaari hai...',
-    cookieMsg: 'Review select karne par clipboard par copy ho jayega. Google par paste karke submit karein.',
-    gotIt: 'Samajh gaya ✓',
+    whatStoodOut: 'क्या सबसे अच्छा लगा?',
+    pickMatched: 'जो आपकी विज़िट में अच्छा रहा उसे चुनें',
+    nothingSpecific: 'कुछ खास नहीं',
+    personalNote: 'व्यक्तिगत नोट',
+    optional: 'वैकल्पिक',
+    notePlaceholder: 'जैसे कि: पोहा बहुत ही स्वादिष्ट था! 😋',
+    reviewIdeas: 'समीक्षा के सुझाव',
+    tapFavourite: 'पसंदीदा समीक्षा चुनें और गूगल रिव्यू खोलें',
+    refiningIdeas: 'सुझाव तैयार हो रहे हैं...',
+    useThisReview: 'यह समीक्षा इस्तेमाल करें →',
+    writeOwn: '✍️ अपनी खुद की समीक्षा लिखें',
+    writeTitle: 'अपनी समीक्षा लिखें',
+    chars: 'अक्षर',
+    writeSub: 'पोस्ट करने से पहले कुछ भी बदल सकते हैं — यह आपके अपने शब्द हैं!',
+    makeNatural: '✨ और स्वाभाविक बनाएं',
+    refiningNatural: '✨ सुधार जारी है...',
+    backToIdeas: '← वापस सुझावों पर जाएं',
+    googleNotice: 'आपकी समीक्षा, आपके शब्द। गूगल पर पेस्ट करके खुद पोस्ट करें।',
+    copyAndOpenGoogle: 'कॉपी करें और गूगल रिव्यू खोलें',
+    privatePromptGood: 'क्या हमें निजी तौर पर कुछ बताना चाहते हैं? ',
+    privatePromptBad: 'क्या टीम को बताना चाहते हैं कि क्या बेहतर हो सकता था? ',
+    sendPrivateNote: 'निजी नोट भेजें',
+    directNoteTo: 'सीधा संदेश:',
+    sharePrivately: 'आप हमारी टीम से निजी तौर पर कुछ भी साझा कर सकते हैं।',
+    feedbackPlaceholder: 'अपने विचार, सुझाव या प्रतिक्रिया यहाँ लिखें...',
+    contactPlaceholder: 'आपका नाम या संपर्क (वैकल्पिक)',
+    sendToTeam: 'टीम को भेजें',
+    sending: 'भेजा जा रहा है...',
+    cancel: 'रद्द करें',
+    close: 'बंद करें',
+    thankYou: 'धन्यवाद!',
+    feedbackSentMsg: 'आपका संदेश सीधे टीम तक पहुँच गया है।',
+    errorRefresh: 'लाइव सुझाव लोड नहीं हो सके। दोबारा कोशिश करें या अपनी समीक्षा लिखें।',
+    retry: '🔄 दोबारा कोशिश करें',
+    retrying: 'प्रयास जारी है...',
+    cookieMsg: 'समीक्षा चुनने पर क्लिपबोर्ड पर कॉपी हो जाएगी। गूगल पर पेस्ट करके सबमिट करें।',
+    gotIt: 'समझ गया ✓',
   },
   gujarati: {
-    howWasVisit: 'Tamaro anubhav kevo rahyo?',
-    tapStar: 'Tamara anubhav mujab star pasand karo',
-    continueBtn: 'Aagal vadho →',
+    howWasVisit: 'તમારો અનુભવ કેવો રહ્યો?',
+    tapStar: 'તમારા અનુભવ મુજબ સ્ટાર પસંદ કરો',
+    continueBtn: 'આગળ વધો →',
     ratings: {
-      5: { text: 'Khub j saras!', emoji: '🤩' },
-      4: { text: 'Gamyu', emoji: '😊' },
-      3: { text: 'Thik hatu', emoji: '🙂' },
-      2: { text: 'Khas na hatu', emoji: '😕' },
-      1: { text: 'Saras na hatu', emoji: '😞' },
+      5: { text: 'ખૂબ જ સરસ!', emoji: '🤩' },
+      4: { text: 'ખૂબ ગમ્યું', emoji: '😊' },
+      3: { text: 'ઠીક-ઠાક રહ્યું', emoji: '🙂' },
+      2: { text: 'ખાસ ન હતું', emoji: '😕' },
+      1: { text: 'સંતોષ ન થયો', emoji: '😞' },
     },
-    whatStoodOut: 'Shu sabthi vadhu gamyu?',
-    pickMatched: 'Tamara anubhav mujab pasand karo',
-    nothingSpecific: 'Khas kai nahi',
-    personalNote: 'Personal note',
-    optional: 'optional',
-    notePlaceholder: 'Jem ke poha khub tasty hata! 😋',
-    reviewIdeas: 'Review suggestions',
-    tapFavourite: 'Tamaro pasandida review tap karo ane Google Review kholo',
-    refiningIdeas: 'Ideas taiyar thai rahya chhe...',
-    useThisReview: 'Aa review vapro →',
-    writeOwn: '✍️ Tamaro potano review lakho',
-    writeTitle: 'Tamaro review lakho',
-    chars: 'chars',
-    writeSub: 'Post karta pahela tame kai pan badli shako chho!',
-    makeNatural: '✨ Vadhu natural banavo',
-    refiningNatural: '✨ Refining...',
-    backToIdeas: '← Pacha suggestions par jao',
-    googleNotice: 'Tamaro review, tamara shabdo. Google par paste kari post karo.',
-    copyAndOpenGoogle: 'Copy kari Google Review kholo',
-    privatePromptGood: 'Shu amne privately kai janavva mango chho? ',
-    privatePromptBad: 'Shu team ne janavva mango chho ke shu sudhari shakay? ',
-    sendPrivateNote: 'Private note moklo',
-    directNoteTo: 'Direct note to',
-    sharePrivately: 'Tame amari team sathe privately kai pan share kari shako chho.',
-    feedbackPlaceholder: 'Tamara vichar ke suchan ahiya lakho...',
-    contactPlaceholder: 'Tamaru naam ke contact (optional)',
-    sendToTeam: 'Team ne moklo',
-    sending: 'Moklay rahyu chhe...',
-    cancel: 'Cancel',
-    close: 'Band karo',
-    thankYou: 'Aabhar!',
-    feedbackSentMsg: 'Tamaro sandesho sidho team sudhi pahonchi gayo chhe.',
-    errorRefresh: 'Live suggestions load na thai shakya. Fari prayas karo athva potano review lakho.',
-    retry: '🔄 Fari prayas karo',
-    retrying: 'Prayas chalu chhe...',
-    cookieMsg: 'Review pasand karta j clipboard par copy thai jashe. Google par paste kari submit karo.',
-    gotIt: 'Samji gaya ✓',
+    whatStoodOut: 'શું સૌથી વધુ ગમ્યું?',
+    pickMatched: 'તમારી મુલાકાત સાથે મેળ ખાતી બાબતો પસંદ કરો',
+    nothingSpecific: 'ખાસ કંઈ નહીં',
+    personalNote: 'વ્યક્તિગત નોંધ',
+    optional: 'વૈકલ્પિક',
+    notePlaceholder: 'જેમ કે: પૌંઆ ખૂબ જ સ્વાદિષ્ટ હતા! 😋',
+    reviewIdeas: 'સમીક્ષાના સૂચનો',
+    tapFavourite: 'તમારા મનપસંદ રિવ્યુ પર ટૅપ કરીને ગૂગલ રિવ્યુ ખોલો',
+    refiningIdeas: 'સૂચનો તૈયાર થઈ રહ્યા છે...',
+    useThisReview: 'આ સમીક્ષા વાપરો →',
+    writeOwn: '✍️ તમારી પોતાની સમીક્ષા લખો',
+    writeTitle: 'તમારી સમીક્ષા લખો',
+    chars: 'અક્ષરો',
+    writeSub: 'પોસ્ટ કરતાં પહેલાં કંઈ પણ બદલી શકો છો — આ તમારા પોતાના શબ્દો છે!',
+    makeNatural: '✨ વધુ સ્વાભાવિક બનાવો',
+    refiningNatural: '✨ સુધારી રહ્યા છીએ...',
+    backToIdeas: '← પાછા સૂચનો પર જાઓ',
+    googleNotice: 'તમારી સમીક્ષા, તમારા શબ્દો. ગૂગલ પર પેસ્ટ કરીને જાતે પોસ્ટ કરો.',
+    copyAndOpenGoogle: 'કૉપિ કરીને ગૂગલ રિવ્યુ ખોલો',
+    privatePromptGood: 'શું અમને ખાનગીમાં કંઈ જણાવવા માંગો છો? ',
+    privatePromptBad: 'શું ટીમ સાથે શેર કરવા માંગો છો કે શું વધુ સારું થઈ શક્યું હોત? ',
+    sendPrivateNote: 'ખાનગી નોંધ મોકલો',
+    directNoteTo: 'સીધી નોંધ:',
+    sharePrivately: 'તમે અમારી ટીમ સાથે ખાનગીમાં કંઈ પણ શેર કરી શકો છો.',
+    feedbackPlaceholder: 'તમારા વિચારો, સૂચનો કે અન્ય કોઈ બાબત અહીં લખો...',
+    contactPlaceholder: 'તમારું નામ અથવા સંપર્ક (વૈકલ્પિક)',
+    sendToTeam: 'ટીમને મોકલો',
+    sending: 'મોકલાઈ રહ્યું છે...',
+    cancel: 'રદ કરો',
+    close: 'બંધ કરો',
+    thankYou: 'આભાર!',
+    feedbackSentMsg: 'તમારો સંદેશો સીધો ટીમ સુધી પહોંચી ગયો છે.',
+    errorRefresh: 'લાઇવ સૂચનો લોડ થઈ શક્યા નથી. ફરી પ્રયાસ કરો અથવા તમારી પોતાની સમીક્ષા લખો.',
+    retry: '🔄 ફરી પ્રયાસ કરો',
+    retrying: 'પ્રયાસ ચાલુ છે...',
+    cookieMsg: 'સમીક્ષા પસંદ કરતાં જ ક્લિપબોર્ડ પર કૉપિ થઈ જશે. ગૂગલ પર પેસ્ટ કરીને સબમિટ કરો.',
+    gotIt: 'સમજી ગયા ✓',
   },
 };
 
@@ -243,7 +306,17 @@ const clearSessionDraft = (bId) => {
 const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, aspects = []) => {
   const noteFragment = note && note.trim() ? ` ${note.trim().replace(/[.!]+$/, '')}.` : '';
   const l = (lang || 'english').toLowerCase();
-  const name = bizName || BRAND.name;
+  
+  // Clean business name to never show default_business placeholder
+  let name = (bizName || '').trim();
+  if (!name || name === 'default_business' || name === 'default' || name === 'nasta_ghar' || name === 'nasta-ghar') {
+    if (l.includes('guj')) name = 'નાસ્તા ઘર';
+    else if (l.includes('hin')) name = 'नाश्ता घर';
+    else name = BRAND.name;
+  } else if (name === 'Nasta Ghar' || name === 'NastaGhar') {
+    if (l.includes('guj')) name = 'નાસ્તા ઘર';
+    else if (l.includes('hin')) name = 'नाश्ता घर';
+  }
 
   const cleanedAspects = Array.isArray(aspects) ? aspects.map((a) => String(a).toLowerCase().trim()).filter(Boolean) : [];
   const hasBreakfast = cleanedAspects.some((a) => a.includes('breakfast') || a.includes('nasto') || a.includes('nasta'));
@@ -259,161 +332,161 @@ const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, 
 
   if (hasBreakfast && hasCoffee) {
     topicEn = 'breakfast and chai';
-    topicHi = 'breakfast aur chai';
-    topicGu = 'breakfast ane chai';
+    topicHi = 'नाश्ता और चाय';
+    topicGu = 'નાસ્તો અને ચા';
   } else if (hasBreakfast) {
     topicEn = 'breakfast';
-    topicHi = 'breakfast';
-    topicGu = 'breakfast';
+    topicHi = 'नाश्ता';
+    topicGu = 'નાસ્તો';
   } else if (hasCoffee) {
     topicEn = 'coffee and tea';
-    topicHi = 'chai';
-    topicGu = 'chai';
+    topicHi = 'चाय और कॉफ़ी';
+    topicGu = 'ચા અને કૉફી';
   } else if (hasFood) {
     topicEn = 'food';
-    topicHi = 'khana';
-    topicGu = 'food';
+    topicHi = 'स्वादिष्ट भोजन';
+    topicGu = 'સ્વાદિષ્ટ વાનગીઓ';
   } else if (hasService) {
     topicEn = 'service';
-    topicHi = 'service';
-    topicGu = 'service';
+    topicHi = 'સર્વિસ';
+    topicGu = 'સર્વિસ';
   } else if (hasAmbience) {
     topicEn = 'atmosphere';
-    topicHi = 'atmosphere';
-    topicGu = 'atmosphere';
+    topicHi = 'माहौल';
+    topicGu = 'વાતાવરણ';
   } else if (hasClean) {
-    topicEn = 'sitting area';
-    topicHi = 'sitting area';
-    topicGu = 'sitting area';
+    topicEn = 'seating area and cleanliness';
+    topicHi = 'बैठक व्यवस्था और साफ़-सफ़ाई';
+    topicGu = 'બેઠક વ્યવસ્થા અને સ્વચ્છતા';
   }
 
   let shortText = '';
   let detailedText = '';
   let personalText = '';
 
-  if (l.includes('hin')) {
+  if (l.includes('guj')) {
     if (r === 5) {
-      if (topicHi) {
-        shortText = `${name} me ${topicHi} bahut pasand aaya!${noteFragment} Maza aa gaya 🍳☕`;
-        detailedText = `${name} me ${topicHi} ka experience lajawab raha.${noteFragment} Sab kuch accha manage kiya hua tha 😊✨`;
-        personalText = `Personal taur par ${name} me ${topicHi} bahut accha laga.${noteFragment} Very happy with the visit ❤️`;
+      if (topicGu) {
+        shortText = `${name}માં ${topicGu} ખૂબ જ સરસ હતાં!${noteFragment} ખૂબ મજા આવી ગઈ 🍳☕`;
+        detailedText = `${name}માં ${topicGu}નો અનુભવ ખરેખર લાજવાબ રહ્યો.${noteFragment} બધી વ્યવસ્થા એકદમ ઉત્તમ હતી 😊✨`;
+        personalText = `મને ${name}માં ${topicGu} ખૂબ જ પસંદ આવ્યા.${noteFragment} મુલાકાતથી ઘણો આનંદ થયો ❤️`;
       } else {
-        shortText = `Bahut hi accha anubhav raha at ${name}!${noteFragment} Maza aa gaya 😊✨`;
-        detailedText = `Overall visit bahut shandar rahi at ${name}.${noteFragment} Sab kuch kaafi accha arrange tha 👍`;
-        personalText = `Mere liye ${name} ka visit kaafi positive raha.${noteFragment} Happy with my visit ❤️`;
+        shortText = `${name}માં ખૂબ જ સરસ અનુભવ રહ્યો!${noteFragment} ખૂબ મજા આવી ગઈ 😊✨`;
+        detailedText = `સમગ્ર મુલાકાત ${name} ખાતે ઘણી શાનદાર રહી.${noteFragment} બધી વ્યવસ્થા એકદમ સુવ્યવસ્થિત હતી 👍`;
+        personalText = `મને ${name}ની મુલાકાત ખૂબ જ ગમી.${noteFragment} ખરેખર સંતોષકારક અનુભવ રહ્યો ❤️`;
       }
     } else if (r === 4) {
-      if (topicHi) {
-        shortText = `${name} me ${topicHi} kaafi accha tha.${noteFragment} Accha anubhav raha 👍`;
-        detailedText = `${name} me ${topicHi} ka overall experience accha raha.${noteFragment} Visit se khushi hui 🙂`;
-        personalText = `${name} ka visit pasand aaya, khas taur par ${topicHi}.${noteFragment} Good visit overall 👍`;
+      if (topicGu) {
+        shortText = `${name}માં ${topicGu} સરસ હતાં.${noteFragment} સારો અનુભવ રહ્યો 👍`;
+        detailedText = `${name}માં ${topicGu}નો અનુભવ એકંદરે ઘણો સારો રહ્યો.${noteFragment} વ્યવસ્થા સારી લાગી 🙂`;
+        personalText = `મને ${name}માં ${topicGu} ગમ્યા.${noteFragment} એકંદરે સારો સમય રહ્યો 👍`;
       } else {
-        shortText = `Accha anubhav raha at ${name}.${noteFragment} Thik se sab manage tha 👍`;
-        detailedText = `Overall visit acchi rahi at ${name}.${noteFragment} Satisfied with today's visit 🙂`;
-        personalText = `Mere liye ${name} ka visit accha raha.${noteFragment} Thik thaak arrange tha 👍`;
+        shortText = `${name}માં સારો અનુભવ રહ્યો.${noteFragment} બધું બરાબર હતું 👍`;
+        detailedText = `${name}ની મુલાકાત એકંદરે ઘણી સારી રહી.${noteFragment} સંતોષકારક વ્યવસ્થા હતી 🙂`;
+        personalText = `મને ${name}ની મુલાકાત સારી લાગી.${noteFragment} એકંદરે સારો સમય પસાર થયો 👍`;
       }
     } else if (r === 3) {
-      if (topicHi) {
-        shortText = `${name} me ${topicHi} thik-thak raha.${noteFragment} Average experience 🙂`;
-        detailedText = `${name} me ${topicHi} theek tha par kuch cheezein aur behtar ho sakti hain.${noteFragment} Standard visit 🙂`;
-        personalText = `Mere hisab se ${name} me ${topicHi} average tha.${noteFragment} Normal visit overall 🙂`;
+      if (topicGu) {
+        shortText = `${name}માં ${topicGu} સામાન્ય રહ્યાં.${noteFragment} ઠીક મુલાકાત હતી 🙂`;
+        detailedText = `${name}માં ${topicGu} ઠીક હતાં, પણ થોડા સુધારાની જરૂર જણાય છે.${noteFragment} સરેરાશ અનુભવ 🙂`;
+        personalText = `મારા માટે ${name}માં ${topicGu}નો અનુભવ સરેરાશ રહ્યો.${noteFragment} સામાન્ય વિઝિટ 🙂`;
       } else {
-        shortText = `Aaj ${name} ka anubhav thik-thak raha.${noteFragment} Normal visit 🙂`;
-        detailedText = `Overall thik experience tha at ${name}.${noteFragment} Kuch sudhar ki gunjaish hai 🙂`;
-        personalText = `Mera experience at ${name} average raha.${noteFragment} Standard experience 🙂`;
+        shortText = `આજનો અનુભવ ${name} ખાતે ઠીક-ઠાક રહ્યો.${noteFragment} સામાન્ય મુલાકાત રહી 🙂`;
+        detailedText = `એકંદરે મુલાકાત ${name} ખાતે સામાન્ય રહી.${noteFragment} થોડા સુધારાની જરૂર છે 🙂`;
+        personalText = `મારા માટે ${name}નો અનુભવ સામાન્ય રહ્યો.${noteFragment} સાધારણ મુલાકાત 🙂`;
       }
     } else if (r === 2) {
-      if (topicHi) {
-        shortText = `${name} me ${topicHi} ummeed ke mutabik nahi tha.${noteFragment} 😕`;
-        detailedText = `${name} me ${topicHi} se thodi nirasha hui.${noteFragment} Sudhar ki zaroorat hai 😕`;
-        personalText = `${name} me ${topicHi} se jaisi ummeed thi waisa anubhav nahi mila.${noteFragment} 😕`;
+      if (topicGu) {
+        shortText = `${name}માં ${topicGu} અપેક્ષા કરતાં ઓછા રહ્યાં.${noteFragment} 😕`;
+        detailedText = `${name}માં ${topicGu}થી થોડી નિરાશા થઈ.${noteFragment} સુધારો કરવો જરૂરી છે 😕`;
+        personalText = `મને ${name}માં ${topicGu} માટે આવી અપેક્ષા નહોતી.${noteFragment} 😕`;
       } else {
-        shortText = `Aaj ${name} ka anubhav ummeed se kam raha.${noteFragment} 😕`;
-        detailedText = `${name} ka visit satisfactory nahi raha.${noteFragment} Kafi cheezon par dhyan dene ki zaroorat hai 😕`;
-        personalText = `Mujhe aaj ${name} ka visit pasand nahi aaya.${noteFragment} Needs improvement 😕`;
+        shortText = `આજે ${name}માં અનુભવ સારો ન રહ્યો.${noteFragment} 😕`;
+        detailedText = `${name}ની મુલાકાતથી નિરાશા થઈ.${noteFragment} સર્વિસ અને સંભાળમાં સુધારાની જરૂર છે 😕`;
+        personalText = `મને ${name}માં આવી અપેક્ષા નહોતી.{noteFragment} 😕`;
       }
     } else {
-      if (topicHi) {
-        shortText = `${name} me ${topicHi} ka anubhav bahut niraashajanak raha.${noteFragment} 😞`;
-        detailedText = `Aaj ${name} me ${topicHi} se bilkul santusht nahi huye.${noteFragment} Bada sudhar chahiye 😞`;
-        personalText = `${name} me ${topicHi} ka visit mere liye kafi kharab raha.${noteFragment} 😞`;
+      if (topicGu) {
+        shortText = `${name}માં ${topicGu}નો અનુભવ ઘણો ખરાબ રહ્યો.${noteFragment} 😞`;
+        detailedText = `${name}માં ${topicGu}થી બિલકુલ સંતોષ ન થયો.${noteFragment} મોટા સુધારાની જરૂર છે 😞`;
+        personalText = `${name}માં ${topicGu}થી ખૂબ જ નિરાશાજનક મુલાકાત રહી.${noteFragment} 😞`;
       } else {
-        shortText = `Aaj ${name} me bahut kharab anubhav raha.${noteFragment} 😞`;
-        detailedText = `${name} me aaj ka visit bilkul accha nahi raha.${noteFragment} Quality aur dhyan dono me kami thi 😞`;
-        personalText = `Mujhe aaj ${name} me bilkul accha anubhav nahi mila.${noteFragment} Highly dissatisfied 😞`;
+        shortText = `${name}માં આજનો અનુભવ ખૂબ ખરાબ રહ્યો.${noteFragment} 😞`;
+        detailedText = `આજે ${name}ની મુલાકાતથી બિલકુલ સંતોષ ન થયો.${noteFragment} મોટા સુધારાની તાતી જરૂર છે 😞`;
+        personalText = `${name} ખાતે આજની મુલાકાત ઘણી નિરાશાજનક રહી.${noteFragment} 😞`;
       }
     }
-  } else if (l.includes('guj')) {
+  } else if (l.includes('hin')) {
     if (r === 5) {
-      if (topicGu) {
-        shortText = `${name} ma ${topicGu} khub j gamyu!${noteFragment} Majo avi gayo ✨`;
-        detailedText = `${name} ma ${topicGu} no anubhav lajawab rahyo.${noteFragment} Badhu vyavasthit hatu 😊`;
-        personalText = `Mane ${name} ma ${topicGu} khub saras lagyu.${noteFragment} Khub santosh thayo ❤️`;
+      if (topicHi) {
+        shortText = `${name} में ${topicHi} बहुत पसंद आया!${noteFragment} मज़ा आ गया 🍳☕`;
+        detailedText = `${name} में ${topicHi} का अनुभव वाकई लाजवाब रहा।${noteFragment} सब कुछ बहुत अच्छे से व्यवस्थित था 😊✨`;
+        personalText = `व्यक्तिगत रूप से ${name} में ${topicHi} बहुत अच्छा लगा।${noteFragment} विज़िट से बहुत खुशी हुई ❤️`;
       } else {
-        shortText = `Khub j saras anubhav rahyo at ${name}!${noteFragment} Majo avi gayo ✨`;
-        detailedText = `${name} ni mulakat khub shandar rahi.${noteFragment} Badhi vyavastha saras hati 😊`;
-        personalText = `Mane ${name} ni mulakat khub j pasand avi.${noteFragment} Khub anand thayo ❤️`;
+        shortText = `बहुत ही अच्छा अनुभव रहा ${name} में!${noteFragment} मज़ा आ गया 😊✨`;
+        detailedText = `समग्र विज़िट ${name} में काफी शानदार रही।${noteFragment} व्यवस्था बहुत अच्छी थी 👍`;
+        personalText = `मुझे ${name} की विज़िट बहुत पसंद आई।${noteFragment} काफी सुखद अनुभव रहा ❤️`;
       }
     } else if (r === 4) {
-      if (topicGu) {
-        shortText = `${name} ma ${topicGu} saru hatu.${noteFragment} Saras anubhav 👍`;
-        detailedText = `${name} ma ${topicGu} no anubhav ekandare saras rahyo.${noteFragment} Khushi thai 🙂`;
-        personalText = `Mane ${name} ma ${topicGu} pasand aavyu.${noteFragment} Good experience overall 👍`;
+      if (topicHi) {
+        shortText = `${name} में ${topicHi} काफी अच्छा था।${noteFragment} अच्छा अनुभव रहा 👍`;
+        detailedText = `${name} में ${topicHi} का अनुभव काफी सुखद रहा।${noteFragment} सब कुछ बढ़िया था 🙂`;
+        personalText = `मुझे ${name} में ${topicHi} पसंद आया।${noteFragment} एक अच्छी विज़िट रही 👍`;
       } else {
-        shortText = `Saras anubhav rahyo at ${name}.${noteFragment} Badhu barabar hatu 👍`;
-        detailedText = `${name} ni mulakat ekandare sari rahi.${noteFragment} Santoshjanak anubhav 🙂`;
-        personalText = `Mane ${name} ni mulakat sari lagi.${noteFragment} Overall good visit 👍`;
+        shortText = `काफी अच्छा अनुभव रहा ${name} में।${noteFragment} अच्छा लगा 👍`;
+        detailedText = `कुल मिलाकर ${name} की विज़िट अच्छी रही।${noteFragment} व्यवस्था ठीक रही 🙂`;
+        personalText = `मुझे ${name} की विज़िट पसंद आई।${noteFragment} बढ़िया समय बीता 👍`;
       }
     } else if (r === 3) {
-      if (topicGu) {
-        shortText = `${name} ma ${topicGu} thik-thak hatu.${noteFragment} Sadharan anubhav 🙂`;
-        detailedText = `${name} ma ${topicGu} thik hatu pan thodu sudhari shakay em chhe.${noteFragment} Average visit 🙂`;
-        personalText = `Mara mate ${name} ma ${topicGu} sadharan rahyu.${noteFragment} Normal experience 🙂`;
+      if (topicHi) {
+        shortText = `${name} में ${topicHi} ठीक-ठाक रहा।${noteFragment} सामान्य अनुभव 🙂`;
+        detailedText = `${name} में ${topicHi} औसत रहा।${noteFragment} थोड़े और सुधार की गुंजाइश है 🙂`;
+        personalText = `मेरे लिए ${name} में ${topicHi} साधारण रहा।${noteFragment} सामान्य विज़िट 🙂`;
       } else {
-        shortText = `Aaj no anubhav at ${name} thik-thak rahyo.${noteFragment} Sadharan mulakat 🙂`;
-        detailedText = `${name} ni mulakat ekandare average rahi.${noteFragment} Sudhara ni jarur chhe 🙂`;
-        personalText = `Mane ${name} no anubhav average lagyo.${noteFragment} Normal experience 🙂`;
+        shortText = `आज ${name} का अनुभव सामान्य रहा।${noteFragment} ठीक-ठाक विज़िट 🙂`;
+        detailedText = `कुल मिलाकर ${name} का अनुभव औसत रहा।${noteFragment} कुछ सुधार हो सकता है 🙂`;
+        personalText = `मेरे लिए ${name} की विज़िट साधारण रही।${noteFragment} ठीक अनुभव रहा 🙂`;
       }
     } else if (r === 2) {
-      if (topicGu) {
-        shortText = `${name} ma ${topicGu} apeksha mujab na hatu.${noteFragment} 😕`;
-        detailedText = `${name} ma ${topicGu} no anubhav thodo nirashajanak rahyo.${noteFragment} Sudhar ni jarur chhe 😕`;
-        personalText = `Mane ${name} ma ${topicGu} thi jash na malyo.${noteFragment} 😕`;
+      if (topicHi) {
+        shortText = `${name} में ${topicHi} उम्मीद के मुताबिक नहीं था।${noteFragment} 😕`;
+        detailedText = `${name} में ${topicHi} से थोड़ी निराशा हुई।${noteFragment} सुधार की ज़रूरत है 😕`;
+        personalText = `मुझे ${name} में ${topicHi} से ऐसी उम्मीद नहीं थी।${noteFragment} 😕`;
       } else {
-        shortText = `Aaj ni mulakat at ${name} apeksha karata ochhi rahi.${noteFragment} 😕`;
-        detailedText = `${name} ni mulakat santoshjanak na rahi.${noteFragment} Dhyan aapvani jarur chhe 😕`;
-        personalText = `Mane aaj no anubhav at ${name} pasand na aavyo.${noteFragment} 😕`;
+        shortText = `आज ${name} का अनुभव उम्मीद से कम रहा।${noteFragment} 😕`;
+        detailedText = `${name} की विज़िट से थोड़ी निराशा हुई।${noteFragment} सर्विस में सुधार की ज़रूरत है 😕`;
+        personalText = `मुझे ऐसी उम्मीद नहीं थी ${name} में।${noteFragment} 😕`;
       }
     } else {
-      if (topicGu) {
-        shortText = `${name} ma ${topicGu} ange khub nirasha thai.${noteFragment} 😞`;
-        detailedText = `${name} ma ${topicGu} no anubhav bilkul saras na rahyo.${noteFragment} Sudharo jaruri chhe 😞`;
-        personalText = `Mane ${name} ma ${topicGu} thi bilkul santosh na thayo.${noteFragment} 😞`;
+      if (topicHi) {
+        shortText = `${name} में ${topicHi} का अनुभव खराब रहा।${noteFragment} 😞`;
+        detailedText = `${name} में ${topicHi} से बिल्कुल संतुष्ट नहीं हुए।${noteFragment} बड़े सुधार की ज़रूरत है 😞`;
+        personalText = `${name} में ${topicHi} से काफी निराशाजनक अनुभव रहा।${noteFragment} 😞`;
       } else {
-        shortText = `Aaj no anubhav at ${name} khub kharab rahyo.${noteFragment} 😞`;
-        detailedText = `${name} ni mulakat bilkul sari na rahi.${noteFragment} Motu sudhar jaruri chhe 😞`;
-        personalText = `Mane aaj no anubhav at ${name} bilkul pasand na aavyo.${noteFragment} 😞`;
+        shortText = `आज ${name} में खराब अनुभव रहा।${noteFragment} 😞`;
+        detailedText = `आज ${name} की विज़िट से बिल्कुल संतुष्ट नहीं हुए।${noteFragment} बड़े सुधार की ज़रूरत है 😞`;
+        personalText = `${name} में आज का अनुभव काफी निराशाजनक रहा।${noteFragment} 😞`;
       }
     }
   } else {
     // English
     if (r === 5) {
       if (topicEn) {
-        shortText = `Really enjoyed the ${topicEn} at ${name}!${noteFragment} Great experience ✨`;
-        detailedText = `Had a wonderful time with the ${topicEn} at ${name}.${noteFragment} Everything went smoothly 😊`;
-        personalText = `Personally loved the ${topicEn} at ${name}.${noteFragment} Very pleased with this visit 👍`;
+        shortText = `Really enjoyed the ${topicEn} at ${name}!${noteFragment} Loved it 🍳☕`;
+        detailedText = `Had a lovely visit at ${name}. The ${topicEn} was wonderful and prepared nicely.${noteFragment} Truly enjoyed it 😊✨`;
+        personalText = `The ${topicEn} at ${name} was delicious today.${noteFragment} Very happy with my visit ❤️`;
       } else {
-        shortText = `Excellent experience at ${name}!${noteFragment} Thoroughly enjoyed it ✨`;
-        detailedText = `Everything went smoothly during today's visit to ${name}.${noteFragment} Really pleased with the experience 😊`;
-        personalText = `A truly great visit to ${name} for me.${noteFragment} Very satisfied with everything 👍`;
+        shortText = `Had a wonderful visit at ${name}! Really enjoyed every moment.${noteFragment} Loved it 😊✨`;
+        detailedText = `Had a lovely and wonderful visit at ${name}. Everything was handled nicely.${noteFragment} Truly enjoyed it 👍`;
+        personalText = `I genuinely enjoyed my time at ${name}.${noteFragment} Very happy with my visit ❤️`;
       }
     } else if (r === 4) {
       if (topicEn) {
-        shortText = `Good experience with the ${topicEn} at ${name}.${noteFragment} 👍`;
-        detailedText = `Overall a solid experience with the ${topicEn} at ${name}.${noteFragment} Glad I visited 🙂`;
-        personalText = `Had a good visit for ${topicEn} at ${name}.${noteFragment} Happy with how things went 👍`;
+        shortText = `Good ${topicEn} at ${name}.${noteFragment} Nice visit 👍`;
+        detailedText = `Solid and enjoyable experience with the ${topicEn} at ${name}.${noteFragment} Well managed throughout 😊`;
+        personalText = `Had a good experience with the ${topicEn} at ${name}.${noteFragment} Happy with my visit overall 👍`;
       } else {
-        shortText = `Good visit overall at ${name}.${noteFragment} Everything was in order 👍`;
+        shortText = `Very pleasant visit at ${name}.${noteFragment} Good spot to stop by 👍`;
         detailedText = `Overall a solid and enjoyable experience at ${name}.${noteFragment} Everything was well arranged 😊`;
         personalText = `Had a good visit at ${name}.${noteFragment} Happy with my experience overall 👍`;
       }
@@ -439,7 +512,7 @@ const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, 
       }
     } else {
       if (topicEn) {
-        shortText = `Very disappointing experience with the ${topicEn} at ${name} today.${noteFragment} 😞`;
+        shortText = `Very disappointing experience with the ${topicEn} at ${name}.${noteFragment} 😞`;
         detailedText = `Unsatisfied with the ${topicEn} during today's visit to ${name}.${noteFragment} Major improvements are needed 😞`;
         personalText = `Really unhappy with the ${topicEn} at ${name} today.${noteFragment} Disappointed with how things went 😞`;
       } else {
@@ -451,9 +524,9 @@ const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, 
   }
 
   return [
-    { id: 'opt1', focus: 'Short & Natural', text: shortText },
-    { id: 'opt2', focus: 'Detailed & Expressive', text: detailedText },
-    { id: 'opt3', focus: 'Simple & Personal', text: personalText },
+    { id: 'opt1', focus: getStyleLabel('Short & Natural', lang), text: shortText },
+    { id: 'opt2', focus: getStyleLabel('Detailed & Expressive', lang), text: detailedText },
+    { id: 'opt3', focus: getStyleLabel('Simple & Personal', lang), text: personalText },
   ];
 };
 
@@ -485,12 +558,13 @@ export default function CustomerReview({
   const [reviewStarted, setReviewStarted] = useState(() => Boolean(initialDraft?.reviewStarted));
 
   // Business Category & Dynamic Branding
-  const [businessName, setBusinessName] = useState(() => (businessId === 'default_business' || businessId === 'nasta_ghar' ? BRAND.name : ''));
+  const [businessName, setBusinessName] = useState(() => (businessId === 'default_business' || businessId === 'nasta_ghar' ? (language === 'gujarati' ? 'નાસ્તા ઘર' : language === 'hindi' ? 'नाश्ता घर' : BRAND.name) : ''));
   const [primaryAccent, setPrimaryAccent] = useState('#f97316');
   const [businessDescription, setBusinessDescription] = useState('');
   const [businessCategory, setBusinessCategory] = useState('Breakfast & Snacks');
   const [notFound, setNotFound] = useState(false);
   const [notFoundId, setNotFoundId] = useState('');
+  const [templateData, setTemplateData] = useState(null);
 
   // Topics
   const [availableTopics, setAvailableTopics] = useState(DEFAULT_TOPICS);
@@ -581,10 +655,13 @@ export default function CustomerReview({
     let active = true;
     setNotFound(false);
 
-    apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/review-link`)
+    apiFetch(`/api/public/businesses/${encodeURIComponent(businessId)}/config`)
       .then(async (r) => {
-        if (!r.ok) {
-          if (r.status === 404 || r.status === 422) {
+        if (r.ok) return r.json();
+        // Fallback to legacy endpoint if public config not yet provisioned
+        const legacy = await apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/review-link`);
+        if (!legacy.ok) {
+          if (legacy.status === 404 || legacy.status === 422) {
             if (active) {
               setNotFound(true);
               setNotFoundId(businessId);
@@ -593,26 +670,38 @@ export default function CustomerReview({
           }
           throw new Error('Config load failed');
         }
-        return r.json();
+        return legacy.json();
       })
       .then((d) => {
         if (!d || !active) return;
-        const resolvedName = d.business_name || (businessId === 'default_business' ? BRAND.name : businessId);
+        setTemplateData(d);
+        const rawName = (d.businessName || d.business_name || '').trim();
+        const isSlugOrPlaceholder = !rawName || rawName === 'default_business' || rawName === 'default' || rawName === 'nasta_ghar';
+        const resolvedName = !isSlugOrPlaceholder
+          ? rawName
+          : (businessId === 'default_business' || businessId === 'nasta_ghar'
+              ? (language === 'gujarati' ? 'નાસ્તા ઘર' : language === 'hindi' ? 'नाश्ता घर' : BRAND.name)
+              : (d.category ? (language === 'gujarati' ? `આ ${d.category}` : language === 'hindi' ? `इस ${d.category}` : `The ${d.category}`) : 'Review Assistant'));
         setBusinessName(resolvedName);
-        if (d.review_url) setGoogleReviewUrl(d.review_url);
+        const rUrl = d.googleReviewUrl || d.review_url;
+        if (rUrl) setGoogleReviewUrl(rUrl);
         if (d.category) setBusinessCategory(d.category);
-        if (d.primary_accent) setPrimaryAccent(d.primary_accent);
+        const accent = d.theme?.primaryAccent || d.primary_accent;
+        if (accent) setPrimaryAccent(accent);
         if (d.description) setBusinessDescription(d.description);
         if (d.topics && d.topics.length > 0) {
-          const enriched = d.topics.map((item) => ({
-            label: item,
-            icon: getTopicIcon(item),
-          }));
+          const enriched = d.topics.map((item) => {
+            if (typeof item === 'object' && item.label) {
+              return { label: item.label, icon: item.icon || getTopicIcon(item.label) };
+            }
+            return { label: item, icon: getTopicIcon(item) };
+          });
           setAvailableTopics(enriched);
           const currentDraft = loadDraft(businessId);
           if (!currentDraft?.selectedTopics) {
-            setSelectedTopics(d.topics.slice(0, 2));
-            saveDraft(businessId, { selectedTopics: d.topics.slice(0, 2) });
+            const initialLabels = enriched.slice(0, 2).map((t) => t.label);
+            setSelectedTopics(initialLabels);
+            saveDraft(businessId, { selectedTopics: initialLabels });
           }
         }
         setIdeas(getFallbackIdeas(rating, personalNote, language, resolvedName, nothingSpecific ? [] : selectedTopics));
@@ -747,6 +836,7 @@ export default function CustomerReview({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           business_id: businessId,
+          business_name: businessName || undefined,
           rating,
           aspects: nothingSpecific ? [] : selectedTopics,
           user_note: personalNote.trim(),
@@ -839,6 +929,7 @@ export default function CustomerReview({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           business_id: businessId,
+          business_name: businessName || undefined,
           rating,
           aspects: selectedTopics,
           user_note: personalNote.trim(),
@@ -941,17 +1032,59 @@ export default function CustomerReview({
         </div>
       )}
 
-      {(businessId === 'default_business' || businessId === 'nasta_ghar') ? (
-        <RestaurantWorld />
-      ) : (
-        <div className="ng-scene-wrapper compact" style={{ minHeight: '140px', background: `linear-gradient(135deg, ${primaryAccent}15, ${primaryAccent}30)` }}>
-          <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
-            <span style={{ fontSize: '3rem' }}>
-              {businessCategory.toLowerCase().includes('cafe') ? '☕' : businessCategory.toLowerCase().includes('hotel') ? '🏨' : '🍽️'}
+      {(() => {
+        const heroType = templateData?.theme?.heroBannerType;
+        const indSlug = templateData?.industry?.slug;
+
+        // Signature Gujarati Restaurant Animated World (Nasta Ghar)
+        if (heroType === 'animated_world' || (!heroType && (businessId === 'default_business' || businessId === 'nasta_ghar'))) {
+          return <RestaurantWorld />;
+        }
+
+        // Dynamic Industry Template Hero (Hotel, Salon, Clinic, Fine Dining)
+        const badge = templateData?.theme?.badgeText || (indSlug === 'hotel' ? 'Hospitality Stay' : indSlug === 'salon' ? 'Studio & Spa' : indSlug === 'clinic' ? 'Healthcare Care' : 'Vraja Experience');
+        const icon = templateData?.industry?.icon || (indSlug === 'hotel' ? '🏨' : indSlug === 'salon' ? '✂️' : indSlug === 'clinic' ? '🩺' : '🍽️');
+        const bg = templateData?.theme?.cardBackground || '#162017';
+        const accent = primaryAccent || templateData?.theme?.primaryAccent || '#f97316';
+
+        return (
+          <div
+            className="ng-scene-wrapper dynamic-industry-hero"
+            style={{
+              minHeight: '150px',
+              background: `linear-gradient(135deg, ${bg} 0%, ${accent}25 100%)`,
+              borderBottom: `2px solid ${accent}`,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '22px 16px',
+              textAlign: 'center',
+            }}
+          >
+            <span style={{ fontSize: '2.6rem', marginBottom: '8px' }}>{icon}</span>
+            <span
+              style={{
+                display: 'inline-block',
+                backgroundColor: accent,
+                color: '#ffffff',
+                fontSize: '11px',
+                fontWeight: '700',
+                padding: '3px 10px',
+                borderRadius: '9999px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                marginBottom: '6px',
+              }}
+            >
+              {badge}
+            </span>
+            <span style={{ fontSize: '13px', color: '#94a3b8' }}>
+              {templateData?.template?.name || businessCategory || 'Hospitality Review Assistant'}
             </span>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div
         ref={reviewCardRef}
@@ -1034,7 +1167,7 @@ export default function CustomerReview({
                       aria-pressed={selected}
                     >
                       <span className="ng-chip-icon">{icon}</span>
-                      <span>{label}</span>
+                      <span>{getLocalizedTopic(label, language)}</span>
                     </button>
                   );
                 })}
@@ -1121,7 +1254,7 @@ export default function CustomerReview({
                       }}
                     >
                       <div className="ng-idea-meta">
-                        <span className="ng-idea-num">{idea.focus || `Option ${i + 1}`}</span>
+                        <span className="ng-idea-num">{getStyleLabel(idea.focus, language) || `Option ${i + 1}`}</span>
                         <span className="ng-idea-lang">{getLanguageLabel(language)}</span>
                         <span className="ng-idea-stars">{'★'.repeat(rating)}</span>
                       </div>
@@ -1225,14 +1358,14 @@ export default function CustomerReview({
           <span className="ng-toast-msg">
             {copied
               ? (language === 'hindi'
-                  ? "Aapka review copy ho gaya hai ✓ Google Maps par 'Write a review' tap karein, same rating select karke Paste karein."
+                  ? "आपकी समीक्षा कॉपी हो गई है ✓ गूगल मैप्स पर 'Write a review' टैप करें, यही रेटिंग चुनकर समीक्षा पेस्ट करें।"
                   : language === 'gujarati'
-                  ? "તમારો review copy થઈ ગયો છે ✓ Google Maps માં 'Write a review' tap કરો, same rating select કરીને Paste કરો."
+                  ? "તમારી સમીક્ષા કૉપિ થઈ ગઈ છે ✓ ગૂગલ મેપ્સ પર 'Write a review' ટૅપ કરો, આ જ રેટિંગ પસંદ કરીને પેસ્ટ કરો."
                   : "Your review is copied ✓ On Google Maps, tap 'Write a review', select the same rating, and paste.")
               : (language === 'hindi'
-                  ? "Review copy nahi hua. Dobara koshish karne ke liye 'Copy Review' tap karein."
+                  ? "समीक्षा कॉपी नहीं हो सकी। दोबारा प्रयास करने के लिए 'समीक्षा कॉपी करें' पर टैप करें।"
                   : language === 'gujarati'
-                  ? "Review copy na thayu. Fari prayas karva 'Copy Review' par tap karo."
+                  ? "સમીક્ષા કૉપિ થઈ શકી નથી. ફરી પ્રયાસ કરવા માટે 'સમીક્ષા કૉપિ કરો' પર ટૅપ કરો."
                   : "Review could not be copied. Tap 'Copy Review' to try again.")}
           </span>
         </div>
@@ -1245,28 +1378,28 @@ export default function CustomerReview({
             <div className="ng-modal-icon">📋</div>
             <h3 className="ng-modal-title">
               {copyingReview
-                ? (language === 'hindi' ? 'Review taiyar ho raha hai…' : language === 'gujarati' ? 'Review તૈયાર થઈ રહ્યો છે…' : 'Preparing your review…')
+                ? (language === 'hindi' ? 'समीक्षा तैयार हो रही है…' : language === 'gujarati' ? 'સમીક્ષા તૈયાર થઈ રહી છે…' : 'Preparing your review…')
                 : copied
-                ? (language === 'hindi' ? 'Review Clipboard par Copy Ho Gaya ✓' : language === 'gujarati' ? 'Review Clipboard પર Copy થઈ ગયો ✓' : 'Review Copied to Clipboard ✓')
-                : (language === 'hindi' ? 'Review Copy Karke Aage Badhein' : language === 'gujarati' ? 'Review Copy Kari Aagal Vadho' : 'Copy Your Review to Continue')}
+                ? (language === 'hindi' ? 'समीक्षा क्लिपबोर्ड पर कॉपी हो गई ✓' : language === 'gujarati' ? 'સમીક્ષા ક્લિપબોર્ડ પર કૉપિ થઈ ગઈ ✓' : 'Review Copied to Clipboard ✓')
+                : (language === 'hindi' ? 'समीक्षा कॉपी करके आगे बढ़ें' : language === 'gujarati' ? 'સમીક્ષા કૉપિ કરીને આગળ વધો' : 'Copy Your Review to Continue')}
             </h3>
             <p className="ng-modal-body">
               {copyingReview ? (
                 language === 'hindi' ? (
-                  <>Aapka review taiyar hai. Clipboard par copy karke Google Maps khol rahe hain…</>
+                  <>आपकी समीक्षा तैयार है। क्लिपबोर्ड पर कॉपी कर रहे हैं और गूगल मैप्स खोल रहे हैं…</>
                 ) : language === 'gujarati' ? (
-                  <>તમારો review તૈયાર છે. Clipboard પર copy કરી રહ્યા છીએ અને Google Maps ખોલી રહ્યા છીએ…</>
+                  <>તમારી સમીક્ષા તૈયાર છે. ક્લિપબોર્ડ પર કૉપિ કરી રહ્યા છીએ અને ગૂગલ મેપ્સ ખોલી રહ્યા છીએ…</>
                 ) : (
                   <>Preparing your review. Copying to clipboard and opening Google Maps…</>
                 )
               ) : copied ? (
                 language === 'hindi' ? (
                   <>
-                    Aapka review copy ho gaya hai ✓ Aapne yahan <strong>{rating}★</strong> chuna hai. Google Maps par <strong>Write a review</strong> tap karein, same rating select karein aur paste karein.
+                    आपकी समीक्षा कॉपी हो गई है ✓ आपने यहाँ <strong>{rating}★</strong> चुने हैं। गूगल मैप्स पर <strong>Write a review</strong> पर टैप करें, यही रेटिंग चुनें और समीक्षा पेस्ट करें।
                   </>
                 ) : language === 'gujarati' ? (
                   <>
-                    તમારો review copy થઈ ગયો છે ✓ તમે અહીં <strong>{rating}★</strong> પસંદ કર્યા છે. Google Maps પર <strong>Write a review</strong> tap કરો, same rating પસંદ કરો અને review paste કરો.
+                    તમારી સમીક્ષા કૉપિ થઈ ગઈ છે ✓ તમે અહીં <strong>{rating}★</strong> પસંદ કર્યા છે. ગૂગલ મેપ્સ પર <strong>Write a review</strong> ટૅપ કરો, આ જ રેટિંગ પસંદ કરો અને સમીક્ષા પેસ્ટ કરો.
                   </>
                 ) : (
                   <>
@@ -1276,11 +1409,11 @@ export default function CustomerReview({
               ) : (
                 language === 'hindi' ? (
                   <>
-                    Review copy nahi hua. Niche diye gaye review ko copy karein aur Google Maps par paste karein (aapne yahan <strong>{rating}★</strong> chuna tha).
+                    समीक्षा कॉपी नहीं हो सकी। नीचे दी गई समीक्षा को कॉपी करें और गूगल मैप्स पर पेस्ट करें (आपने यहाँ <strong>{rating}★</strong> चुने थे)।
                   </>
                 ) : language === 'gujarati' ? (
                   <>
-                    Review copy na thayu. Niche aapyelo review copy karo ane Google Maps ma paste karo (tame ahiya <strong>{rating}★</strong> પસંદ કર્યા છે).
+                    સમીક્ષા કૉપિ થઈ શકી નથી. નીચે આપેલી સમીક્ષા કૉપિ કરો અને ગૂગલ મેપ્સ પર પેસ્ટ કરો (તમે અહીં <strong>{rating}★</strong> પસંદ કર્યા હતા).
                   </>
                 ) : (
                   <>
@@ -1295,9 +1428,9 @@ export default function CustomerReview({
                 <span className="ng-modal-step-num">1</span>
                 <span>
                   {language === 'hindi'
-                    ? <>Google par wahi rating chunein jo yahan chuni thi (aapne <strong>{rating} stars</strong> chune hain)</>
+                    ? <>गूगल पर वही रेटिंग चुनें जो यहाँ चुनी थी (आपने <strong>{rating} स्टार</strong> चुने हैं)</>
                     : language === 'gujarati'
-                    ? <>Google par ae j rating select karo je ahiya select kari hati (tame <strong>{rating} stars</strong> select karya chhe)</>
+                    ? <>ગૂગલ પર એ જ રેટિંગ પસંદ કરો જે અહીં પસંદ કર્યું હતું (તમે <strong>{rating} સ્ટાર</strong> પસંદ કર્યા છે)</>
                     : <>Choose the rating that reflects your visit on Google (you selected <strong>{rating} stars</strong> here)</>}
                 </span>
               </div>
@@ -1305,17 +1438,17 @@ export default function CustomerReview({
                 <span className="ng-modal-step-num">2</span>
                 <span>
                   {copyingReview
-                    ? (language === 'hindi' ? 'Selected review copy ho raha hai…' : language === 'gujarati' ? 'Selected review copy thai rahyo chhe…' : 'Copying selected review…')
+                    ? (language === 'hindi' ? 'चुनी गई समीक्षा कॉपी हो रही है…' : language === 'gujarati' ? 'પસંદ કરેલી સમીક્ષા કૉપિ થઈ રહી છે…' : 'Copying selected review…')
                     : copied
                     ? (language === 'hindi'
-                        ? <>Copied review ko <strong>Paste</strong> karein (apne device ka Paste command use karein)</>
+                        ? <>कॉपी की गई समीक्षा को <strong>Paste</strong> करें (स्क्रीन पर देर तक दबाकर Paste करें)</>
                         : language === 'gujarati'
-                        ? <>Copied review ne <strong>Paste</strong> karo (screen par long-press kari Paste karo)</>
+                        ? <>કૉપિ કરેલી સમીક્ષાને <strong>Paste</strong> કરો (સ્ક્રીન પર લોંગ-પ્રેસ કરીને Paste કરો)</>
                         : <><strong>Paste</strong> the copied review (use your device's Paste command, or long-press → Paste on mobile)</>)
                     : (language === 'hindi'
-                        ? <>Niche se review copy karein aur Google par <strong>Paste</strong> karein</>
+                        ? <>नीचे से समीक्षा कॉपी करें और गूगल पर <strong>Paste</strong> करें</>
                         : language === 'gujarati'
-                        ? <>Niche thi review copy karo ane Google par <strong>Paste</strong> karo</>
+                        ? <>નીચેથી સમીક્ષા કૉપિ કરો અને ગૂગલ પર <strong>Paste</strong> કરો</>
                         : <>Copy the review below, then <strong>paste</strong> it into Google</>)}
                 </span>
               </div>
@@ -1323,9 +1456,9 @@ export default function CustomerReview({
                 <span className="ng-modal-step-num">3</span>
                 <span>
                   {language === 'hindi'
-                    ? <>Review check karein aur Google ke <strong>Post</strong> button par tap karein.</>
+                    ? <>समीक्षा जाँचें और गूगल के <strong>Post</strong> बटन पर टैप करें।</>
                     : language === 'gujarati'
-                    ? <>Review check karo ane Google na <strong>Post</strong> button par tap karo.</>
+                    ? <>સમીક્ષા તપાસો અને ગૂગલના <strong>Post</strong> બટન પર ટૅપ કરો.</>
                     : <>Review it, then tap Google's <strong>Post</strong> button when you're ready.</>}
                 </span>
               </div>
@@ -1348,8 +1481,8 @@ export default function CustomerReview({
                 {copyAgainSuccess
                   ? '✓ Copied!'
                   : copied
-                  ? (language === 'hindi' ? '📋 Dobara Copy Karein' : language === 'gujarati' ? '📋 Fari Copy Karo' : '📋 Copy Again')
-                  : (language === 'hindi' ? '📋 Review Copy Karein' : language === 'gujarati' ? '📋 Review Copy Karo' : '📋 Copy Review')}
+                  ? (language === 'hindi' ? '📋 दोबारा कॉपी करें' : language === 'gujarati' ? '📋 ફરી કૉપિ કરો' : '📋 Copy Again')
+                  : (language === 'hindi' ? '📋 समीक्षा कॉपी करें' : language === 'gujarati' ? '📋 સમીક્ષા કૉપિ કરો' : '📋 Copy Review')}
               </button>
             </div>
 
@@ -1365,14 +1498,14 @@ export default function CustomerReview({
                   window.location.href = googleReviewUrl;
                 }}
               >
-                {language === 'hindi' ? '↗ Google Maps Kholein' : language === 'gujarati' ? '↗ Google Maps Kholo' : '↗ Continue to Google Maps'}
+                {language === 'hindi' ? '↗ गूगल मैप्स खोलें' : language === 'gujarati' ? '↗ ગૂગલ મેપ્સ ખોલો' : '↗ Continue to Google Maps'}
               </button>
               <button
                 type="button"
                 className="ng-btn-secondary"
                 onClick={() => setHandoffOpen(false)}
               >
-                Done ✓
+                {language === 'hindi' ? 'पूर्ण ✓' : language === 'gujarati' ? 'થઈ ગયું ✓' : 'Done ✓'}
               </button>
             </div>
           </div>

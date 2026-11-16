@@ -9,6 +9,7 @@ class ReviewIdeaItem(BaseModel):
 
 class ReviewIdeasRequest(BaseModel):
     business_id: str = Field(default="default_business", min_length=1, max_length=100, description="Unique cafe/restaurant identifier")
+    business_name: Optional[str] = Field(default=None, description="Display name of business")
     rating: int = Field(..., ge=1, le=5, description="Guest star rating from 1 to 5")
     aspects: Optional[List[str]] = Field(default_factory=list, max_length=20, description="Hospitality aspects experienced (e.g. food, drinks, service, vibe)")
     user_note: Optional[str] = Field(default="", max_length=2000, description="Guest freeform notes or mentioned dishes/drinks")
@@ -20,6 +21,7 @@ class ReviewIdeasResponse(BaseModel):
 
 class ReviewGenerateRequest(BaseModel):
     business_id: str = Field(default="default_business", min_length=1, max_length=100, description="Unique cafe/restaurant identifier")
+    business_name: Optional[str] = Field(default=None, description="Display name of business")
     rating: int = Field(..., ge=1, le=5, description="Guest star rating from 1 to 5")
     aspects: Optional[List[str]] = Field(default_factory=list, max_length=20, description="Hospitality aspects experienced (e.g. coffee, food, service, vibe)")
     user_note: Optional[str] = Field(default="", max_length=2000, description="Guest freeform notes or mentioned dishes/drinks")

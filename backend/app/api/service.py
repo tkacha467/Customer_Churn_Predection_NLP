@@ -71,17 +71,143 @@ class ReviewService:
         if len(self._analytics_events) > 2000:
             self._analytics_events = self._analytics_events[-2000:]
 
+    def resolve_business_name(
+        self,
+        business_id: str,
+        client_name: Optional[str] = None,
+        language: str = "english"
+    ) -> str:
+        """
+        Dynamically resolves the business name from tenant configuration.
+        Ensures internal placeholders (like 'default_business') are NEVER exposed to customers.
+        If a tenant name is missing or placeholder, provides a clean fallback.
+        """
+        valid_id = (business_id or "").strip()
+        norm_lang = (language or "english").lower().strip()
+
+        # If client provided a valid non-placeholder name, consider it
+        if client_name and client_name.strip() and client_name.strip() not in ("default_business", "default", "the restaurant"):
+            if client_name.strip() in ("Nasta Ghar", "NastaGhar"):
+                if "guj" in norm_lang:
+                    return "નાસ્તા ઘર"
+                elif "hin" in norm_lang:
+                    return "नाश्ता घर"
+            return client_name.strip()
+
+        from Backend.app.core.database.storage import ReviewStore
+        store = ReviewStore()
+        tenant = None
+        if valid_id and store.tenant_exists(valid_id):
+            tenant = store.get_tenant(valid_id)
+        else:
+            try:
+                from Backend.app.core.tenants.google_reviews import google_review_manager
+                info = google_review_manager.get_review_url(valid_id)
+                if info:
+                    tenant = info
+            except Exception:
+                pass
+
+        biz_name = (tenant.get("business_name") if tenant else "") or ""
+        is_placeholder = (
+            not biz_name
+            or biz_name.strip() in ("default_business", "default", "nasta_ghar", "nasta-ghar")
+            or (biz_name.strip() == valid_id and "_" in valid_id)
+        )
+
+        if is_placeholder:
+            if valid_id in ("default_business", "nasta_ghar", "nasta-ghar", ""):
+                if "guj" in norm_lang:
+                    return "નાસ્તા ઘર"
+                elif "hin" in norm_lang:
+                    return "नाश्ता घर"
+                return "Nasta Ghar"
+
+            cat = tenant.get("category", "") if tenant else ""
+            if cat:
+                if "guj" in norm_lang:
+                    return f"આ {cat}"
+                elif "hin" in norm_lang:
+                    return f"इस {cat}"
+                return f"the {cat.lower()}"
+
+            if "guj" in norm_lang:
+                return "અહીં"
+            elif "hin" in norm_lang:
+                return "यहाँ"
+            return "the restaurant"
+
+        if biz_name.strip() in ("Nasta Ghar", "NastaGhar"):
+            if "guj" in norm_lang:
+                return "નાસ્તા ઘર"
+            elif "hin" in norm_lang:
+                return "नाश्ता घर"
+
+        return biz_name.strip()
+
+    def validate_script_fidelity(self, text: str, language: str) -> bool:
+        """
+        Validates that generated text contains and is primarily composed in the
+        appropriate native Unicode script (Gujarati for 'gu', Devanagari for 'hi').
+        """
+        if not text or not text.strip():
+            return False
+        l = (language or "english").lower().strip()
+        if "guj" in l:
+            # Gujarati Unicode range: 0x0A80 to 0x0AFF
+            guj_chars = sum(1 for c in text if 0x0A80 <= ord(c) <= 0x0AFF)
+            if guj_chars < 3:
+                return False
+            latin_chars = sum(1 for c in text if 'a' <= c.lower() <= 'z')
+            if latin_chars > guj_chars * 2:
+                return False
+            return True
+        elif "hin" in l:
+            # Devanagari Unicode range: 0x0900 to 0x097F
+            hin_chars = sum(1 for c in text if 0x0900 <= ord(c) <= 0x097F)
+            if hin_chars < 3:
+                return False
+            latin_chars = sum(1 for c in text if 'a' <= c.lower() <= 'z')
+            if latin_chars > hin_chars * 2:
+                return False
+            return True
+        return True
+
     def generate_ideas(self, req: ReviewIdeasRequest) -> ReviewIdeasResponse:
-        """Generates 3-5 distinct, customer-grounded review candidate ideas."""
+        """Generates 3-5 distinct, customer-grounded review candidate ideas in native script."""
+        resolved_name = self.resolve_business_name(
+            req.business_id,
+            client_name=getattr(req, "business_name", None),
+            language=req.language or "english"
+        )
         raw_ideas = review_generator.generate_ideas(
             rating=req.rating,
             aspects=req.aspects or [],
             user_note=req.user_note or "",
-            business_name=req.business_id,
+            business_name=resolved_name,
             language=req.language or "english",
             category=req.category
         )
-        ideas = [ReviewIdeaItem(**item) for item in raw_ideas]
+        norm_lang = (req.language or "english").lower().strip()
+        validated_ideas = []
+        for item in raw_ideas:
+            text = item.get("text", "")
+            if not self.validate_script_fidelity(text, norm_lang):
+                from Backend.app.api.prompts import generate_candidate_ideas
+                fallback_items = generate_candidate_ideas(
+                    rating=req.rating,
+                    aspects=req.aspects or [],
+                    user_note=req.user_note or "",
+                    business_name=resolved_name,
+                    language=req.language or "english",
+                    category=req.category
+                )
+                match = next((f for f in fallback_items if f["id"] == item.get("id")), fallback_items[0] if fallback_items else item)
+                item["text"] = match["text"]
+                item["focus"] = match.get("focus", item.get("focus"))
+            validated_ideas.append(item)
+
+        ideas = [ReviewIdeaItem(**item) for item in validated_ideas]
         self.record_event("review_ideas_generated", metadata={
             "business_id": req.business_id,
             "rating": req.rating,
@@ -90,6 +216,7 @@ class ReviewService:
             "language": req.language or "english"
         })
         return ReviewIdeasResponse(ideas=ideas)
+
 
     def generate_review(
         self, req: ReviewGenerateRequest, client_key: str = "default_client"
@@ -114,6 +241,12 @@ class ReviewService:
         best_val: Dict[str, Any] = {}
         provider = "engine"
 
+        resolved_name = self.resolve_business_name(
+            req.business_id,
+            client_name=getattr(req, "business_name", None),
+            language=req.language or "english"
+        )
+
         while attempt < max_attempts:
             attempt += 1
             gen_res = review_generator.generate(
@@ -125,12 +258,30 @@ class ReviewService:
                 length=req.length or "medium",
                 dining_type=req.dining_type or "dine_in",
                 emoji_preference=req.emoji_preference or "light",
-                business_name=req.business_id,
+                business_name=resolved_name,
                 language=req.language or "english",
                 category=req.category
             )
             draft = gen_res["review"]
             provider = gen_res["provider"]
+
+            # Validate script fidelity and enforce native script if missing
+            if not self.validate_script_fidelity(draft, req.language or "english"):
+                from Backend.app.api.prompts import humanize_review_draft
+                draft = humanize_review_draft(
+                    rating=req.rating,
+                    aspects=req.aspects or [],
+                    user_note=req.user_note or "",
+                    selected_idea=req.selected_idea,
+                    tone=req.tone or "natural",
+                    length=req.length or "medium",
+                    dining_type=req.dining_type or "dine_in",
+                    emoji_preference=req.emoji_preference or "light",
+                    business_name=resolved_name,
+                    language=req.language or "english",
+                    category=req.category
+                )
+                provider = "local-script-enforced"
 
             val_res = review_validator.validate(rating=req.rating, review_text=draft)
             best_draft = draft

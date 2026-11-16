@@ -1,10 +1,11 @@
 """
-Humanized Prompt Engineering & Real-World Review Synthesis Engine for ChurnLens.
+Humanized Prompt Engineering & Real-World Review Synthesis Engine for ChurnLens / VRAJA AI.
 Strictly adheres to:
 1. Zero fabrication (never invent unmentioned dishes, staff names, or events).
-2. Human-like natural phrasing (15-45 words, everyday language, no corporate jargon).
-3. 1-2 contextual emojis for every rating level (tasteful, rating-appropriate).
-4. Review idea generation (3 distinct perspectives: taste/product, atmosphere/service, overall experience).
+2. Proper native script language enforcement (Gujarati in Gujarati Unicode script, Hindi in Devanagari script, English in natural English).
+3. Human-like natural phrasing (15-45 words, everyday language, no corporate jargon).
+4. 1-2 contextual emojis for every rating level (tasteful, rating-appropriate).
+5. Review idea generation (3 distinct perspectives: Short & Natural, Detailed & Expressive, Simple & Personal).
 """
 
 import random
@@ -15,10 +16,10 @@ SYSTEM_HUMANIZED_PROMPT = """You are helping a customer write a short, genuine r
 CORE PRINCIPLES:
 1. WRITE LIKE A NORMAL PERSON typing on their phone, not like a marketing professional.
 2. SCRIPT & LANGUAGE RULES:
+   - If Gujarati: Write the complete review in natural, grammatically correct Gujarati using Gujarati Unicode script (ગુજરાતી લિપિ). Every sentence must be written in Gujarati script. Never transliterate Gujarati into English/Roman letters. Never generate Roman Gujarati, Gujlish, Hinglish, or English sentences mixed with Gujarati words. Use natural Gujarati vocabulary and grammar, preserving the customer's original meaning and factual details.
+   - If Hindi: Write the complete review in natural, grammatically correct Hindi using Devanagari script (देवनागरी लिपि). Every sentence must be written in Devanagari script. Never transliterate Hindi into English/Roman letters. Never generate Roman Hindi or Hinglish. Use natural Hindi vocabulary and grammar.
    - If English: Write in simple, natural everyday English.
-   - If Hindi: Write directly in natural Roman-script Hindi (Hinglish), the everyday colloquial Romanized Hindi used in India (e.g. "Yahan ka khana bahut tasty tha aur staff bhi kaafi friendly tha"). STRICTLY DO NOT output Devanagari script.
-   - If Gujarati: Write directly in natural Roman-script Gujarati (Gujlish), the everyday colloquial Romanized Gujarati used in Gujarat (e.g. "Ahiya nu food ekdum mast hatu ane staff pan khub friendly hato"). STRICTLY DO NOT output Gujarati native script.
-   - NEVER generate in English and translate. Write natively in the selected language.
+   - NEVER generate in English and translate via translation tools. Formulate naturally in the requested native language and script.
 3. STRICT ZERO FABRICATION:
    - Reflect ONLY information supplied by the customer or selected from the provided options.
    - NEVER invent dishes, drinks, ingredients, prices, staff names, wait times, parking, delivery, live music, discounts, or events that were not provided.
@@ -46,26 +47,25 @@ def normalize_language(lang: Optional[str]) -> str:
         return "hindi"
     return "english"
 
-# Contextual emoji mapping
 EMOJI_MAP = {
     "coffee": "☕",
     "chai": "☕",
     "drinks": "☕",
     "beverage": "☕",
-    "food": "🍽️",
+    "food": "😋",
     "breakfast": "🍳",
-    "snacks": "🥞",
+    "snacks": "🥪",
     "taste": "😋",
     "flavour": "😋",
     "bakery": "🥐",
-    "dessert": "🍰",
+    "dessert": "🍨",
     "atmosphere": "✨",
     "ambience": "✨",
     "vibe": "✨",
     "service": "😊",
     "staff": "😊",
     "cleanliness": "✨",
-    "value": "👍",
+    "value": "💰",
     "love": "❤️",
     "return": "❤️",
     "happy": "😊",
@@ -79,7 +79,6 @@ def pick_tasteful_emojis(rating: int, aspects: List[str], preference: str = "lig
     emojis = []
     aspect_text = " ".join([a.lower() for a in aspects])
 
-    # Breakfast-first emoji selection (Nasta Ghar)
     if "breakfast" in aspect_text:
         emojis.append(EMOJI_MAP["breakfast"])
     elif "chai" in aspect_text or "beverage" in aspect_text or "drink" in aspect_text or "coffee" in aspect_text:
@@ -110,10 +109,23 @@ def pick_tasteful_emojis(rating: int, aspects: List[str], preference: str = "lig
         else:
             emojis = ["😞"]
 
-    # Limit to 1 or 2 emojis
     selected = emojis[:2] if preference == "light" else emojis[:1]
     return " " + "".join(selected) if selected else ""
 
+def _clean_business_name(name: str, lang: str) -> str:
+    n = (name or "").strip()
+    if not n or n in ("default_business", "default", "nasta_ghar", "nasta-ghar"):
+        if lang == "gujarati":
+            return "નાસ્તા ઘર"
+        elif lang == "hindi":
+            return "नाश्ता घर"
+        return "Nasta Ghar"
+    if n in ("Nasta Ghar", "NastaGhar"):
+        if lang == "gujarati":
+            return "નાસ્તા ઘર"
+        elif lang == "hindi":
+            return "नाश्ता घर"
+    return n
 
 def generate_candidate_ideas(
     rating: int,
@@ -123,55 +135,45 @@ def generate_candidate_ideas(
     language: str = "english",
     category: Optional[str] = None
 ) -> List[Dict[str, str]]:
-    """
-    Generates up to 3 distinct, strictly factually grounded review candidate ideas:
-    1. Short & Natural
-    2. Detailed & Expressive
-    3. Simple & Personal
-    Adheres strictly to zero fabrication (no fake staff hospitality, no fake family,
-    no fake cleanliness, no unverified revisit claims), sentiment fidelity,
-    and natural Roman-script Hinglish/Gujlish.
-    """
     lang = normalize_language(language)
+    b_name = _clean_business_name(business_name, lang)
     cleaned_aspects = [a.lower().strip() for a in aspects if a.strip()]
+
     has_breakfast = any("breakfast" in a or "nasto" in a or "nasta" in a for a in cleaned_aspects)
     has_coffee = any("coffee" in a or "chai" in a or "tea" in a or "drink" in a or "beverage" in a for a in cleaned_aspects)
-    has_food = any("food" in a or "taste" in a or "breakfast" in a or "snack" in a or "pasta" in a or "pizza" in a or "bakery" in a for a in cleaned_aspects)
+    has_food = any("food" in a or "taste" in a or "breakfast" in a or "snack" in a or "bakery" in a for a in cleaned_aspects)
     has_service = any("service" in a or "staff" in a for a in cleaned_aspects)
     has_ambience = any("ambience" in a or "atmosphere" in a or "vibe" in a for a in cleaned_aspects)
     has_clean = any("clean" in a or "sitting" in a for a in cleaned_aspects)
-    has_wait = any("wait" in a or "delay" in a or "slow" in a for a in cleaned_aspects)
-    has_value = any("value" in a or "price" in a or "pocket" in a or "rate" in a for a in cleaned_aspects)
 
-    # Derive strictly customer-selected topic summary
     if has_breakfast and has_coffee:
         topic_en = "breakfast and chai"
-        topic_hi = "breakfast aur chai"
-        topic_gu = "breakfast ane chai"
+        topic_hi = "नाश्ता और चाय"
+        topic_gu = "નાસ્તો અને ચા"
     elif has_breakfast:
         topic_en = "breakfast"
-        topic_hi = "breakfast"
-        topic_gu = "breakfast"
+        topic_hi = "नाश्ता"
+        topic_gu = "નાસ્તો"
     elif has_coffee:
         topic_en = "coffee and tea"
-        topic_hi = "chai"
-        topic_gu = "chai"
+        topic_hi = "चाय और कॉफ़ी"
+        topic_gu = "ચા અને કૉફી"
     elif has_food:
         topic_en = "food"
-        topic_hi = "khana"
-        topic_gu = "food"
+        topic_hi = "स्वादिष्ट भोजन"
+        topic_gu = "સ્વાદિષ્ટ વાનગીઓ"
     elif has_service:
         topic_en = "service"
-        topic_hi = "service"
-        topic_gu = "service"
+        topic_hi = "सर्विस"
+        topic_gu = "સર્વિસ"
     elif has_ambience:
         topic_en = "atmosphere"
-        topic_hi = "atmosphere"
-        topic_gu = "atmosphere"
+        topic_hi = "माहौल"
+        topic_gu = "વાતાવરણ"
     elif has_clean:
-        topic_en = "sitting area"
-        topic_hi = "sitting area"
-        topic_gu = "sitting area"
+        topic_en = "seating area and cleanliness"
+        topic_hi = "बैठक व्यवस्था और साफ़-सफ़ाई"
+        topic_gu = "બેઠક વ્યવસ્થા અને સ્વચ્છતા"
     else:
         topic_en = ""
         topic_hi = ""
@@ -182,165 +184,176 @@ def generate_candidate_ideas(
         n = user_note.strip().rstrip(".!")
         note_fragment = f" {n}."
 
-    if lang == "hindi":
-        if rating == 5:
-            if topic_hi:
-                short_text = f"{business_name} me {topic_hi} bahut pasand aaya!{note_fragment} Maza aa gaya 🍳☕"
-                detailed_text = f"{business_name} me {topic_hi} ka experience lajawab raha.{note_fragment} Sab kuch accha manage kiya hua tha 😊✨"
-                personal_text = f"Personal taur par {business_name} me {topic_hi} bahut accha laga.{note_fragment} Very happy with the visit ❤️"
-            else:
-                short_text = f"Bahut hi accha anubhav raha at {business_name}!{note_fragment} Maza aa gaya 😊✨"
-                detailed_text = f"Overall visit bahut shandar rahi at {business_name}.{note_fragment} Sab kuch kaafi accha arrange kiya hua tha 😊✨"
-                personal_text = f"Personal taur par {business_name} ki visit bahut pasand aayi.{note_fragment} Very happy with the visit ❤️"
+    if lang == "gujarati":
+        focus_1 = "ટૂંકું અને સ્વાભાવિક"
+        focus_2 = "વિગતવાર અને અભિવ્યક્તિપૂર્ણ"
+        focus_3 = "સરળ અને વ્યક્તિગત"
 
-        elif rating == 4:
-            if topic_hi:
-                short_text = f"Accha {topic_hi} at {business_name}.{note_fragment} Good visit 👍"
-                detailed_text = f"{business_name} me {topic_hi} ka anubhav accha aur enjoyable raha.{note_fragment} Overall arrangement comfortable thi 😊"
-                personal_text = f"Mujhe {business_name} me {topic_hi} pasand aaya.{note_fragment} Definitely ek pleasant visit rahi 👍"
-            else:
-                short_text = f"Kaafi accha anubhav raha at {business_name}.{note_fragment} Good visit 👍"
-                detailed_text = f"Overall visit kaafi enjoyable rahi at {business_name}.{note_fragment} Sab kuch theek se manage hua 😊"
-                personal_text = f"Mujhe {business_name} ki visit pasand aayi.{note_fragment} Definitely ek pleasant visit rahi 👍"
-
-        elif rating == 3:
-            if topic_hi:
-                short_text = f"{business_name} me {topic_hi} ka theek anubhav raha.{note_fragment} Standard visit 🙂"
-                detailed_text = f"{business_name} me {topic_hi} average raha.{note_fragment} Anubhav theek tha, par thode aur improvement ki gunjaish hai 🙂"
-                personal_text = f"{topic_hi.capitalize()} ka anubhav mere liye ordinary raha at {business_name}.{note_fragment} Decent visit 🙂"
-            else:
-                short_text = f"Average anubhav raha aaj at {business_name}.{note_fragment} Standard visit 🙂"
-                detailed_text = f"Overall visit theek rahi at {business_name}.{note_fragment} Kuch baatein theek thin, thoda aur better ho sakta tha 🙂"
-                personal_text = f"Visit ordinary rahi mere liye at {business_name}.{note_fragment} Decent experience overall 🙂"
-
-        elif rating == 2:
-            if topic_hi:
-                short_text = f"{business_name} me {topic_hi} expectation se kam raha.{note_fragment} 😕"
-                detailed_text = f"{business_name} me {topic_hi} se thodi nirasha hui.{note_fragment} Quality aur care me improvement ki zaroorat hai 😕"
-                personal_text = f"Mujhe {business_name} me {topic_hi} se aisi umeed nahi thi.{note_fragment} Hope things improve 😕"
-            else:
-                short_text = f"Experience kuch khass nahi raha aaj at {business_name}.{note_fragment} 😕"
-                detailed_text = f"Visit se thodi nirasha hui at {business_name}.{note_fragment} Service aur arrangement me improvement ki zaroorat hai 😕"
-                personal_text = f"Mujhe aisi umeed nahi thi at {business_name}.{note_fragment} Hope things improve 😕"
-
-        else: # 1 star
-            if topic_hi:
-                short_text = f"{business_name} me {topic_hi} ka kharab experience raha.{note_fragment} 😞"
-                detailed_text = f"{business_name} me {topic_hi} se bilkul santusht nahi huye.{note_fragment} Bade sudhar ki zaroorat hai 😞"
-                personal_text = f"{business_name} me {topic_hi} se bahut nirashajanak anubhav raha.{note_fragment} Very poor 😞"
-            else:
-                short_text = f"Kharab anubhav raha aaj at {business_name}.{note_fragment} 😞"
-                detailed_text = f"Aaj ki visit se bilkul santusht nahi huye at {business_name}.{note_fragment} Bade sudhar ki zaroorat hai 😞"
-                personal_text = f"Bahut nirashajanak raha at {business_name}.{note_fragment} Poor experience 😞"
-
-    elif lang == "gujarati":
         if rating == 5:
             if topic_gu:
-                short_text = f"{business_name} ma {topic_gu} khub j saras hatu!{note_fragment} Majja aavi gai 🍳☕"
-                detailed_text = f"{business_name} ma {topic_gu} no anubhav khub saro rahyo.{note_fragment} Ek memorable visit rahi 😊✨"
-                personal_text = f"Mane {business_name} ma {topic_gu} khub j gamyu.{note_fragment} Very happy with the visit ❤️"
+                short_text = f"{b_name}માં {topic_gu} ખૂબ જ સરસ હતાં!{note_fragment} ખૂબ મજા આવી ગઈ 🍳☕"
+                detailed_text = f"{b_name}માં {topic_gu}નો અનુભવ ખરેખર લાજવાબ રહ્યો.{note_fragment} બધી વ્યવસ્થા એકદમ ઉત્તમ હતી 😊✨"
+                personal_text = f"મને {b_name}માં {topic_gu} ખૂબ જ પસંદ આવ્યા.{note_fragment} મુલાકાતથી ઘણો આનંદ થયો ❤️"
             else:
-                short_text = f"Bahu j saras anubhav rahyo at {business_name}!{note_fragment} Khub majja aavi 😊✨"
-                detailed_text = f"Samagra mulakat khub j sari rahi at {business_name}.{note_fragment} Ek memorable visit rahi 😊✨"
-                personal_text = f"Mane {business_name} ni visit khub j gami.{note_fragment} Very happy with the visit ❤️"
+                short_text = f"{b_name}માં ખૂબ જ સરસ અનુભવ રહ્યો!{note_fragment} ખૂબ મજા આવી ગઈ 😊✨"
+                detailed_text = f"સમગ્ર મુલાકાત {b_name} ખાતે ઘણી શાનદાર રહી.{note_fragment} બધી વ્યવસ્થા એકદમ સુવ્યવસ્થિત હતી 👍"
+                personal_text = f"મને {b_name}ની મુલાકાત ખૂબ જ ગમી.{note_fragment} ખરેખર સંતોષકારક અનુભવ રહ્યો ❤️"
 
         elif rating == 4:
             if topic_gu:
-                short_text = f"Saras {topic_gu} at {business_name}.{note_fragment} Saro anubhav 👍"
-                detailed_text = f"{business_name} ma {topic_gu} no saro anubhav rahyo.{note_fragment} Vyavastha sari lagi 😊"
-                personal_text = f"Mari aaje {business_name} ma {topic_gu} mate sari visit rahi.{note_fragment} Saro time spend thayo 👍"
+                short_text = f"{b_name}માં {topic_gu} સરસ હતાં.{note_fragment} સારો અનુભવ રહ્યો 👍"
+                detailed_text = f"{b_name}માં {topic_gu}નો અનુભવ એકંદરે ઘણો સારો રહ્યો.{note_fragment} વ્યવસ્થા સારી લાગી 🙂"
+                personal_text = f"મને {b_name}માં {topic_gu} ગમ્યા.{note_fragment} એકંદરે સારો સમય રહ્યો 👍"
             else:
-                short_text = f"Sari mulakat rahi at {business_name}.{note_fragment} Saro anubhav 👍"
-                detailed_text = f"Overall experience saro rahyo at {business_name}.{note_fragment} Vyavastha sari lagi 😊"
-                personal_text = f"Mari aaje sari visit rahi at {business_name}.{note_fragment} Saro time spend thayo 👍"
+                short_text = f"{b_name}માં સારો અનુભવ રહ્યો.{note_fragment} બધું બરાબર હતું 👍"
+                detailed_text = f"{b_name}ની મુલાકાત એકંદરે ઘણી સારી રહી.{note_fragment} સંતોષકારક વ્યવસ્થા હતી 🙂"
+                personal_text = f"મને {b_name}ની મુલાકાત સારી લાગી.{note_fragment} એકંદરે સારો સમય પસાર થયો 👍"
 
         elif rating == 3:
             if topic_gu:
-                short_text = f"{business_name} ma {topic_gu} samanya rahyu.{note_fragment} Thik visit hati 🙂"
-                detailed_text = f"{business_name} ma {topic_gu} theek hatu.{note_fragment} Thoda sudhara ni apeksha chhe 🙂"
-                personal_text = f"{topic_gu.capitalize()} mate anubhav ordinary rahyo at {business_name}.{note_fragment} Decent visit 🙂"
+                short_text = f"{b_name}માં {topic_gu} સામાન્ય રહ્યાં.{note_fragment} ઠીક મુલાકાત હતી 🙂"
+                detailed_text = f"{b_name}માં {topic_gu} ઠીક હતાં, પણ થોડા સુધારાની જરૂર જણાય છે.{note_fragment} સરેરાશ અનુભવ 🙂"
+                personal_text = f"મારા માટે {b_name}માં {topic_gu}નો અનુભવ સરેરાશ રહ્યો.{note_fragment} સામાન્ય વિઝિટ 🙂"
             else:
-                short_text = f"Average anubhav rahyo aaje at {business_name}.{note_fragment} Thik visit hati 🙂"
-                detailed_text = f"Overall mulakat theek rahi at {business_name}.{note_fragment} Thodo sudharo thavo joie 🙂"
-                personal_text = f"Mari mulakat ordinary rahi at {business_name}.{note_fragment} Decent experience 🙂"
+                short_text = f"આજનો અનુભવ {b_name} ખાતે ઠીક-ઠાક રહ્યો.{note_fragment} સામાન્ય મુલાકાત રહી 🙂"
+                detailed_text = f"એકંદરે મુલાકાત {b_name} ખાતે સામાન્ય રહી.{note_fragment} થોડા સુધારાની જરૂર છે 🙂"
+                personal_text = f"મારા માટે {b_name}નો અનુભવ સામાન્ય રહ્યો.{note_fragment} સાધારણ મુલાકાત 🙂"
 
         elif rating == 2:
             if topic_gu:
-                short_text = f"{business_name} ma {topic_gu} expectation karta ochu rahyu.{note_fragment} 😕"
-                detailed_text = f"{business_name} ma {topic_gu} thi thodi nirasha thai.{note_fragment} Sudharo karvo zaroori chhe 😕"
-                personal_text = f"Mane {business_name} ma {topic_gu} mate aavi apeksha nahoti.{note_fragment} 😕"
+                short_text = f"{b_name}માં {topic_gu} અપેક્ષા કરતાં ઓછા રહ્યાં.{note_fragment} 😕"
+                detailed_text = f"{b_name}માં {topic_gu}થી થોડી નિરાશા થઈ.{note_fragment} સુધારો કરવો જરૂરી છે 😕"
+                personal_text = f"મને {b_name}માં {topic_gu} માટે આવી અપેક્ષા નહોતી.{note_fragment} 😕"
             else:
-                short_text = f"Experience saro na rahyo aaje at {business_name}.{note_fragment} 😕"
-                detailed_text = f"Mulakat thi thodi nirasha thai at {business_name}.{note_fragment} Sudharo karvo zaroori chhe 😕"
-                personal_text = f"Mane aavi apeksha nahoti at {business_name}.{note_fragment} 😕"
+                short_text = f"આજે {b_name}માં અનુભવ સારો ન રહ્યો.{note_fragment} 😕"
+                detailed_text = f"{b_name}ની મુલાકાતથી નિરાશા થઈ.{note_fragment} સર્વિસ અને સંભાળમાં સુધારાની જરૂર છે 😕"
+                personal_text = f"મને {b_name}માં આવી અપેક્ષા નહોતી.{note_fragment} 😕"
 
         else: # 1 star
             if topic_gu:
-                short_text = f"{business_name} ma {topic_gu} no kharab anubhav rahyo.{note_fragment} 😞"
-                detailed_text = f"{business_name} ma {topic_gu} thi bilkul santusht na thaya.{note_fragment} Mota sudhara ni jarur chhe 😞"
-                personal_text = f"{business_name} ma {topic_gu} thi khub j nirashajanak mulakat rahi.{note_fragment} 😞"
+                short_text = f"{b_name}માં {topic_gu}નો અનુભવ ઘણો ખરાબ રહ્યો.{note_fragment} 😞"
+                detailed_text = f"{b_name}માં {topic_gu}થી બિલકુલ સંતોષ ન થયો.{note_fragment} મોટા સુધારાની જરૂર છે 😞"
+                personal_text = f"{b_name}માં {topic_gu}થી ખૂબ જ નિરાશાજનક મુલાકાત રહી.{note_fragment} 😞"
             else:
-                short_text = f"Bahu j kharab anubhav rahyo at {business_name}.{note_fragment} 😞"
-                detailed_text = f"Aaje bilkul santusht na thaya at {business_name}.{note_fragment} Mota sudhara ni jarur chhe 😞"
-                personal_text = f"Khub j nirashajanak mulakat rahi at {business_name}.{note_fragment} 😞"
+                short_text = f"{b_name}માં આજનો અનુભવ ખૂબ ખરાબ રહ્યો.{note_fragment} 😞"
+                detailed_text = f"આજે {b_name}ની મુલાકાતથી બિલકુલ સંતોષ ન થયો.{note_fragment} મોટા સુધારાની તાતી જરૂર છે 😞"
+                personal_text = f"{b_name} ખાતે આજની મુલાકાત ઘણી નિરાશાજનક રહી.{note_fragment} 😞"
+
+    elif lang == "hindi":
+        focus_1 = "छोटा और स्वाभाविक"
+        focus_2 = "विस्तृत और स्पष्ट"
+        focus_3 = "सरल और व्यक्तिगत"
+
+        if rating == 5:
+            if topic_hi:
+                short_text = f"{b_name} में {topic_hi} बहुत पसंद आया!{note_fragment} मज़ा आ गया 🍳☕"
+                detailed_text = f"{b_name} में {topic_hi} का अनुभव वाकई लाजवाब रहा।{note_fragment} सब कुछ बहुत अच्छे से व्यवस्थित था 😊✨"
+                personal_text = f"व्यक्तिगत रूप से {b_name} में {topic_hi} बहुत अच्छा लगा।{note_fragment} विज़िट से बहुत खुशी हुई ❤️"
+            else:
+                short_text = f"बहुत ही अच्छा अनुभव रहा {b_name} में!{note_fragment} मज़ा आ गया 😊✨"
+                detailed_text = f"समग्र विज़िट {b_name} में काफी शानदार रही।{note_fragment} व्यवस्था बहुत अच्छी थी 👍"
+                personal_text = f"मुझे {b_name} की विज़िट बहुत पसंद आई।{note_fragment} काफी सुखद अनुभव रहा ❤️"
+
+        elif rating == 4:
+            if topic_hi:
+                short_text = f"{b_name} में {topic_hi} काफी अच्छा था।{note_fragment} अच्छा अनुभव रहा 👍"
+                detailed_text = f"{b_name} में {topic_hi} का अनुभव काफी सुखद रहा।{note_fragment} सब कुछ बढ़िया था 🙂"
+                personal_text = f"मुझे {b_name} में {topic_hi} पसंद आया।{note_fragment} एक अच्छी विज़िट रही 👍"
+            else:
+                short_text = f"काफी अच्छा अनुभव रहा {b_name} में।{note_fragment} अच्छा लगा 👍"
+                detailed_text = f"कुल मिलाकर {b_name} की विज़िट अच्छी रही।{note_fragment} व्यवस्था ठीक रही 🙂"
+                personal_text = f"मुझे {b_name} की विज़िट पसंद आई।{note_fragment} बढ़िया समय बीता 👍"
+
+        elif rating == 3:
+            if topic_hi:
+                short_text = f"{b_name} में {topic_hi} ठीक-ठाक रहा।{note_fragment} सामान्य अनुभव 🙂"
+                detailed_text = f"{b_name} में {topic_hi} औसत रहा।{note_fragment} थोड़े और सुधार की गुंजाइश है 🙂"
+                personal_text = f"मेरे लिए {b_name} में {topic_hi} साधारण रहा।{note_fragment} सामान्य विज़िट 🙂"
+            else:
+                short_text = f"आज {b_name} का अनुभव सामान्य रहा।{note_fragment} ठीक-ठाक विज़िट 🙂"
+                detailed_text = f"कुल मिलाकर {b_name} का अनुभव औसत रहा।{note_fragment} कुछ सुधार हो सकता है 🙂"
+                personal_text = f"मेरे लिए {b_name} की विज़िट साधारण रही।{note_fragment} ठीक अनुभव रहा 🙂"
+
+        elif rating == 2:
+            if topic_hi:
+                short_text = f"{b_name} में {topic_hi} उम्मीद के मुताबिक नहीं था।{note_fragment} 😕"
+                detailed_text = f"{b_name} में {topic_hi} से थोड़ी निराशा हुई।{note_fragment} सुधार की ज़रूरत है 😕"
+                personal_text = f"मुझे {b_name} में {topic_hi} से ऐसी उम्मीद नहीं थी।{note_fragment} 😕"
+            else:
+                short_text = f"आज {b_name} का अनुभव उम्मीद से कम रहा।{note_fragment} 😕"
+                detailed_text = f"{b_name} की विज़िट से थोड़ी निराशा हुई।{note_fragment} सर्विस में सुधार की ज़रूरत है 😕"
+                personal_text = f"मुझे ऐसी उम्मीद नहीं थी {b_name} में।{note_fragment} 😕"
+
+        else: # 1 star
+            if topic_hi:
+                short_text = f"{b_name} में {topic_hi} का अनुभव खराब रहा।{note_fragment} 😞"
+                detailed_text = f"{b_name} में {topic_hi} से बिल्कुल संतुष्ट नहीं हुए।{note_fragment} बड़े सुधार की ज़रूरत है 😞"
+                personal_text = f"{b_name} में {topic_hi} से काफी निराशाजनक अनुभव रहा।{note_fragment} 😞"
+            else:
+                short_text = f"आज {b_name} में खराब अनुभव रहा।{note_fragment} 😞"
+                detailed_text = f"आज {b_name} की विज़िट से बिल्कुल संतुष्ट नहीं हुए।{note_fragment} बड़े सुधार की ज़रूरत है 😞"
+                personal_text = f"{b_name} में आज का अनुभव काफी निराशाजनक रहा।{note_fragment} 😞"
 
     else: # English
+        focus_1 = "Short & Natural"
+        focus_2 = "Detailed & Expressive"
+        focus_3 = "Simple & Personal"
+
         if rating == 5:
             if topic_en:
-                short_text = f"Really enjoyed the {topic_en} at {business_name}!{note_fragment} Loved it 🍳☕"
-                detailed_text = f"Had a lovely visit at {business_name}. The {topic_en} was wonderful and prepared nicely.{note_fragment} Truly enjoyed it 😊✨"
-                personal_text = f"The {topic_en} at {business_name} was delicious today.{note_fragment} Very happy with my visit ❤️"
+                short_text = f"Really enjoyed the {topic_en} at {b_name}!{note_fragment} Loved it 🍳☕"
+                detailed_text = f"Had a lovely visit at {b_name}. The {topic_en} was wonderful and prepared nicely.{note_fragment} Truly enjoyed it 😊✨"
+                personal_text = f"The {topic_en} at {b_name} was delicious today.{note_fragment} Very happy with my visit ❤️"
             else:
-                short_text = f"Had a wonderful visit at {business_name}! Really enjoyed every moment.{note_fragment} Loved it 😊✨"
-                detailed_text = f"Had a lovely and wonderful visit at {business_name}. Everything was handled nicely.{note_fragment} Truly enjoyed it 😊✨"
-                personal_text = f"I genuinely enjoyed my time at {business_name}.{note_fragment} Very happy with my visit ❤️"
+                short_text = f"Had a wonderful visit at {b_name}! Really enjoyed every moment.{note_fragment} Loved it 😊✨"
+                detailed_text = f"Had a lovely and wonderful visit at {b_name}. Everything was handled nicely.{note_fragment} Truly enjoyed it 👍"
+                personal_text = f"I genuinely enjoyed my time at {b_name}.{note_fragment} Very happy with my visit ❤️"
 
         elif rating == 4:
             if topic_en:
-                short_text = f"Good {topic_en} at {business_name}.{note_fragment} Nice visit 👍"
-                detailed_text = f"Solid and enjoyable experience with the {topic_en} at {business_name}.{note_fragment} Well managed throughout 😊"
-                personal_text = f"Had a good experience with the {topic_en} at {business_name}.{note_fragment} Happy with my visit overall 👍"
+                short_text = f"Good {topic_en} at {b_name}.{note_fragment} Nice visit 👍"
+                detailed_text = f"Solid and enjoyable experience with the {topic_en} at {b_name}.{note_fragment} Well managed throughout 😊"
+                personal_text = f"Had a good experience with the {topic_en} at {b_name}.{note_fragment} Happy with my visit overall 👍"
             else:
-                short_text = f"Very pleasant visit at {business_name}.{note_fragment} Good spot to stop by 👍"
-                detailed_text = f"Overall a solid and enjoyable experience at {business_name}.{note_fragment} Everything was well arranged 😊"
-                personal_text = f"Had a good visit at {business_name}.{note_fragment} Happy with my experience overall 👍"
+                short_text = f"Very pleasant visit at {b_name}.{note_fragment} Good spot to stop by 👍"
+                detailed_text = f"Overall a solid and enjoyable experience at {b_name}.{note_fragment} Everything was well arranged 😊"
+                personal_text = f"Had a good visit at {b_name}.{note_fragment} Happy with my experience overall 👍"
 
         elif rating == 3:
             if topic_en:
-                short_text = f"Decent visit for {topic_en} at {business_name}.{note_fragment} Standard experience 🙂"
-                detailed_text = f"The {topic_en} at {business_name} was fine overall.{note_fragment} An average visit with room for minor improvement 🙂"
-                personal_text = f"It was a pretty average experience for {topic_en} at {business_name}.{note_fragment} Decent visit overall 🙂"
+                short_text = f"Decent visit for {topic_en} at {b_name}.{note_fragment} Standard experience 🙂"
+                detailed_text = f"The {topic_en} at {b_name} was fine overall.{note_fragment} An average visit with room for minor improvement 🙂"
+                personal_text = f"It was a pretty average experience for {topic_en} at {b_name}.{note_fragment} Decent visit overall 🙂"
             else:
-                short_text = f"Decent visit today at {business_name}.{note_fragment} Standard experience 🙂"
-                detailed_text = f"Overall a fair and average experience at {business_name}. A few good points, but there is room for improvement.{note_fragment} Decent visit 🙂"
-                personal_text = f"It was a pretty average visit for me at {business_name}.{note_fragment} Fair experience overall 🙂"
+                short_text = f"Decent visit today at {b_name}.{note_fragment} Standard experience 🙂"
+                detailed_text = f"Overall a fair and average experience at {b_name}. A few good points, but there is room for improvement.{note_fragment} Decent visit 🙂"
+                personal_text = f"It was a pretty average visit for me at {b_name}.{note_fragment} Fair experience overall 🙂"
 
         elif rating == 2:
             if topic_en:
-                short_text = f"The {topic_en} at {business_name} fell below expectations today.{note_fragment} 😕"
-                detailed_text = f"Disappointed with the {topic_en} at {business_name}.{note_fragment} The experience needs attention and improvement 😕"
-                personal_text = f"Expected a better experience with the {topic_en} at {business_name}.{note_fragment} Hope to see improvements 😕"
+                short_text = f"The {topic_en} at {b_name} fell below expectations today.{note_fragment} 😕"
+                detailed_text = f"Disappointed with the {topic_en} at {b_name}.{note_fragment} The experience needs attention and improvement 😕"
+                personal_text = f"Expected a better experience with the {topic_en} at {b_name}.{note_fragment} Hope to see improvements 😕"
             else:
-                short_text = f"Visit fell below expectations today at {business_name}.{note_fragment} 😕"
-                detailed_text = f"Somewhat disappointed with the visit at {business_name}.{note_fragment} Several areas need attention and better care 😕"
-                personal_text = f"Expected a better experience than what I had at {business_name} today.{note_fragment} Hope to see improvements 😕"
+                short_text = f"Visit fell below expectations today at {b_name}.{note_fragment} 😕"
+                detailed_text = f"Somewhat disappointed with the visit at {b_name}.{note_fragment} Several areas need attention and better care 😕"
+                personal_text = f"Expected a better experience than what I had at {b_name} today.{note_fragment} Hope to see improvements 😕"
 
         else: # 1 star
             if topic_en:
-                short_text = f"Very disappointing experience with the {topic_en} at {business_name}.{note_fragment} 😞"
-                detailed_text = f"Unsatisfied with the {topic_en} during today's visit to {business_name}.{note_fragment} Major improvements are needed 😞"
-                personal_text = f"Really unhappy with the {topic_en} at {business_name} today.{note_fragment} Disappointed with how things went 😞"
+                short_text = f"Very disappointing experience with the {topic_en} at {b_name}.{note_fragment} 😞"
+                detailed_text = f"Unsatisfied with the {topic_en} during today's visit to {b_name}.{note_fragment} Major improvements are needed 😞"
+                personal_text = f"Really unhappy with the {topic_en} at {b_name} today.{note_fragment} Disappointed with how things went 😞"
             else:
-                short_text = f"Very disappointing experience today at {business_name}.{note_fragment} 😞"
-                detailed_text = f"Extremely unsatisfied with today's visit at {business_name}.{note_fragment} Major improvements are needed in service and quality 😞"
-                personal_text = f"Really unhappy with the experience today.{note_fragment} Disappointed with how things were handled at {business_name} 😞"
+                short_text = f"Very disappointing experience today at {b_name}.{note_fragment} 😞"
+                detailed_text = f"Extremely unsatisfied with today's visit at {b_name}.{note_fragment} Major improvements are needed in service and quality 😞"
+                personal_text = f"Really unhappy with the experience today.{note_fragment} Disappointed with how things were handled at {b_name} 😞"
 
     return [
-        {"id": "idea_1", "focus": "Short & Natural", "text": short_text},
-        {"id": "idea_2", "focus": "Detailed & Expressive", "text": detailed_text},
-        {"id": "idea_3", "focus": "Simple & Personal", "text": personal_text},
+        {"id": "idea_1", "focus": focus_1, "text": short_text},
+        {"id": "idea_2", "focus": focus_2, "text": detailed_text},
+        {"id": "idea_3", "focus": focus_3, "text": personal_text},
     ]
-
 
 def humanize_review_draft(
     rating: int,
@@ -355,18 +368,15 @@ def humanize_review_draft(
     language: str = "english",
     category: Optional[str] = None
 ) -> str:
-    """
-    Deterministic Humanization Engine adhering to 15-45 words,
-    contextual emojis, zero fabrication, and natural Roman-script Hinglish/Gujlish.
-    """
     lang = normalize_language(language)
+    b_name = _clean_business_name(business_name, lang)
 
-    # If customer already selected an idea, build upon and personalize it
     if selected_idea and selected_idea.strip():
         base_text = selected_idea.strip()
         if user_note and user_note.strip() and user_note.strip().lower() not in base_text.lower():
             n = user_note.strip().rstrip(".!")
-            base_text = f"{base_text.rstrip('.! 😊❤️✨☕👌🍲🥪👍')} — {n}."
+            sep = " — " if lang == "english" else " "
+            base_text = f"{base_text.rstrip('.! ')}{sep}{n}."
             if emoji_preference != "none":
                 emojis = pick_tasteful_emojis(rating, aspects, emoji_preference)
                 base_text = f"{base_text}{emojis}"
@@ -384,71 +394,70 @@ def humanize_review_draft(
 
     emojis = pick_tasteful_emojis(rating, aspects, emoji_preference)
 
-    if lang == "hindi":
+    if lang == "gujarati":
         if rating == 5:
             if has_coffee and has_service:
-                draft = f"Yahan ki chai aur snacks sach me lajawab the! Staff ka nature bahut friendly tha.{note_text} Definitely dobara aayenge{emojis}"
+                draft = f"{b_name}માં નાસ્તો અને ચા ખરેખર એકદમ સ્વાદિષ્ટ હતાં! સ્ટાફનો વ્યવહાર પણ ખૂબ જ સારો અને વિનમ્ર રહ્યો.{note_text} ફરીથી જરૂર આવીશું{emojis}"
             elif has_food and has_vibe:
-                draft = f"Yahan aakar bahut accha laga. Khana fresh aur tasty tha aur mahaul bhi kaafi relaxed tha.{note_text} Zaroor try karein{emojis}"
+                draft = f"{b_name}માં આવીને ખૂબ મજા આવી. ખાવાનું એકદમ તાજું હતું અને વાતાવરણ પણ ઘણું સુખદ હતું.{note_text} જરૂર મુલાકાત લેવા જેવું સ્થળ છે{emojis}"
             else:
-                draft = f"Overall visit bahut shandar raha! Khana fresh tha aur service bhi kaafi fast aur polite thi.{note_text} Highly recommend karte hain{emojis}"
+                draft = f"{b_name}માં સમગ્ર અનુભવ ખૂબ જ સરસ રહ્યો! નાસ્તો તાજો હતો અને સર્વિસ પણ ઝડપી મળી.{note_text} બધાને અહીં આવવાની ભલામણ કરું છું{emojis}"
         elif rating == 4:
-            draft = f"Kaafi accha experience raha. Taste accha tha aur staff bhi attentive tha.{note_text} Morning naste ke liye badhiya jagah hai{emojis}"
+            draft = f"{b_name}માં ખૂબ સારો અનુભવ રહ્યો. વાનગીઓનો સ્વાદ સરસ હતો અને સ્ટાફનો વ્યવહાર પણ વિનમ્ર રહ્યો.{note_text} નાસ્તા માટે ઉત્તમ સ્થળ છે{emojis}"
         elif rating == 3:
-            draft = f"Taste theek tha, lekin service thodi slow lagi aaj.{note_text} Average visit raha overall.{emojis}"
+            draft = f"{b_name}માં સ્વાદ ઠીક હતો, પણ સર્વિસ આજે થોડી ધીમી લાગી.{note_text} એકંદરે સરેરાશ મુલાકાત રહી.{emojis}"
         elif rating == 2:
-            draft = f"Khana theek tha par wait time kaafi zyada tha aaj.{note_text} Umeed hai service thodi fast hogi next time.{emojis}"
+            draft = f"{b_name}માં ખાવાનું સામાન્ય હતું પણ રાહ વધારે જોવી પડી.{note_text} આગલી વખતે સર્વિસ થોડી ઝડપી મળે તેવી આશા.{emojis}"
         else: # 1 star
-            draft = f"Experience bilkul accha nahi raha aaj. Service bahut slow thi aur khana bhi thanda tha.{note_text} Dhyan dene ki zaroorat hai.{emojis}"
+            draft = f"{b_name}માં આજનો અનુભવ બિલકુલ સારો ન રહ્યો. સર્વિસ ખૂબ ધીમી હતી અને નાસ્તો ઠંડો આવ્યો હતો.{note_text} ગુણવત્તામાં સુધારો કરવાની જરૂર છે.{emojis}"
 
-    elif lang == "gujarati":
+    elif lang == "hindi":
         if rating == 5:
             if has_coffee and has_service:
-                draft = f"Ahiya nu food ane chai sachme ekdum mast hatu! Staff pan khub friendly ane helpful hato.{note_text} Fari thi jarur aavishu{emojis}"
+                draft = f"{b_name} में चाय और नाश्ता सच में लाजवाब थे! स्टाफ का व्यवहार भी बहुत मिलनसार था।{note_text} यहाँ दोबारा ज़रूर आएंगे{emojis}"
             elif has_food and has_vibe:
-                draft = f"Ahiya aavine khub maja aavi. Khavanu ekdum fresh hatu ane vatavaran pan saras hatu.{note_text} Jarur visit karva jevu chhe{emojis}"
+                draft = f"{b_name} में आकर बहुत अच्छा लगा। खाना ताज़ा और स्वादिष्ट था और माहौल भी काफी सुकून भरा था।{note_text} ज़रूर विज़िट करें{emojis}"
             else:
-                draft = f"Samagra anubhav khub j saras rahyo! Nasto fresh hato ane service pan fast mali.{note_text} Badhane jarur recommend karish{emojis}"
+                draft = f"{b_name} में समग्र विज़िट बहुत ही शानदार रही! खाना ताज़ा था और सर्विस भी तेज़ और अच्छी थी।{note_text} हम सभी को यहाँ आने की सलाह देते हैं{emojis}"
         elif rating == 4:
-            draft = f"Khub saro anubhav rahyo. Food taste saro hato ane staff no swabhav pan vinamra hato.{note_text} Breakfast mate sari jagya chhe{emojis}"
+            draft = f"{b_name} में काफी अच्छा अनुभव रहा। स्वाद बढ़िया था और स्टाफ भी मददगार था।{note_text} नाश्ते के लिए अच्छी जगह है{emojis}"
         elif rating == 3:
-            draft = f"Taste thik hato, pan service aaje thodi slow lagi.{note_text} Average mulakat rahi overall.{emojis}"
+            draft = f"{b_name} में स्वाद ठीक था, लेकिन सर्विस थोड़ी धीमी लगी।{note_text} कुल मिलाकर सामान्य विज़िट रही।{emojis}"
         elif rating == 2:
-            draft = f"Khavanu thik hatu pan wait ghano karvo padyo.{note_text} Aavti vakhte service thodi fast male evi aasha.{emojis}"
+            draft = f"{b_name} में खाना ठीक था पर इंतज़ार काफी करना पड़ा।{note_text} उम्मीद है अगली बार सर्विस थोड़ी तेज़ होगी।{emojis}"
         else: # 1 star
-            draft = f"Experience aaje bilkul saro na rahyo. Service khub slow hati ane nasto thando aavyo.{note_text} Sudharo karvani jarur chhe.{emojis}"
+            draft = f"{b_name} में आज का अनुभव बिल्कुल अच्छा नहीं रहा। सर्विस बहुत धीमी थी और खाना भी ठंडा था।{note_text} सुधार की सख्त ज़रूरत है।{emojis}"
 
     else: # English
         if rating == 5:
             if has_coffee and has_service:
-                draft = f"Really enjoyed the coffee and the staff were so friendly! Great place to relax and recharge.{note_text} Definitely coming back{emojis}"
+                draft = f"Really enjoyed the coffee at {b_name} and the staff were so friendly! Great place to relax and recharge.{note_text} Definitely coming back{emojis}"
             elif has_food and has_vibe:
-                draft = f"Had a lovely meal here. The food was delicious and the place had such a warm, comfortable vibe.{note_text} Highly recommend{emojis}"
+                draft = f"Had a lovely meal at {b_name}. The food was delicious and the place had such a warm, comfortable vibe.{note_text} Highly recommend{emojis}"
             elif has_food and has_service:
-                draft = f"Great food and really friendly service. Everything was served fresh with a smile.{note_text} Will definitely be back{emojis}"
+                draft = f"Great food at {b_name} and really friendly service. Everything was served fresh with a smile.{note_text} Will definitely be back{emojis}"
             elif has_coffee:
-                draft = f"Loved the coffee here! Excellent brew and super welcoming staff.{note_text} Such a nice little spot{emojis}"
+                draft = f"Loved the coffee at {b_name}! Excellent brew and super welcoming staff.{note_text} Such a nice little spot{emojis}"
             else:
-                draft = f"Had a wonderful time! The staff were great and the whole visit was really pleasant.{note_text} Would happily recommend{emojis}"
+                draft = f"Had a wonderful time at {b_name}! The staff were great and the whole visit was really pleasant.{note_text} Would happily recommend{emojis}"
         elif rating == 4:
             if has_food:
-                draft = f"Had a really good time here. The food was tasty and the service was friendly.{note_text} Nice place to relax and eat{emojis}"
+                draft = f"Had a really good time at {b_name}. The food was tasty and the service was friendly.{note_text} Nice place to relax and eat{emojis}"
             elif has_coffee:
-                draft = f"Solid spot with great coffee and good seating.{note_text} Staff were welcoming and the drinks came out quickly{emojis}"
+                draft = f"Solid spot at {b_name} with great coffee and good seating.{note_text} Staff were welcoming and the drinks came out quickly{emojis}"
             else:
-                draft = f"Very enjoyable visit! Good service, nice atmosphere, and fair prices.{note_text} Happy to come back again{emojis}"
+                draft = f"Very enjoyable visit at {b_name}! Good service, nice atmosphere, and fair prices.{note_text} Happy to come back again{emojis}"
         elif rating == 3:
             if has_service:
-                draft = f"Overall a decent experience. The food was good, but the service was a little slow today.{note_text} Pretty average visit.{emojis}"
+                draft = f"Overall a decent experience at {b_name}. The food was good, but the service was a little slow today.{note_text} Pretty average visit.{emojis}"
             else:
-                draft = f"Nice place and comfortable seating, though the visit was somewhat average.{note_text} Okay overall.{emojis}"
+                draft = f"Nice place and comfortable seating at {b_name}, though the visit was somewhat average.{note_text} Okay overall.{emojis}"
         elif rating == 2:
-            draft = f"The food was okay, but the wait was quite long today.{note_text} Hopefully the service gets a little quicker next time.{emojis}"
+            draft = f"The food was okay at {b_name}, but the wait was quite long today.{note_text} Hopefully the service gets a little quicker next time.{emojis}"
         else: # 1 star
-            draft = f"Unfortunately, my experience wasn't great today. The service took quite a while and the food wasn't what I expected.{note_text} I hope things improve.{emojis}"
+            draft = f"Unfortunately, my experience wasn't great at {b_name} today. The service took quite a while and the food wasn't what I expected.{note_text} I hope things improve.{emojis}"
 
     return draft.strip()
-
 
 def build_humanized_prompt(
     rating: int,
@@ -464,29 +473,41 @@ def build_humanized_prompt(
     category: Optional[str] = None
 ) -> str:
     lang = normalize_language(language)
+    b_name = _clean_business_name(business_name, lang)
     aspects_str = ", ".join(aspects) if aspects else "General visit"
+    clean_note = user_note.strip() if user_note else ""
     note_instruction = (
-        f"Customer's note: \"{user_note.strip()}\""
-        if user_note and user_note.strip()
+        f'Customer note: "{clean_note}"'
+        if clean_note
         else "No customer note provided. Rely strictly on the selected topics."
     )
+    clean_idea = selected_idea.strip() if selected_idea else ""
     idea_instruction = (
-        f"The customer picked this starting idea: \"{selected_idea.strip()}\". Personalize it naturally without changing its facts."
-        if selected_idea and selected_idea.strip()
+        f'The customer picked this starting idea: "{clean_idea}". Personalize it naturally without changing its facts.'
+        if clean_idea
         else "Create a fresh natural review idea."
     )
 
-    if lang == "hindi":
-        lang_rule = "Language: Natural Roman-script Hindi (Hinglish). Write everyday spoken Romanized Hindi as used by real Indian customers on mobile phones. STRICTLY DO NOT output Devanagari script. Do NOT translate from English."
-    elif lang == "gujarati":
-        lang_rule = "Language: Natural Roman-script Gujarati (Gujlish). Write everyday spoken Romanized Gujarati as used by real customers in Gujarat on mobile phones. STRICTLY DO NOT output Gujarati script. Do NOT translate from English."
+    if lang == "gujarati":
+        lang_rule = (
+            "Language & Writing System: Write the complete review in natural, grammatically correct Gujarati using Gujarati Unicode script (ગુજરાતી લિપિ). "
+            "Every sentence must be written in Gujarati script. Never transliterate Gujarati into English letters. "
+            "Never generate Roman Gujarati, Gujlish, Hinglish, or English sentences mixed with Gujarati words. "
+            "Use natural Gujarati vocabulary and preserve the customer's original meaning and factual details."
+        )
+    elif lang == "hindi":
+        lang_rule = (
+            "Language & Writing System: Write the complete review in natural, grammatically correct Hindi using Devanagari script (देवनागरी लिपि). "
+            "Every sentence must be written in Devanagari script. Never transliterate Hindi into English letters. "
+            "Never generate Roman Hindi or Hinglish. Use natural Hindi vocabulary and preserve the customer's original meaning."
+        )
     else:
-        lang_rule = "Language: Simple, natural everyday English."
+        lang_rule = "Language & Writing System: Write the complete review in natural everyday English."
 
     return f"""Draft a short, human-like hospitality review:
 - Star Rating: {rating} of 5 Stars
-- Business Name: {business_name}
-- Category: {category or "Hospitality"}
+- Business Name: {b_name}
+- Category: {category or 'Hospitality'}
 - Mentioned Topics: {aspects_str}
 - {lang_rule}
 - {note_instruction}
