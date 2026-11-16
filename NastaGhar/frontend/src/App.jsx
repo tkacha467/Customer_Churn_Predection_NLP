@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import './index.css';
 import CustomerReview from './components/CustomerReview';
-import OwnerPortal from './components/OwnerPortal';
 import VrajaAdmin from './components/VrajaAdmin';
+import { PortalSessionProvider } from './components/portal/PortalSessionContext';
+import { PortalAuthGate } from './components/portal/PortalAuthGate';
+import { UnifiedClientPortal } from './components/portal/UnifiedClientPortal';
 
 function App() {
   // Route detection:
@@ -139,46 +141,16 @@ function App() {
     );
   }
 
-  // ─── 4. OWNER PORTAL (/owner or /owner/:tenant) ─────────────────────────────
+  // ─── 4. UNIFIED CLIENT PORTAL (/owner or /owner/:tenant) ───────────────────
   return (
-    <div className="product-layout">
-      <div className="app-mode-bar">
-        <div className="mode-bar-brand">
-          <span className="mode-logo">✨</span>
-          <span className="mode-title">VRAJA AI</span>
-          <span className="mode-badge">Client Portal</span>
-        </div>
-        <div className="mode-toggle-group">
-          <button
-            type="button"
-            className="mode-btn"
-            onClick={() => navigateToView('customer', true)}
-          >
-            👁️ Preview Guest Experience
-          </button>
-          <button
-            type="button"
-            className="mode-btn active"
-          >
-            💼 Owner Portal
-          </button>
-        </div>
-      </div>
-
-      <main className="product-main-content">
-        <OwnerPortal
-          businessId={businessId}
-          onPreviewCustomer={() => navigateToView('customer', true)}
+    <PortalSessionProvider initialBusinessId={businessId}>
+      <PortalAuthGate initialBusinessId={businessId}>
+        <UnifiedClientPortal
+          onPreviewReview={() => navigateToView('customer', true)}
+          onPreviewCard={() => navigateToProductB(businessId)}
         />
-      </main>
-
-      <footer className="product-footer">
-        <div className="footer-content">
-          <span>Nasta Ghar • ChurnLens AI Review Assistant</span>
-          <span>Google Business Profile Compliant • Zero Fabrication</span>
-        </div>
-      </footer>
-    </div>
+      </PortalAuthGate>
+    </PortalSessionProvider>
   );
 }
 

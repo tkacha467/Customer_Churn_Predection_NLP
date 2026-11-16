@@ -153,7 +153,8 @@ class GoogleReviewManager:
                     "primary_accent": tenant.get("primary_accent", "#f97316"),
                     "domain": tenant.get("domain", ""),
                     "entitlements": tenant.get("entitlements", ["review_manager"]),
-                    "status": tenant.get("status", "active")
+                    "status": tenant.get("status", "active"),
+                    "logo_path": tenant.get("logo_path", "")
                 }
 
             if business_id in ("default_business", "nasta_ghar", "nasta-ghar"):
@@ -277,6 +278,19 @@ class GoogleReviewManager:
                     "entitlements": cur_entitlements,
                     "status": persisted_status
                 })
+
+                # Synchronize shared identity fields to canonical business_profiles
+                shared_update = {}
+                if business_name is not None and str(business_name).strip():
+                    shared_update["display_name"] = str(business_name).strip()
+                if branch is not None:
+                    shared_update["branch_name"] = str(branch).strip()
+                if category is not None and str(category).strip():
+                    shared_update["category"] = str(category).strip()
+                if description is not None:
+                    shared_update["description"] = str(description).strip()
+                if shared_update:
+                    store.update_shared_business_profile(business_id, shared_update)
             except Exception:
                 self._links = previous_links
                 raise

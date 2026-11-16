@@ -9,6 +9,7 @@ import uuid
 import hmac
 import hashlib
 import re
+import struct
 from fastapi import APIRouter, HTTPException, Request, Response, Depends, UploadFile, File, Form
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
@@ -65,6 +66,9 @@ from Backend.app.schemas import (
     ALLOWED_ANALYTICS_EVENTS,
     BusinessProfileResponse,
     BusinessProfileUpdateRequest,
+    SharedBusinessProfileResponse,
+    SharedBusinessProfileUpdateRequest,
+    SharedBusinessLogoUploadResponse,
     DocumentMetadataResponse,
     DocumentUpdateRequest,
     PublicDigitalCardResponse,
@@ -560,7 +564,8 @@ async def get_business_review_link(business_id: str):
         topics=info.get("topics", []),
         primary_accent=info.get("primary_accent", "#f97316"),
         domain=info.get("domain", ""),
-        entitlements=info.get("entitlements", ["review_manager", "digital_card"])
+        entitlements=info.get("entitlements", ["review_manager", "digital_card"]),
+        logo_path=info.get("logo_path", "")
     )
 
 
@@ -606,7 +611,8 @@ async def get_business_by_domain(domain: str):
         topics=info.get("topics", []),
         primary_accent=info.get("primary_accent", "#f97316"),
         domain=tenant.get("domain", ""),
-        entitlements=info.get("entitlements", ["review_manager", "digital_card"])
+        entitlements=info.get("entitlements", ["review_manager", "digital_card"]),
+        logo_path=info.get("logo_path", "") or tenant.get("logo_path", "")
     )
 
 
@@ -620,8 +626,15 @@ async def get_analytics(
     ctx: TenantContext = Depends(require_tenant_access("staff", required_entitlement="review_manager"))
 ):
     target = business_id or ctx.tenant_id
-    validate_business_id(target)
-    return review_service.get_analytics_summary(business_id=target, timezone_str=timezone or "Asia/Kolkata")
+    valid_id = validate_business_id(target)
+    target_id = "default_business" if valid_id in ("default_business", "nasta_ghar", "nasta-ghar") else valid_id
+    effective_tz = timezone
+    if not timezone or timezone == "Asia/Kolkata":
+        store = get_store()
+        profile = store.get_shared_business_profile(target_id)
+        if profile and profile.get("timezone"):
+            effective_tz = profile["timezone"]
+    return review_service.get_analytics_summary(business_id=target_id, timezone_str=effective_tz or "Asia/Kolkata")
 
 
 @router.get("/reviews/private-tickets")
@@ -699,7 +712,8 @@ async def update_business_config(
         topics=info.get("topics", []),
         primary_accent=info.get("primary_accent", "#f97316"),
         domain=info.get("domain", ""),
-        entitlements=info.get("entitlements", ["review_manager", "digital_card"])
+        entitlements=info.get("entitlements", ["review_manager", "digital_card"]),
+        logo_path=info.get("logo_path", "")
     )
 
 
@@ -750,6 +764,14 @@ async def onboard_tenant(
         "primary_accent": req.primary_accent or "#0ea5e9",
         "domain": req.domain or "",
         "entitlements": req.entitlements or ["review_manager", "digital_card"]
+    })
+
+    # Provision canonical business_profiles record
+    store.upsert_business_profile(valid_id, {
+        "display_name": req.business_name,
+        "category": req.category or "Cafe",
+        "branch_name": req.branch or "",
+        "description": req.description or "",
     })
 
     # Grant initial owner membership
@@ -910,7 +932,7 @@ async def get_public_digital_card(
         business_name=business_name,
         display_name=display_name,
         category=category,
-        description=tenant.get("description", ""),
+        description=profile.get("description") or tenant.get("description", ""),
         primary_accent=primary_accent,
         tagline=profile.get("tagline", ""),
         opening_hours=profile.get("opening_hours", ""),
@@ -1041,6 +1063,387 @@ async def update_business_profile(
     updated = store.upsert_business_profile(target_id, update_payload)
     updated["tenant_id"] = valid_id
     return BusinessProfileResponse(**updated)
+
+
+# ---------------------------------------------------------
+# Phase 2 Subpart 2C: Shared Business Profile Endpoints
+# ---------------------------------------------------------
+
+@router.get("/businesses/{business_id}/shared-profile", response_model=SharedBusinessProfileResponse)
+async def get_shared_business_profile_endpoint(
+    business_id: str,
+    ctx: TenantContext = Depends(require_tenant_access("staff")),
+    store: ReviewStore = Depends(get_store),
+):
+    """
+    Retrieves the canonical Shared Business Profile.
+    Accessible to authenticated users with Staff, Manager, or Owner roles in the tenant.
+    Returns strictly common shared identity fields with zero product configuration leakage.
+    """
+    valid_id = validate_business_id(business_id)
+    target_id = ctx.tenant_id
+
+    profile = store.get_shared_business_profile(target_id)
+    if not profile:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Shared business profile for '{valid_id}' not found."
+        )
+
+    return SharedBusinessProfileResponse(**profile)
+
+
+@router.put("/businesses/{business_id}/shared-profile", response_model=SharedBusinessProfileResponse)
+async def update_shared_business_profile_endpoint(
+    business_id: str,
+    req: SharedBusinessProfileUpdateRequest,
+    ctx: TenantContext = Depends(require_tenant_access("owner")),
+    store: ReviewStore = Depends(get_store),
+):
+    """
+    Updates the canonical Shared Business Profile record in business_profiles.
+    Requires Owner permissions in the requested business.
+    Preserves omitted fields using model_fields_set, validates URLs, hex accents, and timezones.
+    Rejects unexpected product-specific configuration.
+    """
+    valid_id = validate_business_id(business_id)
+    target_id = ctx.tenant_id
+
+    existing = store.get_shared_business_profile(target_id)
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Shared business profile for '{valid_id}' not found."
+        )
+
+    # Extract only fields explicitly included in the request body
+    update_data = {}
+    for field_name in req.model_fields_set:
+        update_data[field_name] = getattr(req, field_name)
+
+    updated = store.update_shared_business_profile(target_id, update_data)
+    if not updated:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update shared business profile."
+        )
+
+    return SharedBusinessProfileResponse(**updated)
+
+
+# ---------------------------------------------------------
+# Phase 2 Subpart 2D: Shared Business Logo Upload & Storage
+# ---------------------------------------------------------
+
+MAX_SHARED_LOGO_SIZE_BYTES = 2 * 1024 * 1024  # 2 MiB
+MIN_LOGO_DIMENSION = 16
+MAX_LOGO_DIMENSION = 4096
+SHARED_LOGO_FILENAME_REGEX = re.compile(
+    r"^logo_[a-zA-Z0-9_\-]+_[a-f0-9]{12}_\d+_[a-f0-9]{8}\.(png|jpg|jpeg|webp)$"
+)
+
+
+def _detect_and_validate_raster_image(content: bytes) -> tuple[str, str, int, int]:
+    """
+    Validates that content is an authentic raster image (PNG, JPEG, WebP).
+    Strictly rejects SVG, HTML, executables, scripts, and corrupted payloads.
+    Extracts and asserts reasonable dimensions (16x16 to 4096x4096).
+    Returns (ext, media_type, width, height) or raises ValueError.
+    """
+    if len(content) < 16:
+        raise ValueError("Image file is empty or too small to be a valid image.")
+
+    # Explicit rejection of text, SVG, XML, HTML, and executables
+    header_1024 = content[:1024].lower()
+    if (
+        b"<svg" in header_1024
+        or b"<?xml" in header_1024
+        or b"<html" in header_1024
+        or b"<!doctype" in header_1024
+        or b"<script" in header_1024
+        or content.startswith(b"MZ")
+        or content.startswith(b"\x7fELF")
+    ):
+        raise ValueError("Rejected: SVG, HTML, scripts, and executable files are strictly prohibited as shared logos.")
+
+    ext: Optional[str] = None
+    media_type: Optional[str] = None
+    w: Optional[int] = None
+    h: Optional[int] = None
+
+    # 1. PNG check
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        ext = ".png"
+        media_type = "image/png"
+        try:
+            w, h = struct.unpack(">II", content[16:24])
+        except Exception:
+            raise ValueError("Malformed PNG header: unable to parse dimensions.")
+
+    # 2. JPEG check
+    elif content.startswith(b"\xff\xd8\xff"):
+        ext = ".jpg"
+        media_type = "image/jpeg"
+        idx = 2
+        try:
+            while idx < len(content) - 8:
+                if content[idx] != 0xFF:
+                    idx += 1
+                    continue
+                marker = content[idx + 1]
+                if marker in (0xD8, 0xD9):
+                    idx += 2
+                    continue
+                length = struct.unpack(">H", content[idx + 2 : idx + 4])[0]
+                if marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
+                    h, w = struct.unpack(">HH", content[idx + 5 : idx + 9])
+                    break
+                idx += 2 + length
+        except Exception:
+            raise ValueError("Malformed JPEG: error parsing frame markers.")
+        if w is None or h is None:
+            raise ValueError("Malformed JPEG: Start of Frame (SOF) marker not found.")
+
+    # 3. WebP check
+    elif content.startswith(b"RIFF") and len(content) >= 30 and content[8:12] == b"WEBP":
+        ext = ".webp"
+        media_type = "image/webp"
+        chunk = content[12:16]
+        try:
+            if chunk == b"VP8 " and len(content) >= 30:
+                w = struct.unpack("<H", content[26:28])[0] & 0x3FFF
+                h = struct.unpack("<H", content[28:30])[0] & 0x3FFF
+            elif chunk == b"VP8L" and len(content) >= 25:
+                b1, b2, b3, b4 = content[21:25]
+                w = 1 + (((b2 & 0x3F) << 8) | b1)
+                h = 1 + (((b4 & 0x0F) << 10) | (b3 << 2) | ((b2 & 0xC0) >> 6))
+            elif chunk == b"VP8X" and len(content) >= 30:
+                w = 1 + struct.unpack("<I", content[24:27] + b"\x00")[0]
+                h = 1 + struct.unpack("<I", content[27:30] + b"\x00")[0]
+            else:
+                raise ValueError(f"Unsupported WebP chunk: {chunk}")
+        except Exception as e:
+            raise ValueError(f"Malformed WebP: unable to parse dimensions ({e}).")
+
+    else:
+        raise ValueError("Invalid image format. Allowed raster formats: PNG, JPEG, WebP.")
+
+    if w < MIN_LOGO_DIMENSION or h < MIN_LOGO_DIMENSION or w > MAX_LOGO_DIMENSION or h > MAX_LOGO_DIMENSION:
+        raise ValueError(
+            f"Image dimensions ({w}x{h}) exceed allowed limits ({MIN_LOGO_DIMENSION}x{MIN_LOGO_DIMENSION} to {MAX_LOGO_DIMENSION}x{MAX_LOGO_DIMENSION} pixels)."
+        )
+
+    return ext, media_type, w, h
+
+
+@router.post("/businesses/{business_id}/shared-profile/logo", response_model=SharedBusinessLogoUploadResponse)
+async def upload_shared_business_logo(
+    business_id: str,
+    file: UploadFile = File(...),
+    ctx: TenantContext = Depends(require_tenant_access("owner")),
+    doc_service: DocumentStorageService = Depends(get_document_storage),
+    store: ReviewStore = Depends(get_store),
+):
+    """
+    Uploads a canonical Shared Business Profile logo.
+    Accessible only to tenant Owners (or Platform Admin).
+    Accepts only approved raster formats (PNG, JPEG, WebP) up to 2 MiB.
+    Atomic filesystem storage with automatic rollback and old logo cleanup.
+    """
+    valid_id = validate_business_id(business_id)
+    target_id = ctx.tenant_id
+
+    # 1. Enforce size limit (<= 2 MiB)
+    content = await file.read(MAX_SHARED_LOGO_SIZE_BYTES + 1)
+    if len(content) > MAX_SHARED_LOGO_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Logo file exceeds maximum allowed limit of 2 MiB ({MAX_SHARED_LOGO_SIZE_BYTES} bytes)."
+        )
+
+    # 2. Content & dimension validation
+    try:
+        ext, media_type, w, h = _detect_and_validate_raster_image(content)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    content_hash = hashlib.sha256(content).hexdigest()
+
+    # 3. Path resolution & traversal safety
+    clean_tenant = "default_business" if target_id in ("default_business", "nasta_ghar", "nasta-ghar") else target_id
+    tenant_dir = doc_service._resolve_tenant_dir(clean_tenant)
+    logos_dir = (tenant_dir / "logos").resolve()
+    logos_dir.mkdir(parents=True, exist_ok=True)
+
+    if not logos_dir.is_relative_to(doc_service.storage_root):
+        raise HTTPException(status_code=403, detail="Storage path traversal violation.")
+
+    # 4. Check profile existence & capture current logo path
+    current_profile = store.get_shared_business_profile(target_id)
+    if not current_profile:
+        raise HTTPException(status_code=404, detail=f"Shared business profile for '{valid_id}' not found.")
+    old_logo_path = current_profile.get("logo_path", "")
+
+    # 5. Collision-proof immutable filename
+    unique_name = f"logo_{clean_tenant}_{uuid.uuid4().hex[:12]}_{int(time.time())}_{content_hash[:8]}{ext}"
+    final_file = logos_dir / unique_name
+    temp_file = logos_dir / f".tmp_{uuid.uuid4().hex}.tmp"
+
+    # 6. Atomic write sequence
+    try:
+        temp_file.write_bytes(content)
+        if temp_file.stat().st_size != len(content):
+            raise IOError("Written file size mismatch.")
+        os.replace(temp_file, final_file)
+    except Exception as e:
+        if temp_file.exists():
+            try:
+                temp_file.unlink()
+            except OSError:
+                pass
+        raise HTTPException(status_code=500, detail=f"Failed to write image file: {str(e)}")
+
+    canonical_logo_url = f"/api/businesses/{valid_id}/shared-profile/logo/{unique_name}"
+
+    # 7. Transactional database update & failure compensation
+    try:
+        updated = store.update_shared_business_logo(target_id, canonical_logo_url)
+        if not updated:
+            raise RuntimeError("Database record update returned no modified rows.")
+    except Exception as db_err:
+        # Compensation: remove newly created file immediately on DB error
+        if final_file.exists():
+            try:
+                final_file.unlink()
+            except OSError:
+                pass
+        raise HTTPException(status_code=500, detail=f"Database update failed; logo upload aborted: {str(db_err)}")
+
+    # 8. Post-commit cleanup of old managed logo
+    if old_logo_path and "/shared-profile/logo/" in old_logo_path:
+        old_filename = old_logo_path.split("/")[-1]
+        if SHARED_LOGO_FILENAME_REGEX.match(old_filename) and old_filename != unique_name:
+            old_file = (logos_dir / old_filename).resolve()
+            if old_file.is_file() and not old_file.is_symlink() and old_file.is_relative_to(logos_dir):
+                try:
+                    old_file.unlink()
+                except OSError:
+                    pass
+
+    return SharedBusinessLogoUploadResponse(
+        success=True,
+        logo_path=canonical_logo_url,
+        filename=unique_name,
+        media_type=media_type,
+        size_bytes=len(content),
+        dimensions={"width": w, "height": h},
+        sha256=content_hash,
+    )
+
+
+@router.get("/businesses/{business_id}/shared-profile/logo/{filename}")
+async def serve_shared_business_logo_file(
+    business_id: str,
+    filename: str,
+    doc_service: DocumentStorageService = Depends(get_document_storage),
+    store: ReviewStore = Depends(get_store),
+):
+    """
+    Serves a specific versioned shared business logo file.
+    Publicly accessible with nosniff and immutable long-term caching headers.
+    """
+    valid_id = validate_business_id(business_id)
+    target_id = "default_business" if valid_id in ("default_business", "nasta_ghar", "nasta-ghar") else valid_id
+
+    if not SHARED_LOGO_FILENAME_REGEX.match(filename):
+        raise HTTPException(status_code=404, detail="Logo not found.")
+
+    tenant = store.get_tenant(target_id)
+    if not tenant or tenant.get("status") != "active":
+        raise HTTPException(status_code=404, detail="Logo not found.")
+
+    tenant_dir = doc_service._resolve_tenant_dir(target_id)
+    logos_dir = (tenant_dir / "logos").resolve()
+    file_path = (logos_dir / filename).resolve()
+
+    if not file_path.is_relative_to(logos_dir) or not file_path.is_file() or file_path.is_symlink():
+        raise HTTPException(status_code=404, detail="Logo not found.")
+
+    ext = file_path.suffix.lower()
+    media_map = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+    }
+    media_type = media_map.get(ext, "application/octet-stream")
+
+    return Response(
+        content=file_path.read_bytes(),
+        media_type=media_type,
+        headers={
+            "Content-Type": media_type,
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@router.get("/businesses/{business_id}/shared-profile/logo")
+async def serve_current_shared_business_logo(
+    business_id: str,
+    doc_service: DocumentStorageService = Depends(get_document_storage),
+    store: ReviewStore = Depends(get_store),
+):
+    """
+    Serves the current active shared business logo for the given tenant.
+    Publicly accessible for QR review flows and digital cards with no-cache revalidation.
+    """
+    valid_id = validate_business_id(business_id)
+    target_id = "default_business" if valid_id in ("default_business", "nasta_ghar", "nasta-ghar") else valid_id
+
+    tenant = store.get_tenant(target_id)
+    if not tenant or tenant.get("status") != "active":
+        raise HTTPException(status_code=404, detail="Business not found.")
+
+    profile = store.get_shared_business_profile(target_id)
+    if not profile or not profile.get("logo_path"):
+        raise HTTPException(status_code=404, detail="Shared logo not configured.")
+
+    logo_path = profile["logo_path"].strip()
+    if not logo_path:
+        raise HTTPException(status_code=404, detail="Shared logo not configured.")
+
+    # Extract filename from canonical logo_path
+    filename = logo_path.split("/")[-1]
+    if not SHARED_LOGO_FILENAME_REGEX.match(filename):
+        raise HTTPException(status_code=404, detail="Shared logo file not found.")
+
+    tenant_dir = doc_service._resolve_tenant_dir(target_id)
+    logos_dir = (tenant_dir / "logos").resolve()
+    file_path = (logos_dir / filename).resolve()
+
+    if not file_path.is_relative_to(logos_dir) or not file_path.is_file() or file_path.is_symlink():
+        raise HTTPException(status_code=404, detail="Shared logo file not found.")
+
+    ext = file_path.suffix.lower()
+    media_map = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+    }
+    media_type = media_map.get(ext, "application/octet-stream")
+
+    return Response(
+        content=file_path.read_bytes(),
+        media_type=media_type,
+        headers={
+            "Content-Type": media_type,
+            "Cache-Control": "no-cache, must-revalidate",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 # ---------------------------------------------------------

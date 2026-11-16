@@ -1,5 +1,7 @@
 import re
-from pydantic import BaseModel, Field, field_validator
+from urllib.parse import urlsplit
+import zoneinfo
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import List, Optional, Dict, Any
 
 class ReviewIdeaItem(BaseModel):
@@ -70,6 +72,7 @@ class BusinessReviewLinkResponse(BaseModel):
     primary_accent: Optional[str] = "#f97316"
     domain: Optional[str] = ""
     entitlements: List[str] = Field(default_factory=lambda: ["review_manager", "digital_card"])
+    logo_path: Optional[str] = ""
 
 class BusinessConfigUpdateRequest(BaseModel):
     business_name: Optional[str] = None
@@ -278,7 +281,9 @@ class BusinessProfileResponse(BaseModel):
     tenant_id: str
     tagline: str = ""
     display_name: str = ""
+    branch_name: str = ""
     category: str = ""
+    description: str = ""
     opening_hours: str = ""
     welcome_message: str = ""
     email: str = ""
@@ -296,6 +301,8 @@ class BusinessProfileResponse(BaseModel):
     background_preset: str = ""
     overlay_opacity: float = 0.75
     primary_accent: str = "#078BFF"
+    brand_accent: Optional[str] = None
+    timezone: str = "Asia/Kolkata"
     custom_links: List[CustomLinkItem] = Field(default_factory=list)
     is_published: bool = False
     show_review_button: bool = True
@@ -306,7 +313,9 @@ class BusinessProfileResponse(BaseModel):
 class BusinessProfileUpdateRequest(BaseModel):
     tagline: Optional[str] = Field(default=None, max_length=250)
     display_name: Optional[str] = Field(default=None, max_length=150)
+    branch_name: Optional[str] = Field(default=None, max_length=100)
     category: Optional[str] = Field(default=None, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=1000)
     opening_hours: Optional[str] = Field(default=None, max_length=150)
     welcome_message: Optional[str] = Field(default=None, max_length=1000)
     email: Optional[str] = Field(default=None, max_length=256)
@@ -429,5 +438,126 @@ class PublicDigitalCardResponse(BaseModel):
     show_review_button: bool = True
     google_review_url: str = ""
     documents: List[PublicDocumentItem] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 Subpart 2C: Shared Business Profile Schemas (Canonical Common Identity)
+# ---------------------------------------------------------------------------
+
+class SharedBusinessProfileResponse(BaseModel):
+    tenant_id: str
+    display_name: str
+    category: str
+    branch_name: str = ""
+    description: str = ""
+    tagline: str = ""
+    logo_path: str = ""
+    phone_number: str = ""
+    email: str = ""
+    address: str = ""
+    website_url: str = ""
+    opening_hours: str = ""
+    map_url: str = ""
+    brand_accent: Optional[str] = None
+    timezone: str = "Asia/Kolkata"
+    entitlements: List[str] = Field(default_factory=list)
+    created_at: float
+    updated_at: float
+
+
+class SharedBusinessProfileUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: Optional[str] = Field(None, min_length=1, max_length=150)
+    category: Optional[str] = Field(None, min_length=1, max_length=100)
+    branch_name: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = Field(None, max_length=5000)
+    tagline: Optional[str] = Field(None, max_length=300)
+    phone_number: Optional[str] = Field(None, max_length=40)
+    email: Optional[str] = Field(None, max_length=255)
+    address: Optional[str] = Field(None, max_length=500)
+    website_url: Optional[str] = Field(None, max_length=500)
+    opening_hours: Optional[str] = Field(None, max_length=250)
+    map_url: Optional[str] = Field(None, max_length=500)
+    brand_accent: Optional[str] = None
+    timezone: Optional[str] = Field(None, max_length=100)
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            clean = v.strip()
+            if not clean:
+                raise ValueError("display_name must not be empty or whitespace-only.")
+            # Preserve original casing verbatim
+            return clean
+        return v
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            clean = v.strip()
+            if clean not in zoneinfo.available_timezones():
+                raise ValueError(f"Invalid IANA timezone identifier: '{clean}'.")
+            return clean
+        return v
+
+    @field_validator("website_url", "map_url")
+    @classmethod
+    def validate_http_url(cls, v: Optional[str]) -> Optional[str]:
+        """Strong URL validation using urllib.parse.urlsplit."""
+        if v is None:
+            return None
+        clean = v.strip()
+        if clean == "":
+            return ""
+        if any(c in clean for c in (" ", "\t", "\r", "\n")):
+            raise ValueError("URL must not contain whitespace characters.")
+        try:
+            parsed = urlsplit(clean)
+        except Exception as e:
+            raise ValueError(f"Malformed URL: {e}")
+        if parsed.scheme.lower() not in ("http", "https"):
+            raise ValueError("URL must use http or https scheme.")
+        if not parsed.netloc or not parsed.hostname:
+            raise ValueError("URL must include a valid host domain.")
+        if "." not in parsed.hostname and parsed.hostname != "localhost":
+            raise ValueError("URL host must be a fully qualified domain name or localhost.")
+        return clean
+
+    @field_validator("brand_accent")
+    @classmethod
+    def validate_hex_accent(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip() != "":
+            clean = v.strip()
+            if not re.match(r"^#(?:[0-9a-fA-F]{3}){1,2}$", clean):
+                raise ValueError("Brand accent must be a valid hex color string (e.g. #174D3A or #F00).")
+            return clean
+        return None
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        stripped = v.strip().lower()
+        if not stripped:
+            return ""
+        if "@" not in stripped or "." not in stripped.split("@")[-1]:
+            raise ValueError(f"Invalid email address format: '{stripped}'.")
+        return stripped
+
+
+class SharedBusinessLogoUploadResponse(BaseModel):
+    success: bool = True
+    logo_path: str
+    filename: str
+    media_type: str
+    size_bytes: int
+    dimensions: Dict[str, int]
+    sha256: str
+
+
 
 

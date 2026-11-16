@@ -124,6 +124,8 @@ class ReviewStore:
                     tagline TEXT DEFAULT '',
                     display_name TEXT DEFAULT '',
                     category TEXT DEFAULT '',
+                    branch_name TEXT DEFAULT '',
+                    description TEXT DEFAULT '',
                     opening_hours TEXT DEFAULT '',
                     welcome_message TEXT DEFAULT '',
                     email TEXT DEFAULT '',
@@ -141,6 +143,8 @@ class ReviewStore:
                     background_preset TEXT DEFAULT '',
                     overlay_opacity REAL DEFAULT 0.75,
                     primary_accent TEXT DEFAULT '#078BFF',
+                    brand_accent TEXT DEFAULT NULL,
+                    timezone TEXT DEFAULT 'Asia/Kolkata',
                     custom_links_json TEXT DEFAULT '[]',
                     is_published INTEGER NOT NULL DEFAULT 0,
                     show_review_button INTEGER NOT NULL DEFAULT 1,
@@ -177,6 +181,10 @@ class ReviewStore:
                 "ALTER TABLE users ADD COLUMN is_platform_admin INTEGER NOT NULL DEFAULT 0",
                 "ALTER TABLE business_profiles ADD COLUMN display_name TEXT DEFAULT ''",
                 "ALTER TABLE business_profiles ADD COLUMN category TEXT DEFAULT ''",
+                "ALTER TABLE business_profiles ADD COLUMN branch_name TEXT DEFAULT ''",
+                "ALTER TABLE business_profiles ADD COLUMN description TEXT DEFAULT ''",
+                "ALTER TABLE business_profiles ADD COLUMN brand_accent TEXT DEFAULT NULL",
+                "ALTER TABLE business_profiles ADD COLUMN timezone TEXT DEFAULT 'Asia/Kolkata'",
                 "ALTER TABLE business_profiles ADD COLUMN opening_hours TEXT DEFAULT ''",
                 "ALTER TABLE business_profiles ADD COLUMN welcome_message TEXT DEFAULT ''",
                 "ALTER TABLE business_profiles ADD COLUMN email TEXT DEFAULT ''",
@@ -302,6 +310,25 @@ class ReviewStore:
             data = dict(row)
             data["topics"] = json.loads(data.get("topics_json") or "[]")
             data["entitlements"] = json.loads(data.get("entitlements_json") or '["review_manager"]')
+
+            # Overlay canonical shared identity from business_profiles if present
+            profile_row = db.execute("SELECT * FROM business_profiles WHERE tenant_id = ?", (target_id,)).fetchone()
+            if profile_row:
+                p = dict(profile_row)
+                if p.get("display_name"):
+                    data["business_name"] = p["display_name"]
+                if p.get("branch_name"):
+                    data["branch"] = p["branch_name"]
+                if p.get("category"):
+                    data["category"] = p["category"]
+                if p.get("description"):
+                    data["description"] = p["description"]
+                if p.get("logo_path"):
+                    data["logo_path"] = p["logo_path"]
+                if p.get("brand_accent"):
+                    data["brand_accent"] = p["brand_accent"]
+                if p.get("timezone"):
+                    data["timezone"] = p["timezone"]
             return data
 
     def get_tenant_by_domain(self, domain: str) -> Optional[Dict[str, Any]]:
@@ -314,6 +341,25 @@ class ReviewStore:
             data = dict(row)
             data["topics"] = json.loads(data.get("topics_json") or "[]")
             data["entitlements"] = json.loads(data.get("entitlements_json") or '["review_manager"]')
+
+            # Overlay canonical shared identity from business_profiles if present
+            profile_row = db.execute("SELECT * FROM business_profiles WHERE tenant_id = ?", (data["id"],)).fetchone()
+            if profile_row:
+                p = dict(profile_row)
+                if p.get("display_name"):
+                    data["business_name"] = p["display_name"]
+                if p.get("branch_name"):
+                    data["branch"] = p["branch_name"]
+                if p.get("category"):
+                    data["category"] = p["category"]
+                if p.get("description"):
+                    data["description"] = p["description"]
+                if p.get("logo_path"):
+                    data["logo_path"] = p["logo_path"]
+                if p.get("brand_accent"):
+                    data["brand_accent"] = p["brand_accent"]
+                if p.get("timezone"):
+                    data["timezone"] = p["timezone"]
             return data
 
     def tenant_exists(self, tenant_id: str) -> bool:
@@ -326,10 +372,17 @@ class ReviewStore:
         with self._connect() as db:
             rows = db.execute("""
                 SELECT t.*, 
+                       COALESCE(NULLIF(bp.display_name, ''), t.business_name) AS business_name,
+                       COALESCE(NULLIF(bp.category, ''), t.category) AS category,
+                       COALESCE(NULLIF(bp.branch_name, ''), t.branch) AS branch,
+                       COALESCE(NULLIF(bp.description, ''), t.description) AS description,
+                       bp.logo_path AS logo_path,
+                       bp.brand_accent AS brand_accent,
                        (SELECT u.email FROM tenant_memberships tm JOIN users u ON u.id = tm.user_id WHERE tm.tenant_id = t.id AND tm.role = 'owner' LIMIT 1) AS owner_email,
                        (SELECT u.display_name FROM tenant_memberships tm JOIN users u ON u.id = tm.user_id WHERE tm.tenant_id = t.id AND tm.role = 'owner' LIMIT 1) AS owner_name,
                        (SELECT COUNT(*) FROM tenant_documents td WHERE td.tenant_id = t.id) AS document_count
                 FROM tenants t 
+                LEFT JOIN business_profiles bp ON bp.tenant_id = t.id
                 ORDER BY t.created_at ASC
             """).fetchall()
             result = []
@@ -357,6 +410,25 @@ class ReviewStore:
             d = dict(row)
             d["topics"] = json.loads(d.get("topics_json") or "[]")
             d["entitlements"] = json.loads(d.get("entitlements_json") or '["review_manager"]')
+
+            # Overlay canonical shared identity from business_profiles if present
+            profile_row = db.execute("SELECT * FROM business_profiles WHERE tenant_id = ?", (target_id,)).fetchone()
+            if profile_row:
+                p = dict(profile_row)
+                if p.get("display_name"):
+                    d["business_name"] = p["display_name"]
+                if p.get("branch_name"):
+                    d["branch"] = p["branch_name"]
+                if p.get("category"):
+                    d["category"] = p["category"]
+                if p.get("description"):
+                    d["description"] = p["description"]
+                if p.get("logo_path"):
+                    d["logo_path"] = p["logo_path"]
+                if p.get("brand_accent"):
+                    d["brand_accent"] = p["brand_accent"]
+                if p.get("timezone"):
+                    d["timezone"] = p["timezone"]
             return d
 
     def upsert_tenant(self, tenant_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -408,6 +480,15 @@ class ReviewStore:
                 created_at,
                 now,
             ))
+
+            # If business_profiles already exists for this tenant, synchronize display_name
+            # so canonical profile overlay does not serve stale data
+            if tenant_data.get("business_name"):
+                db.execute("""
+                    UPDATE business_profiles 
+                    SET display_name = ?, updated_at = ?
+                    WHERE tenant_id = ?
+                """, (tenant_data["business_name"], now, tenant_id))
         return self.get_tenant(tenant_id)
 
     # ---------------------------------------------------------
@@ -772,7 +853,9 @@ class ReviewStore:
         if existing:
             tagline = profile_data.get("tagline") if profile_data.get("tagline") is not None else existing.get("tagline", "")
             display_name = str(profile_data.get("display_name")).strip() if profile_data.get("display_name") is not None else existing.get("display_name", "")
+            branch_name = str(profile_data.get("branch_name")).strip() if profile_data.get("branch_name") is not None else existing.get("branch_name", "")
             category = str(profile_data.get("category")).strip() if profile_data.get("category") is not None else existing.get("category", "")
+            description = str(profile_data.get("description")).strip() if profile_data.get("description") is not None else existing.get("description", "")
             opening_hours = str(profile_data.get("opening_hours")).strip() if profile_data.get("opening_hours") is not None else existing.get("opening_hours", "")
             welcome_message = str(profile_data.get("welcome_message")).strip() if profile_data.get("welcome_message") is not None else existing.get("welcome_message", "")
             email = str(profile_data.get("email")).strip().lower() if profile_data.get("email") is not None else existing.get("email", "")
@@ -802,7 +885,9 @@ class ReviewStore:
         else:
             tagline = profile_data.get("tagline") or ""
             display_name = str(profile_data.get("display_name") or "").strip()
+            branch_name = str(profile_data.get("branch_name") or "").strip()
             category = str(profile_data.get("category") or "").strip()
+            description = str(profile_data.get("description") or "").strip()
             opening_hours = str(profile_data.get("opening_hours") or "").strip()
             welcome_message = str(profile_data.get("welcome_message") or "").strip()
             email = str(profile_data.get("email") or "").strip().lower()
@@ -828,16 +913,18 @@ class ReviewStore:
         with self._connect() as db:
             db.execute("""
                 INSERT INTO business_profiles (
-                    tenant_id, tagline, display_name, category, opening_hours, welcome_message,
+                    tenant_id, tagline, display_name, category, branch_name, description, opening_hours, welcome_message,
                     email, phone_number, website_url, address, map_url,
                     whatsapp_url, whatsapp_group_url, instagram_url, facebook_url, youtube_url,
                     logo_path, cover_image_path, background_preset, overlay_opacity, primary_accent,
                     custom_links_json, is_published, show_review_button, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(tenant_id) DO UPDATE SET
                     tagline = excluded.tagline,
                     display_name = excluded.display_name,
                     category = excluded.category,
+                    branch_name = excluded.branch_name,
+                    description = excluded.description,
                     opening_hours = excluded.opening_hours,
                     welcome_message = excluded.welcome_message,
                     email = excluded.email,
@@ -860,12 +947,27 @@ class ReviewStore:
                     show_review_button = excluded.show_review_button,
                     updated_at = excluded.updated_at
             """, (
-                target_id, tagline, display_name, category, opening_hours, welcome_message,
+                target_id, tagline, display_name, category, branch_name, description, opening_hours, welcome_message,
                 email, phone_number, website_url, address, map_url,
                 whatsapp_url, whatsapp_group_url, instagram_url, facebook_url, youtube_url,
                 logo_path, cover_image_path, background_preset, overlay_opacity, primary_accent,
                 custom_links_json, is_published, show_review_button, created_at, now
             ))
+
+            # Mirror canonical shared fields to legacy tenants table
+            tenant_sync = {}
+            if display_name:
+                tenant_sync["business_name"] = display_name
+            if category:
+                tenant_sync["category"] = category
+            if branch_name:
+                tenant_sync["branch"] = branch_name
+            if description:
+                tenant_sync["description"] = description
+            if tenant_sync:
+                t_set = [f"{col} = ?" for col in tenant_sync.keys()]
+                t_params = list(tenant_sync.values()) + [now, target_id]
+                db.execute(f"UPDATE tenants SET {', '.join(t_set)}, updated_at = ? WHERE id = ?", t_params)
 
         return self.get_business_profile(target_id)
 
@@ -878,6 +980,114 @@ class ReviewStore:
                 (1 if is_published else 0, now, target_id)
             )
             return cur.rowcount > 0
+
+    # ---------------------------------------------------------
+    # Canonical Shared Business Profile Operations (Phase 2 Subpart 2C)
+    # ---------------------------------------------------------
+    def get_shared_business_profile(self, tenant_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieves the canonical Shared Business Profile from business_profiles,
+        augmented with active entitlements from tenants.
+        Returns strictly common identity fields (zero product-specific configuration).
+        """
+        target_id = "default_business" if tenant_id in ("default_business", "nasta_ghar", "nasta-ghar") else tenant_id
+        with self._connect() as db:
+            row = db.execute("SELECT * FROM business_profiles WHERE tenant_id = ?", (target_id,)).fetchone()
+            if not row:
+                return None
+            data = dict(row)
+
+            # Retrieve active entitlements from tenants
+            t_row = db.execute("SELECT entitlements_json FROM tenants WHERE id = ?", (target_id,)).fetchone()
+            entitlements: List[str] = []
+            if t_row and t_row["entitlements_json"]:
+                try:
+                    raw_ents = json.loads(t_row["entitlements_json"])
+                    if isinstance(raw_ents, list):
+                        entitlements = [str(e) for e in raw_ents]
+                except Exception:
+                    entitlements = []
+
+            return {
+                "tenant_id": target_id,
+                "display_name": data.get("display_name") or "",
+                "category": data.get("category") or "",
+                "branch_name": data.get("branch_name") or "",
+                "description": data.get("description") or "",
+                "tagline": data.get("tagline") or "",
+                "logo_path": data.get("logo_path") or "",
+                "phone_number": data.get("phone_number") or "",
+                "email": data.get("email") or "",
+                "address": data.get("address") or "",
+                "website_url": data.get("website_url") or "",
+                "opening_hours": data.get("opening_hours") or "",
+                "map_url": data.get("map_url") or "",
+                "brand_accent": data.get("brand_accent"),
+                "timezone": data.get("timezone") or "Asia/Kolkata",
+                "entitlements": entitlements,
+                "created_at": float(data.get("created_at") or 0.0),
+                "updated_at": float(data.get("updated_at") or 0.0),
+            }
+
+    def update_shared_business_profile(self, tenant_id: str, update_dict: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Updates the canonical Shared Business Profile record in business_profiles
+        using parameterized SQL and atomic transactions.
+        Only explicitly provided fields in update_dict are updated.
+        Preserves existing values for omitted fields.
+        """
+        target_id = "default_business" if tenant_id in ("default_business", "nasta_ghar", "nasta-ghar") else tenant_id
+        ALLOWED_COLUMNS = {
+            "display_name", "category", "branch_name", "description",
+            "tagline", "phone_number", "email", "address",
+            "website_url", "opening_hours", "map_url", "brand_accent", "timezone"
+        }
+        filtered = {k: v for k, v in update_dict.items() if k in ALLOWED_COLUMNS}
+        now = time.time()
+
+        with self._connect() as db:
+            existing = db.execute("SELECT tenant_id FROM business_profiles WHERE tenant_id = ?", (target_id,)).fetchone()
+            if not existing:
+                return None
+
+            if filtered:
+                set_clauses = [f"{col} = ?" for col in filtered.keys()]
+                params = list(filtered.values()) + [now, target_id]
+                query = f"UPDATE business_profiles SET {', '.join(set_clauses)}, updated_at = ? WHERE tenant_id = ?"
+                db.execute(query, params)
+
+                # Mirror canonical updates to legacy tenants table for backward compatibility
+                tenant_sync = {}
+                if "display_name" in filtered and filtered["display_name"] is not None:
+                    tenant_sync["business_name"] = filtered["display_name"]
+                if "branch_name" in filtered and filtered["branch_name"] is not None:
+                    tenant_sync["branch"] = filtered["branch_name"]
+                if "category" in filtered and filtered["category"] is not None:
+                    tenant_sync["category"] = filtered["category"]
+                if "description" in filtered and filtered["description"] is not None:
+                    tenant_sync["description"] = filtered["description"]
+                if tenant_sync:
+                    t_set = [f"{col} = ?" for col in tenant_sync.keys()]
+                    t_params = list(tenant_sync.values()) + [now, target_id]
+                    db.execute(f"UPDATE tenants SET {', '.join(t_set)}, updated_at = ? WHERE id = ?", t_params)
+
+        return self.get_shared_business_profile(target_id)
+
+    def update_shared_business_logo(self, tenant_id: str, logo_path: str) -> Optional[Dict[str, Any]]:
+        """
+        Updates the canonical logo_path on business_profiles.
+        Executed within an atomic transaction and returns the updated shared business profile.
+        """
+        target_id = "default_business" if tenant_id in ("default_business", "nasta_ghar", "nasta-ghar") else tenant_id
+        now = time.time()
+        with self._connect() as db:
+            cur = db.execute(
+                "UPDATE business_profiles SET logo_path = ?, updated_at = ? WHERE tenant_id = ?",
+                (logo_path, now, target_id)
+            )
+            if cur.rowcount == 0:
+                return None
+        return self.get_shared_business_profile(target_id)
 
     # ---------------------------------------------------------
     # Tenant Document Metadata Operations (Product 2 & Menus)
