@@ -222,8 +222,8 @@ def test_unknown_analytics_event_rejected():
     })
     assert res.status_code == 422
 
-def test_generate_review_hindi_hinglish():
-    """Roman-script Hindi (Hinglish) review generation with zero fabrication and no Devanagari script."""
+def test_generate_review_hindi_devanagari():
+    """Native Devanagari script Hindi review generation with zero fabrication."""
     payload = {
         "business_id": "default_business",
         "rating": 5,
@@ -236,20 +236,22 @@ def test_generate_review_hindi_hinglish():
     data = res.json()
     assert "review" in data
     review = data["review"]
-    # Check that it's in Roman script (Latin) and not Devanagari script
-    assert not any(0x0900 <= ord(c) <= 0x097F for c in review), "Should not contain Devanagari script"
+    # Check that it contains Devanagari Unicode characters (0x0900 - 0x097F)
+    assert any(0x0900 <= ord(c) <= 0x097F for c in review), "Must contain Devanagari script for Hindi"
+    # Never expose internal placeholder 'default_business'
+    assert "default_business" not in review
     # User note should be incorporated
     assert "poha" in review.lower()
     # Consistent with 5 stars
     assert data["rating_consistent"] is True
 
-def test_generate_review_gujarati_gujlish():
-    """Roman-script Gujarati (Gujlish) review generation with zero fabrication and no Gujarati script."""
+def test_generate_review_gujarati_native_script():
+    """Native Gujarati Unicode script review generation with zero fabrication and resolved business name."""
     payload = {
         "business_id": "default_business",
         "rating": 5,
         "aspects": ["Breakfast", "Chai & Tea"],
-        "user_note": "Fafda jalebi bahu saras hatu",
+        "user_note": "Fafda jalebi was very good",
         "language": "gujarati",
     }
     res = client.post("/api/reviews/generate", json=payload)
@@ -257,16 +259,18 @@ def test_generate_review_gujarati_gujlish():
     data = res.json()
     assert "review" in data
     review = data["review"]
-    # Check that it's in Roman script (Latin) and not Gujarati native script
-    assert not any(0x0A80 <= ord(c) <= 0x0AFF for c in review), "Should not contain Gujarati script"
+    # Check that it contains Gujarati Unicode characters (0x0A80 - 0x0AFF)
+    assert any(0x0A80 <= ord(c) <= 0x0AFF for c in review), "Must contain Gujarati native script"
+    # Must never expose 'default_business' placeholder
+    assert "default_business" not in review
     # User note incorporated
     assert "fafda" in review.lower()
     # Rating consistency
     assert data["rating_consistent"] is True
 
 def test_multilingual_candidate_ideas():
-    """Review candidate ideas generated directly in English, Roman Hindi, and Roman Gujarati."""
-    # 1. Hindi candidate ideas
+    """Review candidate ideas generated directly in native scripts: Gujarati Unicode, Devanagari Hindi, and English."""
+    # 1. Hindi candidate ideas in Devanagari script
     res_hi = client.post("/api/reviews/ideas", json={
         "rating": 5,
         "aspects": ["Taste", "Staff"],
@@ -277,22 +281,25 @@ def test_multilingual_candidate_ideas():
     ideas_hi = res_hi.json()["ideas"]
     assert len(ideas_hi) >= 3
     hi_text = " ".join([i["text"] for i in ideas_hi])
-    assert not any(0x0900 <= ord(c) <= 0x097F for c in hi_text), "No Devanagari in Hinglish ideas"
-    assert "chai" in hi_text.lower() or "khana" in hi_text.lower()
+    assert any(0x0900 <= ord(c) <= 0x097F for c in hi_text), "Must contain Devanagari script in Hindi ideas"
+    assert "default_business" not in hi_text
 
-    # 2. Gujarati candidate ideas
+    # 2. Gujarati candidate ideas in Gujarati script
     res_gu = client.post("/api/reviews/ideas", json={
         "rating": 5,
         "aspects": ["Breakfast", "Cleanliness"],
-        "user_note": "Saras breakfast",
+        "user_note": "Food quality and chai were very good",
         "language": "gujarati",
     })
     assert res_gu.status_code == 200
     ideas_gu = res_gu.json()["ideas"]
     assert len(ideas_gu) >= 3
     gu_text = " ".join([i["text"] for i in ideas_gu])
-    assert not any(0x0A80 <= ord(c) <= 0x0AFF for c in gu_text), "No Gujarati script in Gujlish ideas"
-    assert "food" in gu_text.lower() or "saras" in gu_text.lower() or "chhe" in gu_text.lower()
+    assert any(0x0A80 <= ord(c) <= 0x0AFF for c in gu_text), "Must contain Gujarati script in Gujarati ideas"
+    assert "default_business" not in gu_text
+    # Check style labels in Gujarati
+    focus_labels = [i["focus"] for i in ideas_gu]
+    assert any("સ્વાભાવિક" in f or "વિગતવાર" in f or "વ્યક્તિગત" in f for f in focus_labels)
 
     # 3. English candidate ideas
     res_en = client.post("/api/reviews/ideas", json={
@@ -305,6 +312,28 @@ def test_multilingual_candidate_ideas():
     assert len(ideas_en) >= 3
     en_text = " ".join([i["text"] for i in ideas_en])
     assert "breakfast" in en_text.lower() or "chai" in en_text.lower()
+    assert "default_business" not in en_text
+
+def test_gujarati_review_with_english_proper_nouns_and_dynamic_tenant():
+    """Verify Gujarati review preserves English proper nouns and resolves custom business name dynamically."""
+    payload = {
+        "business_id": "artisan_coffee",
+        "rating": 5,
+        "aspects": ["Chai / Coffee", "Food & Taste"],
+        "user_note": "Cappuccino and Blueberry Muffin were outstanding",
+        "language": "gujarati",
+    }
+    res = client.post("/api/reviews/generate", json=payload)
+    assert res.status_code == 200
+    review = res.json()["review"]
+    # Script check
+    assert any(0x0A80 <= ord(c) <= 0x0AFF for c in review), "Must contain Gujarati script"
+    # Never leak default_business
+    assert "default_business" not in review
+    # Preserves English proper nouns without corruption
+    assert "cappuccino" in review.lower()
+    # Resolves tenant name
+    assert "artisan coffee" in review.lower()
 
 def test_backward_compatibility_omitted_language():
     """When language is omitted, system gracefully defaults to English without breaking clients."""

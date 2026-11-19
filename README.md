@@ -67,6 +67,16 @@ node --experimental-websocket scripts/run_staging_browser_acceptance.mjs
 
 Browser acceptance uses temporary rehearsal data and local services. The release packager refuses to overwrite an existing archive and excludes databases, backups, secrets, customer uploads, and local caches.
 
+## Product A (NastaGhar / Vraja Review Studio) Customer Experience
+
+Product A provides an optimized QR customer review flow:
+- **Automatic Browser Language Detection:** Automatically detects Gujarati (`gu`), Hindi (`hi`), or English (`en`) via `navigator.languages` with English fallback and localized UI strings (zero manual language picker friction).
+- **3-Style Factual AI Writing Assistant:** Generates up to 3 distinct styles (`Short & Natural`, `Detailed & Expressive`, `Simple & Personal`) strictly grounded in customer-provided facts with zero hallucinated attributes.
+- **Session-Scoped Draft Recovery:** Persists ratings, topics, and personal notes across browser reloads, isolated per business ID, and cleanly purged upon Google Maps handoff.
+- **Duplicate Submission Protection:** Frontend locks and backend in-memory idempotency deduplication (60-second window).
+- **Anonymous Private Feedback:** 100% anonymous feedback channel direct to restaurant management with optional contact information.
+- **Accessibility:** Semantic HTML, ARIA states, WCAG 2.5.5 compliant touch targets (>= 44px), and high-contrast focus rings.
+
 ## Platform guarantees
 
 The shared backend remains responsible for review-only, card-only, and combined entitlements; suspended tenants; platform-admin restrictions; public review/card access rules; and cross-tenant isolation. Hiding a product in a frontend does not grant or deny access by itself.

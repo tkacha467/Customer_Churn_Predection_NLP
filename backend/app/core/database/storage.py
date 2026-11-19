@@ -260,6 +260,14 @@ class ReviewStore:
                   AND json_extract(payload, '$.business_id') IN (SELECT id FROM tenants)
             """)
 
+            # 3. Dynamic Industry Template System initialization
+            from backend.app.core.database.template_storage import init_template_schema, seed_default_templates
+            init_template_schema(db)
+            seed_default_templates(db)
+
+        from backend.app.core.database.template_storage import TemplateRepository
+        self.template_repo = TemplateRepository(self._connect)
+
     def _seed_initial_tenants(self, db):
         from backend.app.core.tenants.google_reviews import DEFAULT_TOPICS
         now = time.time()

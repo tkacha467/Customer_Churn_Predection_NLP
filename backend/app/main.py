@@ -66,6 +66,10 @@ app.add_middleware(
 # Register Review Assistant endpoints
 app.include_router(review_router, prefix="/api", tags=["review_assistant"])
 
+# Register Dynamic Industry Template Management System endpoints (Product A)
+from backend.app.api.template_routes import template_router
+app.include_router(template_router, prefix="/api", tags=["industry_templates"])
+
 @app.get("/healthz")
 def health_check():
     return {"status": "ok"}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiFetch } from '../lib/api';
+import TemplateManager from './admin/TemplateManager';
 
 const PACKAGE_OPTIONS = [
   { id: 'both', label: 'Full Suite (Reviews + Digital Card)', entitlements: ['review_manager', 'digital_card'], icon: '🌟' },
@@ -32,6 +33,7 @@ export default function VrajaAdmin({ onNavigateToOwner, onNavigateToCard, onNavi
 
   // Detail Modal / Drawer
   const [selectedTenant, setSelectedTenant] = useState(null);
+  const [adminTab, setAdminTab] = useState('tenants'); // 'tenants' | 'templates'
 
   // Onboarding Modal state
   const [showOnboardModal, setShowOnboardModal] = useState(false);
@@ -488,6 +490,41 @@ export default function VrajaAdmin({ onNavigateToOwner, onNavigateToCard, onNavi
           </div>
         )}
 
+        {/* Navigation Tabs */}
+        <div className="admin-nav-tabs" role="tablist">
+          <button
+            type="button"
+            className={`admin-nav-tab ${adminTab === 'tenants' ? 'active' : ''}`}
+            onClick={() => setAdminTab('tenants')}
+            role="tab"
+            aria-selected={adminTab === 'tenants'}
+          >
+            🏢 Tenant Directory ({tenants.length})
+          </button>
+          <button
+            type="button"
+            className={`admin-nav-tab ${adminTab === 'templates' ? 'active' : ''}`}
+            onClick={() => setAdminTab('templates')}
+            role="tab"
+            aria-selected={adminTab === 'templates'}
+          >
+            🎨 Industry Templates & Themes
+          </button>
+        </div>
+
+        {adminTab === 'templates' ? (
+          <TemplateManager
+            tenants={tenants}
+            onAssignmentSuccess={(tid, tpl) => {
+              setActionMessage({
+                type: 'success',
+                text: `Template "${tpl.name}" successfully assigned to ${tid}!`
+              });
+              fetchTenants();
+            }}
+          />
+        ) : (
+          <>
         {/* Overview KPI Metrics */}
         <section className="admin-metrics-grid" aria-label="Platform Overview">
           <div className="admin-metric-card">
@@ -780,6 +817,8 @@ export default function VrajaAdmin({ onNavigateToOwner, onNavigateToCard, onNavi
             </tbody>
           </table>
         </div>
+        </>
+        )}
       </main>
 
       {/* ─── ONBOARDING MODAL ──────────────────────────────────────────────── */}
