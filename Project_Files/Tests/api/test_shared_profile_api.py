@@ -40,9 +40,9 @@ from typing import Dict, Any
 import pytest
 from fastapi.testclient import TestClient
 
-from Backend.app.main import app
-from Backend.app.core.database.storage import ReviewStore
-from Backend.app.core.auth.auth import (
+from backend.app.main import app
+from backend.app.core.database.storage import ReviewStore
+from backend.app.core.auth.auth import (
     _stores,
     hash_password,
     hash_token,
@@ -52,7 +52,7 @@ from Backend.app.core.auth.auth import (
     _login_attempts,
     _login_lock,
 )
-from Backend.app.api.service import review_service
+from backend.app.api.service import review_service
 
 
 @pytest.fixture
@@ -75,7 +75,7 @@ def api_setup(tmp_path, monkeypatch):
     _stores[str(db_path)] = store
 
     # Apply schema additions so columns like branch_name, description, brand_accent, timezone exist
-    from Backend.app.core.database.migration import apply_phase2_schema_alterations
+    from backend.app.core.database.migration import apply_phase2_schema_alterations
     with store._connect() as con:
         apply_phase2_schema_alterations(con)
 

@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 import pytest
 
-from Backend.app.core.database.storage import ReviewStore
+from backend.app.core.database.storage import ReviewStore
 from scripts.backup_restore import (
     compute_sha256,
     get_table_counts,

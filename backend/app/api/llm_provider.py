@@ -25,7 +25,9 @@ class ReviewLLMProvider(ABC):
         emoji_preference: str = "light",
         business_name: str = "the restaurant",
         language: str = "english",
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        industry_id: Optional[str] = None,
+        effective_topics: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Generates a humanized, customer-grounded review draft."""
         pass
@@ -38,7 +40,9 @@ class ReviewLLMProvider(ABC):
         user_note: str = "",
         business_name: str = "the restaurant",
         language: str = "english",
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        industry_id: Optional[str] = None,
+        effective_topics: Optional[List[str]] = None
     ) -> List[Dict[str, str]]:
         """Generates 3-5 distinct, natural review candidate ideas."""
         pass
@@ -58,16 +62,20 @@ class LocalLLMProvider(ReviewLLMProvider):
         user_note: str = "",
         business_name: str = "the restaurant",
         language: str = "english",
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        industry_id: Optional[str] = None,
+        effective_topics: Optional[List[str]] = None
     ) -> List[Dict[str, str]]:
-        from Backend.app.api.prompts import generate_candidate_ideas
+        from backend.app.api.prompts import generate_candidate_ideas
         return generate_candidate_ideas(
             rating=rating,
             aspects=aspects,
             user_note=user_note,
             business_name=business_name,
             language=language,
-            category=category
+            category=category,
+            industry_id=industry_id,
+            effective_topics=effective_topics
         )
 
     def generate_review(
@@ -82,9 +90,11 @@ class LocalLLMProvider(ReviewLLMProvider):
         emoji_preference: str = "light",
         business_name: str = "the restaurant",
         language: str = "english",
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        industry_id: Optional[str] = None,
+        effective_topics: Optional[List[str]] = None
     ) -> Dict[str, Any]:
-        from Backend.app.api.prompts import humanize_review_draft
+        from backend.app.api.prompts import humanize_review_draft
         review_text = humanize_review_draft(
             rating=rating,
             aspects=aspects,
@@ -96,7 +106,9 @@ class LocalLLMProvider(ReviewLLMProvider):
             emoji_preference=emoji_preference,
             business_name=business_name,
             language=language,
-            category=category
+            category=category,
+            industry_id=industry_id,
+            effective_topics=effective_topics
         )
         return {
             "review": review_text,
@@ -122,7 +134,9 @@ class CloudLLMProvider(ReviewLLMProvider):
         user_note: str = "",
         business_name: str = "the restaurant",
         language: str = "english",
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        industry_id: Optional[str] = None,
+        effective_topics: Optional[List[str]] = None
     ) -> List[Dict[str, str]]:
         # Fast, deterministic ideas are consistent and instant
         return self.local_fallback.generate_review_ideas(
@@ -131,7 +145,9 @@ class CloudLLMProvider(ReviewLLMProvider):
             user_note=user_note,
             business_name=business_name,
             language=language,
-            category=category
+            category=category,
+            industry_id=industry_id,
+            effective_topics=effective_topics
         )
 
     def generate_review(
@@ -146,9 +162,11 @@ class CloudLLMProvider(ReviewLLMProvider):
         emoji_preference: str = "light",
         business_name: str = "the restaurant",
         language: str = "english",
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        industry_id: Optional[str] = None,
+        effective_topics: Optional[List[str]] = None
     ) -> Dict[str, Any]:
-        from Backend.app.api.prompts import build_humanized_prompt, SYSTEM_HUMANIZED_PROMPT
+        from backend.app.api.prompts import build_humanized_prompt, SYSTEM_HUMANIZED_PROMPT
 
         prompt = build_humanized_prompt(
             rating=rating,
@@ -161,7 +179,9 @@ class CloudLLMProvider(ReviewLLMProvider):
             emoji_preference=emoji_preference,
             business_name=business_name,
             language=language,
-            category=category
+            category=category,
+            industry_id=industry_id,
+            effective_topics=effective_topics
         )
 
         # 1. Attempt Gemini if key present
@@ -230,7 +250,9 @@ class CloudLLMProvider(ReviewLLMProvider):
             emoji_preference=emoji_preference,
             business_name=business_name,
             language=language,
-            category=category
+            category=category,
+            industry_id=industry_id,
+            effective_topics=effective_topics
         )
 
 

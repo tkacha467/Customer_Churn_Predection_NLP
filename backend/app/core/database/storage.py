@@ -61,6 +61,15 @@ class ReviewStore:
                 )
             """)
             db.execute("""
+                CREATE TABLE IF NOT EXISTS preview_analytics_events (
+                    event_id TEXT PRIMARY KEY,
+                    created_at REAL NOT NULL,
+                    payload TEXT NOT NULL,
+                    tenant_id TEXT,
+                    traffic_source TEXT NOT NULL DEFAULT 'preview'
+                )
+            """)
+            db.execute("""
                 CREATE TABLE IF NOT EXISTS tenants (
                     id TEXT PRIMARY KEY,
                     business_name TEXT NOT NULL,
@@ -116,6 +125,21 @@ class ReviewStore:
             db.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at)")
             db.execute("CREATE INDEX IF NOT EXISTS idx_memberships_user ON tenant_memberships(user_id)")
             db.execute("CREATE INDEX IF NOT EXISTS idx_memberships_tenant ON tenant_memberships(tenant_id)")
+
+            # Multi-Worker Review Assistant Customer Sessions (Phase A5.0.5)
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS review_sessions (
+                    session_id TEXT PRIMARY KEY,
+                    tenant_id TEXT NOT NULL,
+                    traffic_source TEXT NOT NULL DEFAULT 'customer',
+                    table_number TEXT DEFAULT '',
+                    dining_type TEXT DEFAULT '',
+                    created_at REAL NOT NULL,
+                    expires_at REAL NOT NULL
+                )
+            """)
+            db.execute("CREATE INDEX IF NOT EXISTS idx_review_sessions_tenant_created ON review_sessions(tenant_id, created_at DESC)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_review_sessions_expiry ON review_sessions(expires_at)")
 
             # Shared Business Profile & Tenant Documents (Vraja Multi-Product Foundation)
             db.execute("""
@@ -201,6 +225,7 @@ class ReviewStore:
             # Composite indexes for tenant-scoped analytics and tickets
             db.execute("CREATE INDEX IF NOT EXISTS idx_analytics_tenant_created ON analytics_events(tenant_id, created_at DESC)")
             db.execute("CREATE INDEX IF NOT EXISTS idx_tickets_tenant_created ON private_tickets(tenant_id, created_at DESC)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_preview_events_tenant_created ON preview_analytics_events(tenant_id, created_at DESC)")
 
             # Auto-seed initial tenants from business_links.json if database is newly initialized
             count = db.execute("SELECT COUNT(*) FROM tenants").fetchone()[0]
@@ -236,7 +261,7 @@ class ReviewStore:
             """)
 
     def _seed_initial_tenants(self, db):
-        from Backend.app.core.tenants.google_reviews import DEFAULT_TOPICS
+        from backend.app.core.tenants.google_reviews import DEFAULT_TOPICS
         now = time.time()
         initial_tenants = [
             ("default_business", "Nasta Ghar", "https://search.google.com/local/writereview?placeid=ChIJZeK7NwDLWTkR1pOxt51jLro", "Breakfast & Snacks", "Authentic homestyle breakfast, chai, and snacks in Rajkot.", "#f97316"),
@@ -279,7 +304,7 @@ class ReviewStore:
         # Seed default business owner for Digital Card & Review Studio
         existing_owner = db.execute("SELECT id FROM users WHERE email = 'owner@nastaghar.com'").fetchone()
         if not existing_owner:
-            from Backend.app.core.auth.auth import hash_password
+            from backend.app.core.auth.auth import hash_password
             owner_uid = str(uuid.uuid4())
             db.execute("""
                 INSERT INTO users (id, email, password_hash, display_name, is_active, is_platform_admin, created_at, updated_at)
@@ -329,6 +354,13 @@ class ReviewStore:
                     data["brand_accent"] = p["brand_accent"]
                 if p.get("timezone"):
                     data["timezone"] = p["timezone"]
+
+            from backend.app.core.industry_registry import resolve_industry
+            ind_def = resolve_industry(
+                category=data.get("category"),
+                explicit_industry_id=data.get("industry_id")
+            )
+            data["industry_id"] = ind_def.industry_id
             return data
 
     def get_tenant_by_domain(self, domain: str) -> Optional[Dict[str, Any]]:
@@ -360,6 +392,13 @@ class ReviewStore:
                     data["brand_accent"] = p["brand_accent"]
                 if p.get("timezone"):
                     data["timezone"] = p["timezone"]
+
+            from backend.app.core.industry_registry import resolve_industry
+            ind_def = resolve_industry(
+                category=data.get("category"),
+                explicit_industry_id=data.get("industry_id")
+            )
+            data["industry_id"] = ind_def.industry_id
             return data
 
     def tenant_exists(self, tenant_id: str) -> bool:
@@ -443,43 +482,86 @@ class ReviewStore:
         domain = tenant_data.get("domain", "").strip().lower()
 
         with self._connect() as db:
+            cols = [r["name"] for r in db.execute("PRAGMA table_info(tenants)").fetchall()]
+            has_ind_col = "industry_id" in cols
             existing = db.execute("SELECT created_at FROM tenants WHERE id = ?", (tenant_id,)).fetchone()
             created_at = existing["created_at"] if existing else now
-            db.execute("""
-                INSERT INTO tenants (
-                    id, business_name, status, platform, review_url, branch,
-                    category, description, topics_json, primary_accent, domain,
-                    entitlements_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    business_name = excluded.business_name,
-                    status = excluded.status,
-                    platform = excluded.platform,
-                    review_url = excluded.review_url,
-                    branch = excluded.branch,
-                    category = excluded.category,
-                    description = excluded.description,
-                    topics_json = excluded.topics_json,
-                    primary_accent = excluded.primary_accent,
-                    domain = excluded.domain,
-                    entitlements_json = excluded.entitlements_json,
-                    updated_at = excluded.updated_at
-            """, (
-                tenant_id,
-                tenant_data.get("business_name", "Nasta Ghar"),
-                tenant_data.get("status", "active"),
-                tenant_data.get("platform", "google"),
-                tenant_data.get("review_url", ""),
-                tenant_data.get("branch", ""),
-                tenant_data.get("category", "Breakfast & Snacks"),
-                tenant_data.get("description", ""),
-                topics_json,
-                tenant_data.get("primary_accent", "#f97316"),
-                domain,
-                entitlements_json,
-                created_at,
-                now,
-            ))
+
+            if has_ind_col:
+                ind_val = tenant_data.get("industry_id")
+                db.execute("""
+                    INSERT INTO tenants (
+                        id, business_name, status, platform, review_url, branch,
+                        category, description, topics_json, primary_accent, domain,
+                        entitlements_json, industry_id, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        business_name = excluded.business_name,
+                        status = excluded.status,
+                        platform = excluded.platform,
+                        review_url = excluded.review_url,
+                        branch = excluded.branch,
+                        category = excluded.category,
+                        description = excluded.description,
+                        topics_json = excluded.topics_json,
+                        primary_accent = excluded.primary_accent,
+                        domain = excluded.domain,
+                        entitlements_json = excluded.entitlements_json,
+                        industry_id = excluded.industry_id,
+                        updated_at = excluded.updated_at
+                """, (
+                    tenant_id,
+                    tenant_data.get("business_name", "Nasta Ghar"),
+                    tenant_data.get("status", "active"),
+                    tenant_data.get("platform", "google"),
+                    tenant_data.get("review_url", ""),
+                    tenant_data.get("branch", ""),
+                    tenant_data.get("category", "Breakfast & Snacks"),
+                    tenant_data.get("description", ""),
+                    topics_json,
+                    tenant_data.get("primary_accent", "#f97316"),
+                    domain,
+                    entitlements_json,
+                    ind_val,
+                    created_at,
+                    now,
+                ))
+            else:
+                db.execute("""
+                    INSERT INTO tenants (
+                        id, business_name, status, platform, review_url, branch,
+                        category, description, topics_json, primary_accent, domain,
+                        entitlements_json, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        business_name = excluded.business_name,
+                        status = excluded.status,
+                        platform = excluded.platform,
+                        review_url = excluded.review_url,
+                        branch = excluded.branch,
+                        category = excluded.category,
+                        description = excluded.description,
+                        topics_json = excluded.topics_json,
+                        primary_accent = excluded.primary_accent,
+                        domain = excluded.domain,
+                        entitlements_json = excluded.entitlements_json,
+                        updated_at = excluded.updated_at
+                """, (
+                    tenant_id,
+                    tenant_data.get("business_name", "Nasta Ghar"),
+                    tenant_data.get("status", "active"),
+                    tenant_data.get("platform", "google"),
+                    tenant_data.get("review_url", ""),
+                    tenant_data.get("branch", ""),
+                    tenant_data.get("category", "Breakfast & Snacks"),
+                    tenant_data.get("description", ""),
+                    topics_json,
+                    tenant_data.get("primary_accent", "#f97316"),
+                    domain,
+                    entitlements_json,
+                    created_at,
+                    now,
+                ))
 
             # If business_profiles already exists for this tenant, synchronize display_name
             # so canonical profile overlay does not serve stale data
@@ -654,6 +736,54 @@ class ReviewStore:
             return cur.rowcount
 
     # ---------------------------------------------------------
+    # Review Assistant Customer Sessions (Multi-Worker Persistent)
+    # ---------------------------------------------------------
+    def create_review_session(
+        self,
+        session_id: str,
+        tenant_id: str,
+        traffic_source: str = "customer",
+        table_number: Optional[str] = None,
+        dining_type: Optional[str] = None,
+        ttl_seconds: float = 86400.0,
+    ) -> Dict[str, Any]:
+        target_tenant = "default_business" if tenant_id in ("default_business", "nasta_ghar", "nasta-ghar") else tenant_id
+        now = time.time()
+        expires_at = now + ttl_seconds
+        with self._connect() as db:
+            db.execute("""
+                INSERT OR REPLACE INTO review_sessions (
+                    session_id, tenant_id, traffic_source, table_number, dining_type, created_at, expires_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (session_id, target_tenant, traffic_source, table_number or "", dining_type or "", now, expires_at))
+        return {
+            "session_id": session_id,
+            "tenant_id": target_tenant,
+            "business_id": target_tenant,
+            "traffic_source": traffic_source,
+            "table_number": table_number or "",
+            "dining_type": dining_type or "",
+            "created_at": now,
+            "expires_at": expires_at,
+        }
+
+    def get_review_session(self, session_id: str, check_expiry: bool = True) -> Optional[Dict[str, Any]]:
+        if not session_id:
+            return None
+        with self._connect() as db:
+            row = db.execute(
+                "SELECT * FROM review_sessions WHERE session_id = ?",
+                (session_id,)
+            ).fetchone()
+            if not row:
+                return None
+            res = dict(row)
+            if check_expiry and res.get("expires_at", 0) <= time.time():
+                return None
+            res["business_id"] = res["tenant_id"]
+            return res
+
+    # ---------------------------------------------------------
     # Legacy Bootstrap Owner Compatibility
     # ---------------------------------------------------------
     def get_or_create_legacy_owner(self) -> Dict[str, Any]:
@@ -697,13 +827,36 @@ class ReviewStore:
     # ---------------------------------------------------------
     # Analytics & Private Tickets (Optimized with Indexed tenant_id)
     # ---------------------------------------------------------
-    def add_event(self, event: dict[str, Any], tenant_id: str | None = None) -> None:
+    def add_event(
+        self,
+        event: dict[str, Any],
+        tenant_id: str | None = None,
+        traffic_source: str = "customer"
+    ) -> None:
         raw_bid = tenant_id or event.get("metadata", {}).get("business_id")
         resolved_tid = normalize_tenant_id(raw_bid)
+        payload_str = json.dumps(event, ensure_ascii=False)
         with self._connect() as db:
+            if traffic_source in ("preview", "internal_admin"):
+                # Strict 3-way isolation: write exclusively to preview_analytics_events table
+                db.execute(
+                    "INSERT OR IGNORE INTO preview_analytics_events(event_id, created_at, payload, tenant_id, traffic_source) VALUES (?, ?, ?, ?, ?)",
+                    (event["event_id"], event["timestamp"], payload_str, resolved_tid, traffic_source),
+                )
+                if resolved_tid:
+                    db.execute("""
+                        DELETE FROM preview_analytics_events WHERE event_id IN (
+                            SELECT event_id FROM preview_analytics_events
+                            WHERE tenant_id = ?
+                            ORDER BY created_at DESC, rowid DESC
+                            LIMIT -1 OFFSET 1000
+                        )
+                    """, (resolved_tid,))
+                return
+
             db.execute(
-                "INSERT INTO analytics_events(event_id, created_at, payload, tenant_id) VALUES (?, ?, ?, ?)",
-                (event["event_id"], event["timestamp"], json.dumps(event, ensure_ascii=False), resolved_tid),
+                "INSERT OR IGNORE INTO analytics_events(event_id, created_at, payload, tenant_id) VALUES (?, ?, ?, ?)",
+                (event["event_id"], event["timestamp"], payload_str, resolved_tid),
             )
             # Per-tenant retention: prune only events for THIS tenant if exceeding 2000
             if resolved_tid:
@@ -711,7 +864,7 @@ class ReviewStore:
                     DELETE FROM analytics_events WHERE event_id IN (
                         SELECT event_id FROM analytics_events
                         WHERE tenant_id = ?
-                        ORDER BY created_at DESC
+                        ORDER BY created_at DESC, rowid DESC
                         LIMIT -1 OFFSET 2000
                     )
                 """, (resolved_tid,))
@@ -723,11 +876,27 @@ class ReviewStore:
                 rows = db.execute("""
                     SELECT payload FROM analytics_events
                     WHERE tenant_id = ?
-                    ORDER BY created_at DESC LIMIT 2000
+                    ORDER BY created_at DESC, rowid DESC LIMIT 2000
                 """, (tid,)).fetchall()
             else:
                 rows = db.execute(
-                    "SELECT payload FROM analytics_events ORDER BY created_at DESC LIMIT 2000"
+                    "SELECT payload FROM analytics_events ORDER BY created_at DESC, rowid DESC LIMIT 2000"
+                ).fetchall()
+        return [json.loads(row["payload"]) for row in reversed(rows)]
+
+    def list_preview_events(self, business_id: str | None = None) -> list[dict[str, Any]]:
+        """Retrieves segregated preview and internal admin events without customer metrics."""
+        tid = normalize_tenant_id(business_id)
+        with self._connect() as db:
+            if tid:
+                rows = db.execute("""
+                    SELECT payload FROM preview_analytics_events
+                    WHERE tenant_id = ?
+                    ORDER BY created_at DESC, rowid DESC LIMIT 1000
+                """, (tid,)).fetchall()
+            else:
+                rows = db.execute(
+                    "SELECT payload FROM preview_analytics_events ORDER BY created_at DESC, rowid DESC LIMIT 1000"
                 ).fetchall()
         return [json.loads(row["payload"]) for row in reversed(rows)]
 
@@ -745,7 +914,7 @@ class ReviewStore:
                     DELETE FROM private_tickets WHERE ticket_id IN (
                         SELECT ticket_id FROM private_tickets
                         WHERE tenant_id = ?
-                        ORDER BY created_at DESC
+                        ORDER BY created_at DESC, rowid DESC
                         LIMIT -1 OFFSET 5000
                     )
                 """, (resolved_tid,))
@@ -757,11 +926,11 @@ class ReviewStore:
                 rows = db.execute("""
                     SELECT payload FROM private_tickets
                     WHERE tenant_id = ?
-                    ORDER BY created_at DESC LIMIT ?
+                    ORDER BY created_at DESC, rowid DESC LIMIT ?
                 """, (tid, limit)).fetchall()
             else:
                 rows = db.execute(
-                    "SELECT payload FROM private_tickets ORDER BY created_at DESC LIMIT ?",
+                    "SELECT payload FROM private_tickets ORDER BY created_at DESC, rowid DESC LIMIT ?",
                     (limit,),
                 ).fetchall()
         return [json.loads(row["payload"]) for row in reversed(rows)]

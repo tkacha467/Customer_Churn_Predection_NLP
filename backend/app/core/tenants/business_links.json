@@ -114,5 +114,208 @@
     "primary_accent": "#0ea5e9",
     "branch": "Main Street",
     "description": "Specialty pour-overs and artisanal sourdough."
+  },
+  "test_clinic": {
+    "platform": "google",
+    "topics": [
+      "Breakfast",
+      "Chai & Beverages",
+      "Snacks",
+      "Taste & Flavour",
+      "Friendly Staff",
+      "Cleanliness",
+      "Value for Money",
+      "Quick Service"
+    ],
+    "google_review_url": "https://maps.google.com/clinic",
+    "business_name": "City Health Clinic",
+    "category": "Clinic",
+    "industry_id": "healthcare"
+  },
+  "audit_hotel_test": {
+    "platform": "google",
+    "topics": [
+      "Room Comfort",
+      "Cleanliness",
+      "Location"
+    ],
+    "google_review_url": "https://maps.google.com/hotel",
+    "business_name": "Grand Horizon Hotel",
+    "category": "Boutique Hotel",
+    "industry_id": "hotel"
+  },
+  "audit_unclassified_test": {
+    "platform": "google",
+    "topics": [
+      "Mission Briefing",
+      "Flight Safety"
+    ],
+    "google_review_url": "https://maps.google.com/unclassified",
+    "business_name": "Galaxy Explorers",
+    "category": "Space Exploration",
+    "industry_id": "invalid_space_industry"
+  },
+  "audit_clinic_test": {
+    "platform": "google",
+    "topics": [
+      "Breakfast",
+      "Chai & Beverages",
+      "Snacks",
+      "Taste & Flavour",
+      "Friendly Staff",
+      "Cleanliness",
+      "Value for Money",
+      "Quick Service"
+    ],
+    "google_review_url": "https://maps.google.com/clinic",
+    "business_name": "Apex Health Center",
+    "category": "Medical Clinic",
+    "industry_id": "healthcare"
+  },
+  "audit_med_care": {
+    "platform": "google",
+    "topics": [
+      "Breakfast",
+      "Chai & Beverages",
+      "Snacks",
+      "Taste & Flavour",
+      "Friendly Staff",
+      "Cleanliness",
+      "Value for Money",
+      "Quick Service"
+    ],
+    "google_review_url": "https://maps.google.com/med",
+    "business_name": "MedCare Dental",
+    "category": "Dental Clinic",
+    "industry_id": "healthcare"
+  },
+  "audit_hotel_tenant": {
+    "platform": "google",
+    "topics": [
+      "Room Cleanliness",
+      "Check-in Experience",
+      "Bed Comfort"
+    ],
+    "google_review_url": "https://maps.google.com/hotel",
+    "business_name": "Vraja Hotels & Hospitality",
+    "category": "Boutique Hotel",
+    "industry_id": "hotel",
+    "primary_accent": "#f97316"
+  },
+  "audit_fitness_tenant": {
+    "platform": "google",
+    "topics": [
+      "Equipment Variety & Quality",
+      "Trainer Guidance",
+      "Gym Cleanliness"
+    ],
+    "google_review_url": "https://maps.google.com/fitness",
+    "business_name": "Vraja Gyms & Fitness Centers",
+    "category": "Strength & Conditioning Gym",
+    "industry_id": "fitness",
+    "primary_accent": "#f97316"
+  },
+  "audit_salon_tenant": {
+    "platform": "google",
+    "topics": [
+      "Stylist & Therapist Skill",
+      "Hygiene & Sanitization",
+      "Relaxing Ambience"
+    ],
+    "google_review_url": "https://maps.google.com/salon",
+    "business_name": "Vraja Salons & Wellness Spas",
+    "category": "Hair & Beauty Salon",
+    "industry_id": "salon",
+    "primary_accent": "#f97316"
+  },
+  "audit_retail_tenant": {
+    "platform": "google",
+    "topics": [
+      "Product Selection & Variety",
+      "Staff Helpfulness",
+      "Store Cleanliness & Layout"
+    ],
+    "google_review_url": "https://maps.google.com/retail",
+    "business_name": "Vraja Retail Stores & Shopping",
+    "category": "Fashion & Apparel",
+    "industry_id": "retail",
+    "primary_accent": "#f97316"
+  },
+  "audit_automotive_tenant": {
+    "platform": "google",
+    "topics": [
+      "Repair & Workmanship Quality",
+      "Turnaround Time",
+      "Transparent Estimate & Billing"
+    ],
+    "google_review_url": "https://maps.google.com/automotive",
+    "business_name": "Vraja Automotive Sales & Service",
+    "category": "Automotive Service Workshop",
+    "industry_id": "automotive",
+    "primary_accent": "#f97316"
+  },
+  "audit_education_tenant": {
+    "platform": "google",
+    "topics": [
+      "Faculty Expertise & Teaching",
+      "Doubt Resolution Support",
+      "Study Material Quality"
+    ],
+    "google_review_url": "https://maps.google.com/education",
+    "business_name": "Vraja Education & Coaching",
+    "category": "Competitive Exam Coaching",
+    "industry_id": "education",
+    "primary_accent": "#f97316"
+  },
+  "audit_events_tenant": {
+    "platform": "google",
+    "topics": [
+      "Venue Ambience & Decor",
+      "Event Coordination & Management",
+      "Catering & Food Quality"
+    ],
+    "google_review_url": "https://maps.google.com/events",
+    "business_name": "Vraja Event Venues & Banquets",
+    "category": "Banquet & Wedding Hall",
+    "industry_id": "events",
+    "primary_accent": "#f97316"
+  },
+  "audit_travel_tenant": {
+    "platform": "google",
+    "topics": [
+      "Itinerary Execution & Planning",
+      "Tour Guide Knowledge",
+      "Vehicle & Transport Comfort"
+    ],
+    "google_review_url": "https://maps.google.com/travel",
+    "business_name": "Vraja Travel & Tourism",
+    "category": "Holiday Tour Operator",
+    "industry_id": "travel",
+    "primary_accent": "#f97316"
+  },
+  "audit_unclassified_tenant": {
+    "platform": "google",
+    "topics": [
+      "Service Quality",
+      "Staff Helpfulness",
+      "Promptness & Timeliness"
+    ],
+    "google_review_url": "https://maps.google.com/unclassified",
+    "business_name": "Vraja Unclassified Business",
+    "category": "General Business",
+    "industry_id": "unclassified",
+    "primary_accent": "#f97316"
+  },
+  "audit_restaurant_tenant": {
+    "platform": "google",
+    "topics": [
+      "Food Quality",
+      "Taste & Flavour",
+      "Service Speed"
+    ],
+    "google_review_url": "https://maps.google.com/restaurant",
+    "business_name": "Vraja Restaurants & Dining",
+    "category": "Breakfast & Snacks",
+    "industry_id": "restaurant"
   }
 }

@@ -95,7 +95,7 @@ else
         printf 'cd %s || exit 1\n' "$ROOT_Q"
         printf 'export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1\n'
         printf 'printf "\\nStarting backend on http://127.0.0.1:8000...\\n\\n"\n'
-        printf '%s -m uvicorn Backend.app.main:app --host 127.0.0.1 --port 8000 --reload\n' "$PYTHON_Q"
+        printf '%s -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload\n' "$PYTHON_Q"
         printf 'result=$?\nprintf "\\nBackend exited with %%s\\n" "$result"\n/bin/bash -i\n'
     } > "$runner_file"
     launch_terminal_runner backend "$runner_file"

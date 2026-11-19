@@ -7,7 +7,7 @@ Supports:
 """
 
 from typing import List, Dict, Any, Optional
-from Backend.app.api.llm_provider import get_llm_provider
+from backend.app.api.llm_provider import get_llm_provider
 
 class ReviewGenerator:
     def __init__(self):
@@ -20,7 +20,9 @@ class ReviewGenerator:
         user_note: str = "",
         business_name: str = "the restaurant",
         language: str = "english",
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        industry_id: Optional[str] = None,
+        effective_topics: Optional[List[str]] = None
     ) -> List[Dict[str, str]]:
         """Generates 3-5 distinct candidate review ideas."""
         return self.provider.generate_review_ideas(
@@ -29,7 +31,9 @@ class ReviewGenerator:
             user_note=user_note,
             business_name=business_name,
             language=language,
-            category=category
+            category=category,
+            industry_id=industry_id,
+            effective_topics=effective_topics
         )
 
     def generate(
@@ -44,7 +48,9 @@ class ReviewGenerator:
         emoji_preference: str = "light",
         business_name: str = "the restaurant",
         language: str = "english",
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        industry_id: Optional[str] = None,
+        effective_topics: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Generates humanized, grounded review draft adhering to zero-fabrication standards."""
         cleaned_aspects = [a.strip() for a in aspects if a.strip()]
@@ -61,7 +67,9 @@ class ReviewGenerator:
             emoji_preference=emoji_preference,
             business_name=business_name,
             language=language,
-            category=category
+            category=category,
+            industry_id=industry_id,
+            effective_topics=effective_topics
         )
 
     def generate_manager_reply(

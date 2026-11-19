@@ -7,11 +7,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from Backend.app.main import app
-from Backend.app.core.auth.auth import OWNER_COOKIE, make_session
-from Backend.app.core.tenants.google_reviews import GoogleReviewManager
-from Backend.app.core.database.storage import ReviewStore
-from Backend.app.api.service import ReviewService
+from backend.app.main import app
+from backend.app.core.auth.auth import OWNER_COOKIE, make_session
+from backend.app.core.tenants.google_reviews import GoogleReviewManager
+from backend.app.core.database.storage import ReviewStore
+from backend.app.api.service import ReviewService
 
 @pytest.fixture
 def auth_client():
@@ -363,7 +363,7 @@ def test_tampered_or_expired_session_rejected():
 
     # Expired session
     expired_time = str(int(time.time()) - 100)
-    from Backend.app.core.auth.auth import _sign
+    from backend.app.core.auth.auth import _sign
     expired_cookie = f"{expired_time}.{_sign(expired_time)}"
     client.cookies.set(OWNER_COOKIE, expired_cookie)
     assert client.get("/api/auth/session").status_code == 401

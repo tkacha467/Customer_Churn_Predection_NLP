@@ -17,7 +17,7 @@ from typing import Dict, Any, List, Optional
 
 import pytest
 
-from Backend.app.core.database.migration import (
+from backend.app.core.database.migration import (
     run_subpart_2b_migration,
     apply_phase2_schema_alterations,
     provision_unprovisioned_tenants,
@@ -484,7 +484,7 @@ def test_11_transaction_rollback_and_failure_injection(fresh_synthetic_db, monke
     bp_count_pre = con.execute("SELECT COUNT(*) FROM business_profiles;").fetchone()[0]
 
     # Inject failure during reconciliation (after alterations and provisioning)
-    import Backend.app.core.database.migration as mig_mod
+    import backend.app.core.database.migration as mig_mod
 
     def failing_reconcile(db):
         raise RuntimeError("Synthetic failure injected to verify transaction rollback!")
@@ -563,7 +563,7 @@ def test_14_journal_mode_preservation_on_rollback(fresh_synthetic_db, monkeypatc
     con, _ = fresh_synthetic_db
     initial_mode = con.execute("PRAGMA journal_mode;").fetchone()[0]
 
-    import Backend.app.core.database.migration as mig_mod
+    import backend.app.core.database.migration as mig_mod
     def failing_reconcile(db):
         raise ValueError("Triggering rollback")
 
@@ -625,7 +625,7 @@ def test_15_journal_mode_transactional_rejection_and_invariant(fresh_synthetic_d
     proxy = InvariantProxy(con)
 
     # Monkeypatch apply_phase2_schema_alterations to trigger the proxy corruption right before pre-commit check
-    import Backend.app.core.database.migration as mig_mod
+    import backend.app.core.database.migration as mig_mod
     orig_reconcile = mig_mod.reconcile_and_audit_existing_records
 
     def corrupt_before_precommit(db):

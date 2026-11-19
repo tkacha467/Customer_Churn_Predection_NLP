@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from Backend.app.main import app
+from backend.app.main import app
 
 client = TestClient(app)
 login = client.post("/api/auth/login", json={"password": "test-only-owner-password"})

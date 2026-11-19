@@ -26,10 +26,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from Backend.app.main import app
-from Backend.app.core.database.storage import ReviewStore
-from Backend.app.api.document_storage import _document_services
-from Backend.app.core.auth.auth import (
+from backend.app.main import app
+from backend.app.core.database.storage import ReviewStore
+from backend.app.api.document_storage import _document_services
+from backend.app.core.auth.auth import (
     _stores,
     hash_password,
     hash_token,
@@ -39,8 +39,8 @@ from Backend.app.core.auth.auth import (
     _login_attempts,
     _login_lock,
 )
-from Backend.app.api.service import review_service
-from Backend.app.core.tenants.google_reviews import google_review_manager
+from backend.app.api.service import review_service
+from backend.app.core.tenants.google_reviews import google_review_manager
 
 VALID_PNG_100x100 = (
     b"\x89PNG\r\n\x1a\n"
@@ -72,7 +72,7 @@ def sync_setup(tmp_path, monkeypatch):
     store = ReviewStore(database_path=str(db_path))
     _stores[str(db_path)] = store
 
-    from Backend.app.core.database.migration import apply_phase2_schema_alterations
+    from backend.app.core.database.migration import apply_phase2_schema_alterations
     with store._connect() as con:
         apply_phase2_schema_alterations(con)
 

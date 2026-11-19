@@ -4,9 +4,9 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from Backend.app.main import app
-from Backend.app.core.database.storage import ReviewStore
-from Backend.app.api.service import review_service
+from backend.app.main import app
+from backend.app.core.database.storage import ReviewStore
+from backend.app.api.service import review_service
 
 
 @pytest.fixture

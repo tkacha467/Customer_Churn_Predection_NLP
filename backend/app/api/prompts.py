@@ -46,19 +46,65 @@ def normalize_language(lang: Optional[str]) -> str:
         return "hindi"
     return "english"
 
-# Contextual emoji mapping
+# Contextual emoji mapping across all supported industries
 EMOJI_MAP = {
+    # Food & Restaurant
     "coffee": "☕",
     "chai": "☕",
+    "tea": "☕",
     "drinks": "☕",
     "beverage": "☕",
     "food": "🍽️",
     "breakfast": "🍳",
-    "snacks": "🥞",
+    "snacks": "🥪",
     "taste": "😋",
     "flavour": "😋",
     "bakery": "🥐",
     "dessert": "🍰",
+    # Hotel & Accommodation
+    "room": "🛏️",
+    "stay": "🏨",
+    "hotel": "🏨",
+    "resort": "🌴",
+    "bed": "🛏️",
+    # Fitness & Wellness
+    "gym": "💪",
+    "fitness": "🏋️",
+    "workout": "💪",
+    "trainer": "🏃",
+    "equipment": "🏋️",
+    # Salon & Spa
+    "hair": "💇",
+    "salon": "✂️",
+    "spa": "💆",
+    "beauty": "✨",
+    "facial": "✨",
+    # Retail
+    "shopping": "🛍️",
+    "store": "🛍️",
+    "collection": "✨",
+    "billing": "🧾",
+    # Automotive
+    "car": "🚗",
+    "vehicle": "🚗",
+    "repair": "🔧",
+    "service": "🔧",
+    "mechanic": "🔧",
+    # Education
+    "teaching": "📚",
+    "class": "🎓",
+    "learning": "📖",
+    "faculty": "👨‍🏫",
+    # Events
+    "event": "🎉",
+    "banquet": "🎊",
+    "wedding": "✨",
+    "celebration": "🎉",
+    # Travel
+    "travel": "✈️",
+    "tour": "🧳",
+    "trip": "🌍",
+    # Common / Shared
     "atmosphere": "✨",
     "ambience": "✨",
     "vibe": "✨",
@@ -66,36 +112,51 @@ EMOJI_MAP = {
     "staff": "😊",
     "cleanliness": "✨",
     "value": "👍",
+    "price": "👍",
     "love": "❤️",
     "return": "❤️",
     "happy": "😊",
 }
 
-def pick_tasteful_emojis(rating: int, aspects: List[str], preference: str = "light") -> str:
-    """Selects 1-2 tasteful contextual emojis based on rating and mentioned aspects."""
+def pick_tasteful_emojis(rating: int, aspects: List[str], preference: str = "light", industry_id: Optional[str] = None) -> str:
+    """Selects 1-2 tasteful contextual emojis based on rating, industry, and mentioned aspects."""
     if preference == "none":
         return ""
 
     emojis = []
     aspect_text = " ".join([a.lower() for a in aspects])
 
-    # Breakfast-first emoji selection (Nasta Ghar)
-    if "breakfast" in aspect_text:
+    # Industry or aspect-first emoji selection
+    if "breakfast" in aspect_text or "nasta" in aspect_text:
         emojis.append(EMOJI_MAP["breakfast"])
-    elif "chai" in aspect_text or "beverage" in aspect_text or "drink" in aspect_text or "coffee" in aspect_text:
+    elif any(k in aspect_text for k in ("chai", "tea", "coffee", "drink", "beverage")):
         emojis.append(EMOJI_MAP["chai"])
-    elif "snack" in aspect_text:
+    elif any(k in aspect_text for k in ("snack", "sandwich")):
         emojis.append(EMOJI_MAP["snacks"])
-    elif "food" in aspect_text or "taste" in aspect_text or "flavour" in aspect_text:
+    elif any(k in aspect_text for k in ("food", "taste", "flavour", "dish")):
         emojis.append(EMOJI_MAP["taste"])
-    elif "bakery" in aspect_text or "pastry" in aspect_text:
-        emojis.append(EMOJI_MAP["bakery"])
-    elif "value" in aspect_text or "price" in aspect_text:
+    elif any(k in aspect_text for k in ("gym", "workout", "fitness", "trainer", "machine")):
+        emojis.append(EMOJI_MAP.get("fitness", "💪"))
+    elif any(k in aspect_text for k in ("room", "stay", "bed")):
+        emojis.append(EMOJI_MAP.get("room", "🛏️"))
+    elif any(k in aspect_text for k in ("hair", "salon", "facial", "spa", "styling")):
+        emojis.append(EMOJI_MAP.get("salon", "✂️"))
+    elif any(k in aspect_text for k in ("car", "repair", "vehicle", "mechanic")):
+        emojis.append(EMOJI_MAP.get("repair", "🔧"))
+    elif any(k in aspect_text for k in ("class", "teaching", "learning", "course")):
+        emojis.append(EMOJI_MAP.get("teaching", "📚"))
+    elif any(k in aspect_text for k in ("event", "banquet", "wedding")):
+        emojis.append(EMOJI_MAP.get("event", "🎉"))
+    elif any(k in aspect_text for k in ("tour", "travel", "trip")):
+        emojis.append(EMOJI_MAP.get("travel", "✈️"))
+    elif any(k in aspect_text for k in ("store", "shop", "product", "collection")):
+        emojis.append(EMOJI_MAP.get("shopping", "🛍️"))
+    elif any(k in aspect_text for k in ("value", "price")):
         emojis.append(EMOJI_MAP["value"])
 
-    if "ambience" in aspect_text or "atmosphere" in aspect_text or "vibe" in aspect_text:
+    if any(k in aspect_text for k in ("ambience", "atmosphere", "vibe")):
         emojis.append(EMOJI_MAP["atmosphere"])
-    elif "service" in aspect_text or "staff" in aspect_text:
+    elif any(k in aspect_text for k in ("service", "staff", "hospitality")):
         emojis.append(EMOJI_MAP["service"])
 
     if not emojis:
@@ -121,18 +182,23 @@ def generate_candidate_ideas(
     user_note: str = "",
     business_name: str = "Nasta Ghar",
     language: str = "english",
-    category: Optional[str] = None
+    category: Optional[str] = None,
+    industry_id: Optional[str] = None,
+    effective_topics: Optional[List[str]] = None
 ) -> List[Dict[str, str]]:
     """
     Generates up to 3 distinct, strictly factually grounded review candidate ideas:
     1. Short & Natural
     2. Detailed & Expressive
     3. Simple & Personal
-    Adheres strictly to zero fabrication (no fake staff hospitality, no fake family,
-    no fake cleanliness, no unverified revisit claims), sentiment fidelity,
+    Adheres strictly to zero fabrication, sentiment fidelity, industry-specific context,
     and natural Roman-script Hinglish/Gujlish.
     """
     lang = normalize_language(language)
+    from backend.app.core.industry_registry import resolve_industry
+    ind_def = resolve_industry(category=category, explicit_industry_id=industry_id)
+    is_restaurant = (ind_def.industry_id == "restaurant")
+
     cleaned_aspects = [a.lower().strip() for a in aspects if a.strip()]
     has_breakfast = any("breakfast" in a or "nasto" in a or "nasta" in a for a in cleaned_aspects)
     has_coffee = any("coffee" in a or "chai" in a or "tea" in a or "drink" in a or "beverage" in a for a in cleaned_aspects)
@@ -144,38 +210,50 @@ def generate_candidate_ideas(
     has_value = any("value" in a or "price" in a or "pocket" in a or "rate" in a for a in cleaned_aspects)
 
     # Derive strictly customer-selected topic summary
-    if has_breakfast and has_coffee:
-        topic_en = "breakfast and chai"
-        topic_hi = "breakfast aur chai"
-        topic_gu = "breakfast ane chai"
-    elif has_breakfast:
-        topic_en = "breakfast"
-        topic_hi = "breakfast"
-        topic_gu = "breakfast"
-    elif has_coffee:
-        topic_en = "coffee and tea"
-        topic_hi = "chai"
-        topic_gu = "chai"
-    elif has_food:
-        topic_en = "food"
-        topic_hi = "khana"
-        topic_gu = "food"
-    elif has_service:
-        topic_en = "service"
-        topic_hi = "service"
-        topic_gu = "service"
-    elif has_ambience:
-        topic_en = "atmosphere"
-        topic_hi = "atmosphere"
-        topic_gu = "atmosphere"
-    elif has_clean:
-        topic_en = "sitting area"
-        topic_hi = "sitting area"
-        topic_gu = "sitting area"
+    if is_restaurant:
+        if has_breakfast and has_coffee:
+            topic_en = "breakfast and chai"
+            topic_hi = "breakfast aur chai"
+            topic_gu = "breakfast ane chai"
+        elif has_breakfast:
+            topic_en = "breakfast"
+            topic_hi = "breakfast"
+            topic_gu = "breakfast"
+        elif has_coffee:
+            topic_en = "coffee and tea"
+            topic_hi = "chai"
+            topic_gu = "chai"
+        elif has_food:
+            topic_en = "food"
+            topic_hi = "khana"
+            topic_gu = "food"
+        elif has_service:
+            topic_en = "service"
+            topic_hi = "service"
+            topic_gu = "service"
+        elif has_ambience:
+            topic_en = "atmosphere"
+            topic_hi = "atmosphere"
+            topic_gu = "atmosphere"
+        elif has_clean:
+            topic_en = "sitting area"
+            topic_hi = "sitting area"
+            topic_gu = "sitting area"
+        else:
+            topic_en = ""
+            topic_hi = ""
+            topic_gu = ""
     else:
-        topic_en = ""
-        topic_hi = ""
-        topic_gu = ""
+        # Non-restaurant industries: ground topic strictly in selected customer aspects
+        if cleaned_aspects:
+            chosen = aspects[:2] if len(aspects) >= 2 else aspects[:1]
+            topic_en = " and ".join([a.strip().lower() for a in chosen])
+            topic_hi = " aur ".join([a.strip().lower() for a in chosen])
+            topic_gu = " ane ".join([a.strip().lower() for a in chosen])
+        else:
+            topic_en = ""
+            topic_hi = ""
+            topic_gu = ""
 
     note_fragment = ""
     if user_note and user_note.strip():
@@ -185,7 +263,7 @@ def generate_candidate_ideas(
     if lang == "hindi":
         if rating == 5:
             if topic_hi:
-                short_text = f"{business_name} me {topic_hi} bahut pasand aaya!{note_fragment} Maza aa gaya 🍳☕"
+                short_text = f"{business_name} me {topic_hi} bahut pasand aaya!{note_fragment} {'Maza aa gaya 🍳☕' if is_restaurant else 'Maza aa gaya 😊✨'}"
                 detailed_text = f"{business_name} me {topic_hi} ka experience lajawab raha.{note_fragment} Sab kuch accha manage kiya hua tha 😊✨"
                 personal_text = f"Personal taur par {business_name} me {topic_hi} bahut accha laga.{note_fragment} Very happy with the visit ❤️"
             else:
@@ -236,7 +314,7 @@ def generate_candidate_ideas(
     elif lang == "gujarati":
         if rating == 5:
             if topic_gu:
-                short_text = f"{business_name} ma {topic_gu} khub j saras hatu!{note_fragment} Majja aavi gai 🍳☕"
+                short_text = f"{business_name} ma {topic_gu} khub j saras hatu!{note_fragment} {'Majja aavi gai 🍳☕' if is_restaurant else 'Khub majja aavi 😊✨'}"
                 detailed_text = f"{business_name} ma {topic_gu} no anubhav khub saro rahyo.{note_fragment} Ek memorable visit rahi 😊✨"
                 personal_text = f"Mane {business_name} ma {topic_gu} khub j gamyu.{note_fragment} Very happy with the visit ❤️"
             else:
@@ -287,9 +365,9 @@ def generate_candidate_ideas(
     else: # English
         if rating == 5:
             if topic_en:
-                short_text = f"Really enjoyed the {topic_en} at {business_name}!{note_fragment} Loved it 🍳☕"
-                detailed_text = f"Had a lovely visit at {business_name}. The {topic_en} was wonderful and prepared nicely.{note_fragment} Truly enjoyed it 😊✨"
-                personal_text = f"The {topic_en} at {business_name} was delicious today.{note_fragment} Very happy with my visit ❤️"
+                short_text = f"Really enjoyed the {topic_en} at {business_name}!{note_fragment} {'Loved it 🍳☕' if is_restaurant else 'Loved it 😊✨'}"
+                detailed_text = f"Had a lovely visit at {business_name}. The {topic_en} was wonderful and {'prepared' if is_restaurant else 'handled'} nicely.{note_fragment} Truly enjoyed it 😊✨"
+                personal_text = f"The {topic_en} at {business_name} was {'delicious' if is_restaurant else 'great'} today.{note_fragment} Very happy with my visit ❤️"
             else:
                 short_text = f"Had a wonderful visit at {business_name}! Really enjoyed every moment.{note_fragment} Loved it 😊✨"
                 detailed_text = f"Had a lovely and wonderful visit at {business_name}. Everything was handled nicely.{note_fragment} Truly enjoyed it 😊✨"
@@ -353,13 +431,18 @@ def humanize_review_draft(
     emoji_preference: str = "light",
     business_name: str = "the restaurant",
     language: str = "english",
-    category: Optional[str] = None
+    category: Optional[str] = None,
+    industry_id: Optional[str] = None,
+    effective_topics: Optional[List[str]] = None
 ) -> str:
     """
     Deterministic Humanization Engine adhering to 15-45 words,
-    contextual emojis, zero fabrication, and natural Roman-script Hinglish/Gujlish.
+    contextual emojis, zero fabrication, industry context, and natural Roman-script Hinglish/Gujlish.
     """
     lang = normalize_language(language)
+    from backend.app.core.industry_registry import resolve_industry
+    ind_def = resolve_industry(category=category, explicit_industry_id=industry_id)
+    is_restaurant = (ind_def.industry_id == "restaurant")
 
     # If customer already selected an idea, build upon and personalize it
     if selected_idea and selected_idea.strip():
@@ -368,7 +451,7 @@ def humanize_review_draft(
             n = user_note.strip().rstrip(".!")
             base_text = f"{base_text.rstrip('.! 😊❤️✨☕👌🍲🥪👍')} — {n}."
             if emoji_preference != "none":
-                emojis = pick_tasteful_emojis(rating, aspects, emoji_preference)
+                emojis = pick_tasteful_emojis(rating, aspects, emoji_preference, industry_id=ind_def.industry_id)
                 base_text = f"{base_text}{emojis}"
         return base_text
 
@@ -382,70 +465,109 @@ def humanize_review_draft(
     if user_note and user_note.strip():
         note_text = f" {user_note.strip().rstrip('.!')}."
 
-    emojis = pick_tasteful_emojis(rating, aspects, emoji_preference)
+    emojis = pick_tasteful_emojis(rating, aspects, emoji_preference, industry_id=ind_def.industry_id)
 
-    if lang == "hindi":
-        if rating == 5:
-            if has_coffee and has_service:
-                draft = f"Yahan ki chai aur snacks sach me lajawab the! Staff ka nature bahut friendly tha.{note_text} Definitely dobara aayenge{emojis}"
-            elif has_food and has_vibe:
-                draft = f"Yahan aakar bahut accha laga. Khana fresh aur tasty tha aur mahaul bhi kaafi relaxed tha.{note_text} Zaroor try karein{emojis}"
-            else:
-                draft = f"Overall visit bahut shandar raha! Khana fresh tha aur service bhi kaafi fast aur polite thi.{note_text} Highly recommend karte hain{emojis}"
-        elif rating == 4:
-            draft = f"Kaafi accha experience raha. Taste accha tha aur staff bhi attentive tha.{note_text} Morning naste ke liye badhiya jagah hai{emojis}"
-        elif rating == 3:
-            draft = f"Taste theek tha, lekin service thodi slow lagi aaj.{note_text} Average visit raha overall.{emojis}"
-        elif rating == 2:
-            draft = f"Khana theek tha par wait time kaafi zyada tha aaj.{note_text} Umeed hai service thodi fast hogi next time.{emojis}"
-        else: # 1 star
-            draft = f"Experience bilkul accha nahi raha aaj. Service bahut slow thi aur khana bhi thanda tha.{note_text} Dhyan dene ki zaroorat hai.{emojis}"
+    if is_restaurant:
+        if lang == "hindi":
+            if rating == 5:
+                if has_coffee and has_service:
+                    draft = f"Yahan ki chai aur snacks sach me lajawab the! Staff ka nature bahut friendly tha.{note_text} Definitely dobara aayenge{emojis}"
+                elif has_food and has_vibe:
+                    draft = f"Yahan aakar bahut accha laga. Khana fresh aur tasty tha aur mahaul bhi kaafi relaxed tha.{note_text} Zaroor try karein{emojis}"
+                else:
+                    draft = f"Overall visit bahut shandar raha! Khana fresh tha aur service bhi kaafi fast aur polite thi.{note_text} Highly recommend karte hain{emojis}"
+            elif rating == 4:
+                draft = f"Kaafi accha experience raha. Taste accha tha aur staff bhi attentive tha.{note_text} Morning naste ke liye badhiya jagah hai{emojis}"
+            elif rating == 3:
+                draft = f"Taste theek tha, lekin service thodi slow lagi aaj.{note_text} Average visit raha overall.{emojis}"
+            elif rating == 2:
+                draft = f"Khana theek tha par wait time kaafi zyada tha aaj.{note_text} Umeed hai service thodi fast hogi next time.{emojis}"
+            else: # 1 star
+                draft = f"Experience bilkul accha nahi raha aaj. Service bahut slow thi aur khana bhi thanda tha.{note_text} Dhyan dene ki zaroorat hai.{emojis}"
 
-    elif lang == "gujarati":
-        if rating == 5:
-            if has_coffee and has_service:
-                draft = f"Ahiya nu food ane chai sachme ekdum mast hatu! Staff pan khub friendly ane helpful hato.{note_text} Fari thi jarur aavishu{emojis}"
-            elif has_food and has_vibe:
-                draft = f"Ahiya aavine khub maja aavi. Khavanu ekdum fresh hatu ane vatavaran pan saras hatu.{note_text} Jarur visit karva jevu chhe{emojis}"
-            else:
-                draft = f"Samagra anubhav khub j saras rahyo! Nasto fresh hato ane service pan fast mali.{note_text} Badhane jarur recommend karish{emojis}"
-        elif rating == 4:
-            draft = f"Khub saro anubhav rahyo. Food taste saro hato ane staff no swabhav pan vinamra hato.{note_text} Breakfast mate sari jagya chhe{emojis}"
-        elif rating == 3:
-            draft = f"Taste thik hato, pan service aaje thodi slow lagi.{note_text} Average mulakat rahi overall.{emojis}"
-        elif rating == 2:
-            draft = f"Khavanu thik hatu pan wait ghano karvo padyo.{note_text} Aavti vakhte service thodi fast male evi aasha.{emojis}"
-        else: # 1 star
-            draft = f"Experience aaje bilkul saro na rahyo. Service khub slow hati ane nasto thando aavyo.{note_text} Sudharo karvani jarur chhe.{emojis}"
+        elif lang == "gujarati":
+            if rating == 5:
+                if has_coffee and has_service:
+                    draft = f"Ahiya nu food ane chai sachme ekdum mast hatu! Staff pan khub friendly ane helpful hato.{note_text} Fari thi jarur aavishu{emojis}"
+                elif has_food and has_vibe:
+                    draft = f"Ahiya aavine khub maja aavi. Khavanu ekdum fresh hatu ane vatavaran pan saras hatu.{note_text} Jarur visit karva jevu chhe{emojis}"
+                else:
+                    draft = f"Samagra anubhav khub j saras rahyo! Nasto fresh hato ane service pan fast mali.{note_text} Badhane jarur recommend karish{emojis}"
+            elif rating == 4:
+                draft = f"Khub saro anubhav rahyo. Food taste saro hato ane staff no swabhav pan vinamra hato.{note_text} Breakfast mate sari jagya chhe{emojis}"
+            elif rating == 3:
+                draft = f"Taste thik hato, pan service aaje thodi slow lagi.{note_text} Average mulakat rahi overall.{emojis}"
+            elif rating == 2:
+                draft = f"Khavanu thik hatu pan wait ghano karvo padyo.{note_text} Aavti vakhte service thodi fast male evi aasha.{emojis}"
+            else: # 1 star
+                draft = f"Experience aaje bilkul saro na rahyo. Service khub slow hati ane nasto thando aavyo.{note_text} Sudharo karvani jarur chhe.{emojis}"
 
-    else: # English
-        if rating == 5:
-            if has_coffee and has_service:
-                draft = f"Really enjoyed the coffee and the staff were so friendly! Great place to relax and recharge.{note_text} Definitely coming back{emojis}"
-            elif has_food and has_vibe:
-                draft = f"Had a lovely meal here. The food was delicious and the place had such a warm, comfortable vibe.{note_text} Highly recommend{emojis}"
-            elif has_food and has_service:
-                draft = f"Great food and really friendly service. Everything was served fresh with a smile.{note_text} Will definitely be back{emojis}"
-            elif has_coffee:
-                draft = f"Loved the coffee here! Excellent brew and super welcoming staff.{note_text} Such a nice little spot{emojis}"
-            else:
-                draft = f"Had a wonderful time! The staff were great and the whole visit was really pleasant.{note_text} Would happily recommend{emojis}"
-        elif rating == 4:
-            if has_food:
-                draft = f"Had a really good time here. The food was tasty and the service was friendly.{note_text} Nice place to relax and eat{emojis}"
-            elif has_coffee:
-                draft = f"Solid spot with great coffee and good seating.{note_text} Staff were welcoming and the drinks came out quickly{emojis}"
-            else:
-                draft = f"Very enjoyable visit! Good service, nice atmosphere, and fair prices.{note_text} Happy to come back again{emojis}"
-        elif rating == 3:
-            if has_service:
-                draft = f"Overall a decent experience. The food was good, but the service was a little slow today.{note_text} Pretty average visit.{emojis}"
-            else:
-                draft = f"Nice place and comfortable seating, though the visit was somewhat average.{note_text} Okay overall.{emojis}"
-        elif rating == 2:
-            draft = f"The food was okay, but the wait was quite long today.{note_text} Hopefully the service gets a little quicker next time.{emojis}"
-        else: # 1 star
-            draft = f"Unfortunately, my experience wasn't great today. The service took quite a while and the food wasn't what I expected.{note_text} I hope things improve.{emojis}"
+        else: # English
+            if rating == 5:
+                if has_coffee and has_service:
+                    draft = f"Really enjoyed the coffee and the staff were so friendly! Great place to relax and recharge.{note_text} Definitely coming back{emojis}"
+                elif has_food and has_vibe:
+                    draft = f"Had a lovely meal here. The food was delicious and the place had such a warm, comfortable vibe.{note_text} Highly recommend{emojis}"
+                elif has_food and has_service:
+                    draft = f"Great food and really friendly service. Everything was served fresh with a smile.{note_text} Will definitely be back{emojis}"
+                elif has_coffee:
+                    draft = f"Loved the coffee here! Excellent brew and super welcoming staff.{note_text} Such a nice little spot{emojis}"
+                else:
+                    draft = f"Had a wonderful time! The staff were great and the whole visit was really pleasant.{note_text} Would happily recommend{emojis}"
+            elif rating == 4:
+                if has_food:
+                    draft = f"Had a really good time here. The food was tasty and the service was friendly.{note_text} Nice place to relax and eat{emojis}"
+                elif has_coffee:
+                    draft = f"Solid spot with great coffee and good seating.{note_text} Staff were welcoming and the drinks came out quickly{emojis}"
+                else:
+                    draft = f"Very enjoyable visit! Good service, nice atmosphere, and fair prices.{note_text} Happy to come back again{emojis}"
+            elif rating == 3:
+                if has_service:
+                    draft = f"Overall a decent experience. The food was good, but the service was a little slow today.{note_text} Pretty average visit.{emojis}"
+                else:
+                    draft = f"Nice place and comfortable seating, though the visit was somewhat average.{note_text} Okay overall.{emojis}"
+            elif rating == 2:
+                draft = f"The food was okay, but the wait was quite long today.{note_text} Hopefully the service gets a little quicker next time.{emojis}"
+            else: # 1 star
+                draft = f"Unfortunately, my experience wasn't great today. The service took quite a while and the food wasn't what I expected.{note_text} I hope things improve.{emojis}"
+    else:
+        # Multi-industry generalized synthesis (Zero food or dining assumptions)
+        aspect_mention = f" The {', '.join(aspects[:2]).lower()} was well managed." if aspects else ""
+        if lang == "hindi":
+            if rating == 5:
+                draft = f"Overall anubhav bahut shandar raha at {business_name}!{aspect_mention} Service aur arrangement kaafi acchi thi.{note_text} Highly recommend karte hain{emojis}"
+            elif rating == 4:
+                draft = f"Kaafi accha experience raha at {business_name}.{aspect_mention} Staff attentive tha aur sab smoothly handle hua.{note_text} Good experience overall{emojis}"
+            elif rating == 3:
+                draft = f"Anubhav theek tha at {business_name}.{aspect_mention} Anubhav normal raha, par thode aur improvement ki gunjaish hai.{note_text} Standard visit.{emojis}"
+            elif rating == 2:
+                draft = f"Visit expectation se kam rahi at {business_name}.{note_text} Service aur care me improvement ki zaroorat hai.{emojis}"
+            else: # 1 star
+                draft = f"Experience bilkul accha nahi raha at {business_name}.{note_text} Bade sudhar ki zaroorat hai.{emojis}"
+
+        elif lang == "gujarati":
+            if rating == 5:
+                draft = f"Samagra anubhav khub j saras rahyo at {business_name}!{aspect_mention} Vyavastha sari hati ane service pan fast mali.{note_text} Badhane jarur recommend karish{emojis}"
+            elif rating == 4:
+                draft = f"Khub saro anubhav rahyo at {business_name}.{aspect_mention} Staff no swabhav vinamra hato ane arrangement saras hatu.{note_text} Saro time spend thayo{emojis}"
+            elif rating == 3:
+                draft = f"Anubhav thik hato at {business_name}.{aspect_mention} Thoda sudhara ni jarur chhe.{note_text} Average mulakat rahi.{emojis}"
+            elif rating == 2:
+                draft = f"Mulakat thi thodi nirasha thai at {business_name}.{note_text} Sudharo karvo zaroori chhe.{emojis}"
+            else: # 1 star
+                draft = f"Experience aaje bilkul saro na rahyo at {business_name}.{note_text} Sudharo karvani jarur chhe.{emojis}"
+
+        else: # English
+            if rating == 5:
+                draft = f"Had a wonderful experience at {business_name}!{aspect_mention} The team was polite and everything was handled very smoothly.{note_text} Highly recommend{emojis}"
+            elif rating == 4:
+                draft = f"Very good experience at {business_name}.{aspect_mention} Professional service and pleasant atmosphere overall.{note_text} Happy with the visit{emojis}"
+            elif rating == 3:
+                draft = f"Decent experience overall at {business_name}.{aspect_mention} A few good points, though there is room for minor improvement.{note_text} Standard visit.{emojis}"
+            elif rating == 2:
+                draft = f"The visit fell below expectations at {business_name}.{note_text} Several things could be improved with better care and attention.{emojis}"
+            else: # 1 star
+                draft = f"Unfortunately, my experience at {business_name} was quite disappointing.{note_text} Major improvements are needed in service and responsiveness.{emojis}"
 
     return draft.strip()
 
@@ -459,11 +581,16 @@ def build_humanized_prompt(
     length: str = "medium",
     dining_type: str = "dine_in",
     emoji_preference: str = "light",
-    business_name: str = "the restaurant",
+    business_name: str = "the business",
     language: str = "english",
-    category: Optional[str] = None
+    category: Optional[str] = None,
+    industry_id: Optional[str] = None,
+    effective_topics: Optional[List[str]] = None
 ) -> str:
     lang = normalize_language(language)
+    from backend.app.core.industry_registry import resolve_industry
+    ind_def = resolve_industry(category=category, explicit_industry_id=industry_id)
+
     aspects_str = ", ".join(aspects) if aspects else "General visit"
     note_instruction = (
         f"Customer's note: \"{user_note.strip()}\""
@@ -483,10 +610,12 @@ def build_humanized_prompt(
     else:
         lang_rule = "Language: Simple, natural everyday English."
 
-    return f"""Draft a short, human-like hospitality review:
+    return f"""Draft a short, human-like {ind_def.display_name} review:
 - Star Rating: {rating} of 5 Stars
 - Business Name: {business_name}
-- Category: {category or "Hospitality"}
+- Industry: {ind_def.display_name} ({ind_def.industry_id})
+- Category: {category or ind_def.default_subcategory}
+- Context: {ind_def.prompt_context}
 - Mentioned Topics: {aspects_str}
 - {lang_rule}
 - {note_instruction}

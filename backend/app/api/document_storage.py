@@ -11,7 +11,7 @@ import uuid
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
-from Backend.app.core.database.storage import ReviewStore
+from backend.app.core.database.storage import ReviewStore
 
 # Allowed document categories
 VALID_DOCUMENT_TYPES = {
@@ -240,7 +240,7 @@ _document_services: dict[str, DocumentStorageService] = {}
 
 
 def get_document_storage() -> DocumentStorageService:
-    from Backend.app.core.auth.auth import get_store
+    from backend.app.core.auth.auth import get_store
     docs_path = os.getenv("DOCUMENTS_PATH", "")
     db_path = os.getenv("REVIEW_DB_PATH", "")
     key = f"{docs_path}:{db_path}"

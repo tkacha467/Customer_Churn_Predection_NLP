@@ -6,10 +6,13 @@ from pathlib import Path
 
 _repo_root = Path(__file__).resolve().parents[2]
 _scripts_dir = _repo_root / "Project_Files" / "Scripts"
+_root_scripts_dir = _repo_root / "scripts"
 if "scripts" not in sys.modules:
     scripts_mod = types.ModuleType("scripts")
-    scripts_mod.__path__ = [str(_scripts_dir)]
+    scripts_mod.__path__ = [str(_scripts_dir), str(_root_scripts_dir)]
     sys.modules["scripts"] = scripts_mod
+elif hasattr(sys.modules["scripts"], "__path__") and str(_root_scripts_dir) not in sys.modules["scripts"].__path__:
+    sys.modules["scripts"].__path__.append(str(_root_scripts_dir))
 
 import pytest
 
@@ -47,8 +50,8 @@ def isolate_nlp_models(monkeypatch, request):
     if "model_dependent" in request.node.keywords:
         return
 
-    from Backend.app.models.sentiment import sentiment_model
-    from Backend.app.models.sarcasm import sarcasm_model
+    from backend.app.models.sentiment import sentiment_model
+    from backend.app.models.sarcasm import sarcasm_model
 
     def sentiment_prediction(text):
         lowered = text.lower()

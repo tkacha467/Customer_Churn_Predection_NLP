@@ -13,8 +13,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from Backend.app.core.database.storage import ReviewStore
-from Backend.app.core.tenants.google_reviews import SOURCE_CONFIG_FILE, CONFIG_FILE, DEFAULT_TOPICS
+from backend.app.core.database.storage import ReviewStore
+from backend.app.core.tenants.google_reviews import SOURCE_CONFIG_FILE, CONFIG_FILE, DEFAULT_TOPICS
 
 logger = logging.getLogger(__name__)
 

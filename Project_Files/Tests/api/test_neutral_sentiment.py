@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from Backend.app.main import app
+from backend.app.main import app
 
 pytestmark = pytest.mark.model_dependent
 

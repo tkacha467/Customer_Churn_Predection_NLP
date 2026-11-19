@@ -20,17 +20,17 @@ from pydantic import BaseModel
 import time
 
 # Import Canonical Modular Architecture
-from Backend.app.config.settings import settings
-from Backend.app.preprocessing.text_cleaner import text_cleaner
-from Backend.app.models.sentiment import sentiment_model
-from Backend.app.models.sarcasm import sarcasm_model
-from Backend.app.fusion.engine import fusion_engine
-from Backend.app.fusion.explainer import explainer
+from backend.app.config.settings import settings
+from backend.app.preprocessing.text_cleaner import text_cleaner
+from backend.app.models.sentiment import sentiment_model
+from backend.app.models.sarcasm import sarcasm_model
+from backend.app.fusion.engine import fusion_engine
+from backend.app.fusion.explainer import explainer
 
-from Backend.app.api import review_router
-from Backend.app.core.auth.auth import require_owner
-from Backend.app.api.routes import get_client_ip
-from Backend.app.api.service import review_service
+from backend.app.api import review_router
+from backend.app.core.auth.auth import require_owner
+from backend.app.api.routes import get_client_ip
+from backend.app.api.service import review_service
 
 app = FastAPI(title="NLP Integrity API", description="Modular Context-Aware Sentiment Pipeline")
 
@@ -223,4 +223,4 @@ def debug_inference(req: ReviewRequest, _: None = Depends(require_owner)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("Backend.app.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("backend.app.main:app", host="127.0.0.1", port=8000, reload=True)

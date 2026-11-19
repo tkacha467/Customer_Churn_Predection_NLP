@@ -240,10 +240,91 @@ const clearSessionDraft = (bId) => {
 };
 
 // ─── STRICT GROUNDED FALLBACK SUGGESTIONS ───────────────────────────────────
-const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, aspects = []) => {
+const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, aspects = [], indId = 'restaurant') => {
   const noteFragment = note && note.trim() ? ` ${note.trim().replace(/[.!]+$/, '')}.` : '';
   const l = (lang || 'english').toLowerCase();
   const name = bizName || BRAND.name;
+  const isRestaurant = !indId || indId === 'restaurant';
+
+  if (!isRestaurant) {
+    let shortText = '';
+    let detailedText = '';
+    let personalText = '';
+
+    if (l.includes('hin')) {
+      if (r === 5) {
+        shortText = `${name} ka anubhav bahut hi accha raha!${noteFragment} Maza aa gaya 😊✨`;
+        detailedText = `${name} ki service aur arrangements bahut lajawab the.${noteFragment} Sab kuch acche se manage kiya hua tha 👍`;
+        personalText = `Personal taur par ${name} ka experience kaafi shandar raha.${noteFragment} Very satisfied with the visit ❤️`;
+      } else if (r === 4) {
+        shortText = `${name} me accha anubhav raha.${noteFragment} Acchi service aur support 👍`;
+        detailedText = `Overall experience kaafi accha aur professional raha at ${name}.${noteFragment} Satisfied with today's visit 🙂`;
+        personalText = `Mere liye ${name} ka visit accha raha.${noteFragment} Everything went smoothly 👍`;
+      } else if (r === 3) {
+        shortText = `Aaj ${name} ka anubhav thik-thak raha.${noteFragment} Normal visit 🙂`;
+        detailedText = `Overall average experience tha at ${name}.${noteFragment} Kuch cheezon me sudhar ki gunjaish hai 🙂`;
+        personalText = `Mera experience at ${name} standard raha.${noteFragment} Decent experience overall 🙂`;
+      } else if (r === 2) {
+        shortText = `Aaj ${name} ka anubhav ummeed se kam raha.${noteFragment} 😕`;
+        detailedText = `${name} ka visit satisfactory nahi raha.${noteFragment} Kafi cheezon par dhyan dene ki zaroorat hai 😕`;
+        personalText = `Mujhe aaj ${name} ka experience pasand nahi aaya.${noteFragment} Needs improvement 😕`;
+      } else {
+        shortText = `Aaj ${name} me bahut kharab anubhav raha.${noteFragment} 😞`;
+        detailedText = `${name} me aaj ka visit bilkul accha nahi raha.${noteFragment} Service aur quality dono me bada sudhar chahiye 😞`;
+        personalText = `Mujhe aaj ${name} me bilkul accha anubhav nahi mila.${noteFragment} Highly dissatisfied 😞`;
+      }
+    } else if (l.includes('guj')) {
+      if (r === 5) {
+        shortText = `Khub j saras anubhav rahyo at ${name}!${noteFragment} Majo avi gayo ✨`;
+        detailedText = `${name} ni mulakat khub shandar rahi.${noteFragment} Badhi vyavastha khub saras hati 😊`;
+        personalText = `Mane ${name} no anubhav khub j pasand aavyo.${noteFragment} Khub santosh thayo ❤️`;
+      } else if (r === 4) {
+        shortText = `Saras anubhav rahyo at ${name}.${noteFragment} Badhu barabar hatu 👍`;
+        detailedText = `${name} ni mulakat ekandare sari rahi.${noteFragment} Santoshjanak anubhav 🙂`;
+        personalText = `Mane ${name} ni service pasand avi.${noteFragment} Overall good visit 👍`;
+      } else if (r === 3) {
+        shortText = `Aaj no anubhav at ${name} thik-thak rahyo.${noteFragment} Sadharan mulakat 🙂`;
+        detailedText = `${name} ni mulakat ekandare average rahi.${noteFragment} Sudhara ni jarur chhe 🙂`;
+        personalText = `Mane ${name} no anubhav average lagyo.${noteFragment} Normal experience 🙂`;
+      } else if (r === 2) {
+        shortText = `Aaj ni mulakat at ${name} apeksha karata ochhi rahi.${noteFragment} 😕`;
+        detailedText = `${name} ni mulakat santoshjanak na rahi.${noteFragment} Dhyan aapvani jarur chhe 😕`;
+        personalText = `Mane aaj no anubhav at ${name} pasand na aavyo.${noteFragment} 😕`;
+      } else {
+        shortText = `Aaj no anubhav at ${name} khub kharab rahyo.${noteFragment} 😞`;
+        detailedText = `${name} ni mulakat bilkul sari na rahi.${noteFragment} Motu sudhar jaruri chhe 😞`;
+        personalText = `Mane aaj no anubhav at ${name} bilkul pasand na aavyo.${noteFragment} 😞`;
+      }
+    } else {
+      if (r === 5) {
+        shortText = `Excellent experience with ${name}!${noteFragment} Thoroughly impressed with the quality and service ✨`;
+        detailedText = `Everything was handled smoothly and professionally at ${name}.${noteFragment} Highly satisfied with today's visit 😊`;
+        personalText = `A truly wonderful experience at ${name}.${noteFragment} Very pleased with everything 👍`;
+      } else if (r === 4) {
+        shortText = `Good experience at ${name}.${noteFragment} Solid and reliable service 👍`;
+        detailedText = `Overall a solid and enjoyable experience at ${name}.${noteFragment} Everything was well arranged 😊`;
+        personalText = `Had a good visit at ${name}.${noteFragment} Happy with my experience overall 👍`;
+      } else if (r === 3) {
+        shortText = `Decent visit today at ${name}.${noteFragment} Standard experience 🙂`;
+        detailedText = `Overall an average experience at ${name}. A few good points, but there is room for improvement.${noteFragment} Decent visit 🙂`;
+        personalText = `It was a pretty average visit for me at ${name}.${noteFragment} Fair experience overall 🙂`;
+      } else if (r === 2) {
+        shortText = `Experience fell below expectations today at ${name}.${noteFragment} 😕`;
+        detailedText = `Somewhat disappointed with the visit at ${name}.${noteFragment} Several areas need attention and better care 😕`;
+        personalText = `Expected a better experience than what I had at ${name} today.${noteFragment} Hope to see improvements 😕`;
+      } else {
+        shortText = `Very disappointing experience today at ${name}.${noteFragment} 😞`;
+        detailedText = `Extremely unsatisfied with today's visit at ${name}.${noteFragment} Major improvements are needed in service and quality 😞`;
+        personalText = `Really unhappy with the experience today.${noteFragment} Disappointed with how things were handled at ${name} 😞`;
+      }
+    }
+
+    return [
+      { id: 'opt1', focus: 'Short & Natural', text: shortText },
+      { id: 'opt2', focus: 'Detailed & Expressive', text: detailedText },
+      { id: 'opt3', focus: 'Simple & Personal', text: personalText },
+    ];
+  }
 
   const cleanedAspects = Array.isArray(aspects) ? aspects.map((a) => String(a).toLowerCase().trim()).filter(Boolean) : [];
   const hasBreakfast = cleanedAspects.some((a) => a.includes('breakfast') || a.includes('nasto') || a.includes('nasta'));
@@ -489,6 +570,10 @@ export default function CustomerReview({
   const [primaryAccent, setPrimaryAccent] = useState('#f97316');
   const [businessDescription, setBusinessDescription] = useState('');
   const [businessCategory, setBusinessCategory] = useState('Breakfast & Snacks');
+  const [industryId, setIndustryId] = useState('restaurant');
+  const [terminology, setTerminology] = useState(null);
+  const [isRestricted, setIsRestricted] = useState(false);
+  const [restrictionMessage, setRestrictionMessage] = useState('');
   const [notFound, setNotFound] = useState(false);
   const [notFoundId, setNotFoundId] = useState('');
 
@@ -515,6 +600,8 @@ export default function CustomerReview({
 
   // Session & analytics
   const [sessionId, setSessionId] = useState('');
+  const [previewToken, setPreviewToken] = useState(() => urlParams.get('preview_token') || '');
+  const [trafficSource, setTrafficSource] = useState('customer');
 
   // Handoff
   const [handoffOpen, setHandoffOpen] = useState(false);
@@ -580,6 +667,8 @@ export default function CustomerReview({
   useEffect(() => {
     let active = true;
     setNotFound(false);
+    setIsRestricted(false);
+    setRestrictionMessage('');
 
     apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/review-link`)
       .then(async (r) => {
@@ -588,6 +677,14 @@ export default function CustomerReview({
             if (active) {
               setNotFound(true);
               setNotFoundId(businessId);
+            }
+            return null;
+          }
+          if (r.status === 403) {
+            const errData = await r.json().catch(() => ({}));
+            if (active) {
+              setIsRestricted(true);
+              setRestrictionMessage(errData?.detail || 'This review service is currently unavailable for this business category.');
             }
             return null;
           }
@@ -601,12 +698,14 @@ export default function CustomerReview({
         setBusinessName(resolvedName);
         if (d.review_url) setGoogleReviewUrl(d.review_url);
         if (d.category) setBusinessCategory(d.category);
+        if (d.industry_id) setIndustryId(d.industry_id);
+        if (d.terminology) setTerminology(d.terminology);
         if (d.primary_accent) setPrimaryAccent(d.primary_accent);
         if (d.description) setBusinessDescription(d.description);
         if (d.topics && d.topics.length > 0) {
           const enriched = d.topics.map((item) => ({
             label: item,
-            icon: getTopicIcon(item),
+            icon: getTopicIcon(item, d.industry_id),
           }));
           setAvailableTopics(enriched);
           const currentDraft = loadDraft(businessId);
@@ -615,7 +714,7 @@ export default function CustomerReview({
             saveDraft(businessId, { selectedTopics: d.topics.slice(0, 2) });
           }
         }
-        setIdeas(getFallbackIdeas(rating, personalNote, language, resolvedName, nothingSpecific ? [] : selectedTopics));
+        setIdeas(getFallbackIdeas(rating, personalNote, language, resolvedName, nothingSpecific ? [] : selectedTopics, d.industry_id));
       })
       .catch(() => {
         if (businessId === 'default_business' || businessId === 'nasta_ghar') {
@@ -623,48 +722,122 @@ export default function CustomerReview({
         }
       });
 
-    // Initialize session
+    // Acquire server-authenticated preview token if operating in preview mode
+    if (isPreviewMode && !previewToken) {
+      apiFetch(`/api/reviews/preview-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_id: businessId }),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (active && d?.preview_token) {
+            setPreviewToken(d.preview_token);
+            if (d.traffic_source) setTrafficSource(d.traffic_source);
+          }
+        })
+        .catch(() => {});
+    }
+
+    // Initialize session with server-verified preview context
+    const sessionHeaders = { 'Content-Type': 'application/json' };
+    if (previewToken) {
+      sessionHeaders['X-Preview-Token'] = previewToken;
+    }
+
     apiFetch(`/api/reviews/session`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: sessionHeaders,
       body: JSON.stringify({
         business_id: businessId,
         table_number: tableParam || 'Walk-in',
         dining_type: 'dine_in',
+        preview_token: previewToken || undefined,
+        is_preview: isPreviewMode,
       }),
     })
       .then((r) => r.json())
-      .then((d) => { if (active) setSessionId(d.session_id); })
+      .then((d) => {
+        if (active) {
+          setSessionId(d.session_id);
+          if (d.traffic_source) setTrafficSource(d.traffic_source);
+          if (d.preview_token && !previewToken) setPreviewToken(d.preview_token);
+        }
+      })
       .catch(() => { if (active) setSessionId(`local-${Date.now()}`); });
 
     return () => { active = false; };
-  }, [businessId, tableParam]);
+  }, [businessId, tableParam, isPreviewMode, previewToken]);
 
-  function getTopicIcon(label) {
-    const l = label.toLowerCase();
+  function getTopicIcon(label, currentIndustryId = 'restaurant') {
+    const l = (label || '').toLowerCase();
+    // Hospitality / Restaurant
     if (l.includes('breakfast') || l.includes('nasta')) return '🍳';
     if (l.includes('chai') || l.includes('tea') || l.includes('coffee') || l.includes('drink') || l.includes('beverage')) return '☕';
-    if (l.includes('snack')) return '🥪';
-    if (l.includes('taste') || l.includes('flavour') || l.includes('food')) return '😋';
-    if (l.includes('staff') || l.includes('service') || l.includes('friendly')) return '😊';
-    if (l.includes('clean')) return '✨';
-    if (l.includes('value') || l.includes('money') || l.includes('price')) return '💰';
-    if (l.includes('quick') || l.includes('fast') || l.includes('speed')) return '⚡';
-    if (l.includes('atmosphere') || l.includes('vibe') || l.includes('ambience')) return '🌟';
-    return '👍';
+    if (l.includes('snack') || l.includes('sandwich')) return '🥪';
+    if (l.includes('taste') || l.includes('flavour') || l.includes('flavor') || l.includes('food') || l.includes('meal')) return '😋';
+    // Hotel & Accommodation
+    if (l.includes('room comfort') || l.includes('room') || l.includes('bed') || l.includes('stay') || l.includes('sleep')) return '🛏️';
+    if (l.includes('amenit') || l.includes('pool')) return '🏊';
+    if (l.includes('check-in') || l.includes('check in') || l.includes('reception')) return '⚡';
+    if (l.includes('location') || l.includes('view')) return '📍';
+    // Fitness & Gym
+    if (l.includes('equipment') || l.includes('workout') || l.includes('weights')) return '🏋️';
+    if (l.includes('trainer') || l.includes('coach') || l.includes('training')) return '👟';
+    if (l.includes('locker') || l.includes('shower')) return '🚿';
+    if (l.includes('class') || l.includes('yoga') || l.includes('session')) return '🧘';
+    // Salon & Personal Care
+    if (l.includes('hair') || l.includes('styling') || l.includes('cut') || l.includes('barber')) return '✂️';
+    if (l.includes('spa') || l.includes('facial') || l.includes('massage')) return '💆';
+    // Retail & Shopping
+    if (l.includes('product') || l.includes('shopping') || l.includes('store') || l.includes('collection') || l.includes('merchandise')) return '🛍️';
+    if (l.includes('checkout') || l.includes('billing')) return '⚡';
+    // Automotive
+    if (l.includes('service quality') || l.includes('repair') || l.includes('mechanic') || l.includes('maintenance') || l.includes('workshop')) return '🔧';
+    if (l.includes('turnaround') || l.includes('delivery time') || l.includes('wait time') || l.includes('promptness')) return '⏱️';
+    if (l.includes('pricing') || l.includes('transparency')) return '💰';
+    // Education
+    if (l.includes('course') || l.includes('curriculum') || l.includes('syllabus') || l.includes('content') || l.includes('study')) return '📚';
+    if (l.includes('instructor') || l.includes('faculty') || l.includes('teacher') || l.includes('mentor')) return '🎓';
+    // Events
+    if (l.includes('event') || l.includes('party') || l.includes('wedding') || l.includes('gathering')) return '🎉';
+    if (l.includes('catering') || l.includes('refreshment') || l.includes('buffet')) return '🍽️';
+    // Travel
+    if (l.includes('flight') || l.includes('itinerary') || l.includes('tour') || l.includes('trip') || l.includes('travel')) return '✈️';
+    if (l.includes('guide') || l.includes('sightseeing')) return '🧭';
+    if (l.includes('transport') || l.includes('transit') || l.includes('cab') || l.includes('bus') || l.includes('driver')) return '🚐';
+    // General
+    if (l.includes('clean') || l.includes('hygiene') || l.includes('tidy')) return '✨';
+    if (l.includes('staff') || l.includes('service') || l.includes('friendly') || l.includes('helpfulness') || l.includes('professionalism')) return '😊';
+    if (l.includes('value') || l.includes('money') || l.includes('price') || l.includes('cost') || l.includes('affordable')) return '💰';
+    if (l.includes('quick') || l.includes('fast') || l.includes('speed') || l.includes('prompt')) return '⚡';
+    if (l.includes('atmosphere') || l.includes('vibe') || l.includes('ambience') || l.includes('environment')) return '🌟';
+    return '⭐';
   }
 
-  // ─── ANALYTICS ──────────────────────────────────────────────────────────────
+  // ─── ANALYTICS (Enforces strict 3-way separation & deduplication) ───────────
   const logEvent = (name, meta = {}) => {
     if (!sessionId) return;
+    const eventHeaders = { 'Content-Type': 'application/json' };
+    if (previewToken) {
+      eventHeaders['X-Preview-Token'] = previewToken;
+    }
     apiFetch(`/api/reviews/events`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: eventHeaders,
       keepalive: true,
       body: JSON.stringify({
         session_id: sessionId,
         event_name: name,
-        metadata: { business_id: businessId, rating, ...meta },
+        preview_token: previewToken || undefined,
+        idempotency_key: `${sessionId}-${name}-${meta?.rating || ''}`,
+        metadata: {
+          business_id: businessId,
+          rating,
+          is_preview: isPreviewMode,
+          traffic_source: trafficSource,
+          ...meta,
+        },
       }),
     }).catch(() => {});
   };
@@ -775,7 +948,7 @@ export default function CustomerReview({
 
   // Automatically keep ideas synchronized with rating, topics, and personal note
   useEffect(() => {
-    setIdeas(getFallbackIdeas(rating, personalNote, language, businessName || BRAND.name, nothingSpecific ? [] : selectedTopics));
+    setIdeas(getFallbackIdeas(rating, personalNote, language, businessName || BRAND.name, nothingSpecific ? [] : selectedTopics, industryId));
     setIdeasError(false);
 
     if (fetchIdeasDebounceRef.current) {
@@ -791,7 +964,7 @@ export default function CustomerReview({
         clearTimeout(fetchIdeasDebounceRef.current);
       }
     };
-  }, [rating, selectedTopics, nothingSpecific, personalNote, businessId, language, businessCategory]);
+  }, [rating, selectedTopics, nothingSpecific, personalNote, businessId, language, businessCategory, industryId]);
 
   const handlePostDirectly = async (idea) => {
     if (copyingReview) return;
@@ -821,7 +994,6 @@ export default function CustomerReview({
 
     if (copiedSuccessfully) {
       logEvent('google_maps_redirect', { destination: googleReviewUrl });
-      logEvent('google_review_link_opened');
       // Clear draft upon successful completion so customer or new session does not restore stale draft
       clearSessionDraft(businessId);
       window.location.href = googleReviewUrl;
@@ -882,7 +1054,6 @@ export default function CustomerReview({
       });
       if (!response.ok) throw new Error('Feedback request failed');
       setPrivateSent(true);
-      logEvent('private_feedback_sent');
       // Clear draft upon completed private submission
       clearSessionDraft(businessId);
     } catch {
@@ -901,7 +1072,7 @@ export default function CustomerReview({
       <div className="ng-page">
         {isPreviewMode && (
           <div className="ng-preview-bar">
-            <span>👁️ Owner Preview Mode</span>
+            <span>👁️ {trafficSource === 'internal_admin' ? 'Admin Diagnostic Preview' : 'Owner Preview Mode'}</span>
             {onSwitchToOwner && (
               <button type="button" className="ng-preview-back" onClick={onSwitchToOwner}>
                 ← Back to Dashboard
@@ -927,12 +1098,43 @@ export default function CustomerReview({
     );
   }
 
+  if (isRestricted) {
+    return (
+      <div className="ng-page">
+        {isPreviewMode && (
+          <div className="ng-preview-bar">
+            <span>👁️ {trafficSource === 'internal_admin' ? 'Admin Diagnostic Preview' : 'Owner Preview Mode'}</span>
+            {onSwitchToOwner && (
+              <button type="button" className="ng-preview-back" onClick={onSwitchToOwner}>
+                ← Back to Dashboard
+              </button>
+            )}
+          </div>
+        )}
+        <div className="ng-card" style={{ textAlign: 'center', padding: '3.5rem 1.5rem', margin: '2rem auto', maxWidth: '480px' }}>
+          <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🛡️</div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '0.75rem', color: '#1e293b' }}>
+            Service Notice
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
+            {restrictionMessage || 'Customer review generation is not available for this business category.'}
+          </p>
+          {onSwitchToOwner && (
+            <button type="button" className="ng-btn-primary" onClick={onSwitchToOwner} style={{ margin: '0 auto' }}>
+              Open Owner Portal
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="ng-page">
       {/* Preview Banner */}
       {isPreviewMode && (
         <div className="ng-preview-bar">
-          <span>👁️ Owner Preview Mode</span>
+          <span>👁️ {trafficSource === 'internal_admin' ? 'Admin Diagnostic Preview' : 'Owner Preview Mode'}</span>
           {onSwitchToOwner && (
             <button type="button" className="ng-preview-back" onClick={onSwitchToOwner}>
               ← Back to Dashboard
@@ -947,7 +1149,16 @@ export default function CustomerReview({
         <div className="ng-scene-wrapper compact" style={{ minHeight: '140px', background: `linear-gradient(135deg, ${primaryAccent}15, ${primaryAccent}30)` }}>
           <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
             <span style={{ fontSize: '3rem' }}>
-              {businessCategory.toLowerCase().includes('cafe') ? '☕' : businessCategory.toLowerCase().includes('hotel') ? '🏨' : '🍽️'}
+              {industryId === 'hotel' ? '🏨'
+                : industryId === 'fitness' ? '🏋️'
+                : industryId === 'salon' ? '✂️'
+                : industryId === 'retail' ? '🛍️'
+                : industryId === 'automotive' ? '🔧'
+                : industryId === 'education' ? '🎓'
+                : industryId === 'events' ? '🎉'
+                : industryId === 'travel' ? '✈️'
+                : businessCategory.toLowerCase().includes('cafe') ? '☕'
+                : '⭐'}
             </span>
           </div>
         </div>
@@ -967,11 +1178,15 @@ export default function CustomerReview({
           ) : (
             <>
               <h1 className="ng-brand-name">{businessName || 'Review Assistant'}</h1>
-              <p className="ng-brand-sub">{businessDescription || businessCategory || 'Hospitality Review Assistant'}</p>
+              <p className="ng-brand-sub">{businessDescription || businessCategory || 'Review Assistant'}</p>
             </>
           )}
           {tableParam && (
-            <span className="ng-table-pill">📍 {tableParam}</span>
+            <span className="ng-table-pill">
+              📍 {terminology?.touchpoint_noun && !tableParam.toLowerCase().includes(terminology.touchpoint_noun.toLowerCase())
+                  ? `${terminology.touchpoint_noun} ${tableParam}`
+                  : tableParam}
+            </span>
           )}
         </header>
 
@@ -1057,7 +1272,15 @@ export default function CustomerReview({
                   id="ng-note"
                   type="text"
                   className="ng-note-input"
-                  placeholder={t.notePlaceholder}
+                  placeholder={
+                    industryId === 'restaurant'
+                      ? t.notePlaceholder
+                      : (language === 'hindi'
+                          ? 'Jaise ki prompt service, accha anubhav!'
+                          : language === 'gujarati'
+                            ? 'Jem ke saras vyavastha, saro anubhav!'
+                            : 'e.g. Prompt service, friendly staff, great experience!')
+                  }
                   value={personalNote}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -1360,7 +1583,6 @@ export default function CustomerReview({
                 disabled={copyingReview}
                 onClick={() => {
                   logEvent('google_maps_redirect', { destination: googleReviewUrl });
-                  logEvent('google_review_link_opened');
                   clearSessionDraft(businessId);
                   window.location.href = googleReviewUrl;
                 }}
@@ -1383,7 +1605,11 @@ export default function CustomerReview({
       {showPrivate && (
         <div className="ng-modal-backdrop">
           <div className="ng-modal ng-modal-bounce">
-            <h3 className="ng-modal-title">{t.directNoteTo} {businessName || BRAND.name}</h3>
+            <h3 className="ng-modal-title">
+              {terminology?.private_feedback_title
+                ? `${terminology.private_feedback_title} — ${businessName || BRAND.name}`
+                : `${t.directNoteTo} ${businessName || BRAND.name}`}
+            </h3>
             <p className="ng-modal-body">{t.sharePrivately}</p>
 
             {privateSent ? (

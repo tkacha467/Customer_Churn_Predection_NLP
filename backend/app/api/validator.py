@@ -4,10 +4,10 @@ Validates review draft sentiment against selected star rating using the existing
 """
 
 from typing import Dict, Any, Tuple, List
-from Backend.app.preprocessing.text_cleaner import text_cleaner
-from Backend.app.models.sentiment import sentiment_model
-from Backend.app.models.sarcasm import sarcasm_model
-from Backend.app.fusion.engine import fusion_engine
+from backend.app.preprocessing.text_cleaner import text_cleaner
+from backend.app.models.sentiment import sentiment_model
+from backend.app.models.sarcasm import sarcasm_model
+from backend.app.fusion.engine import fusion_engine
 
 class ReviewValidator:
     def validate(self, rating: int, review_text: str) -> Dict[str, Any]:

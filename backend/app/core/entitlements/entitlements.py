@@ -22,7 +22,7 @@ ALL_ENTITLEMENTS: List[str] = [
 
 def check_tenant_entitlement(tenant_id: str, entitlement: str) -> bool:
     """Verifies whether the target tenant exists, is active, and possesses the entitlement."""
-    from Backend.app.core.auth.auth import get_store
+    from backend.app.core.auth.auth import get_store
     store = get_store()
     
     # Resolve aliases

@@ -30,7 +30,7 @@ RUN python -c "from transformers import pipeline; \
     pipeline('text-classification', model='cardiffnlp/twitter-roberta-base-sentiment-latest'); \
     pipeline('text-classification', model='cardiffnlp/twitter-roberta-base-irony')"
 
-COPY Backend/ ./Backend
+COPY backend/ ./backend
 COPY NastaGhar/ ./NastaGhar
 COPY Digital_Card/ ./Digital_Card
 COPY Project_Files/ ./Project_Files
@@ -46,4 +46,4 @@ ENV PORT=8000 ENVIRONMENT=production \
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://127.0.0.1:${PORT:-8000}/healthz || exit 1
-CMD ["sh", "-c", "uvicorn Backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

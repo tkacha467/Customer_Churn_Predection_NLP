@@ -17,7 +17,7 @@ for _p in (root_dir, root_dir / "Backend"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from Backend.app.core.auth.auth import hash_password, get_store
+from backend.app.core.auth.auth import hash_password, get_store
 
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")

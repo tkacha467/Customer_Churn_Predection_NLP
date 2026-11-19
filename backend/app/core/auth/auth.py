@@ -4,8 +4,10 @@ Implements scrypt password hashing, cryptographically random server-side session
 tenant-membership binding, and role-based access control.
 """
 
+import base64
 import hashlib
 import hmac
+import json
 import os
 import re
 import secrets
@@ -14,11 +16,11 @@ import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from fastapi import HTTPException, Request
 
-from Backend.app.core.database.storage import ReviewStore
+from backend.app.core.database.storage import ReviewStore
 
 OWNER_COOKIE = "nasta_owner_session"
 SESSION_TTL_SECONDS = 8 * 60 * 60
@@ -95,6 +97,62 @@ def hash_token(raw_token: str) -> str:
 def _sign(val: str) -> str:
     """Compatibility signing helper."""
     return hashlib.sha256(val.encode("ascii")).hexdigest()
+
+
+def get_signing_secret() -> str:
+    """Retrieves session signing secret key with environment fallback."""
+    secret = os.getenv("OWNER_SESSION_SECRET", "").strip()
+    if not secret:
+        secret = os.getenv("SECRET_KEY", "vraja-ai-platform-signing-secret-minimum-32-chars-long")
+    return secret
+
+
+def create_preview_token(
+    tenant_id: str,
+    user_id: str,
+    role: str = "owner",
+    is_admin: bool = False,
+    ttl_seconds: int = 7200
+) -> str:
+    """
+    Creates a cryptographically signed HMAC-SHA256 preview token.
+    Enforces server-authenticated preview session context without trusting client flags.
+    """
+    traffic_source = "internal_admin" if is_admin else "preview"
+    payload = {
+        "tenant_id": tenant_id,
+        "user_id": user_id,
+        "role": role,
+        "is_admin": is_admin,
+        "traffic_source": traffic_source,
+        "exp": int(time.time() + ttl_seconds),
+    }
+    payload_json = json.dumps(payload, separators=(',', ':'), sort_keys=True)
+    payload_b64 = base64.urlsafe_b64encode(payload_json.encode('utf-8')).decode('ascii').rstrip('=')
+    sig = hmac.new(get_signing_secret().encode('utf-8'), payload_b64.encode('ascii'), hashlib.sha256).hexdigest()
+    return f"{payload_b64}.{sig}"
+
+
+def verify_preview_token(token: Optional[str]) -> Optional[Dict[str, Any]]:
+    """
+    Verifies HMAC-SHA256 signature, expiry, and payload on a server-issued preview token.
+    Returns decoded token dictionary if valid, None if invalid, tampered, or expired.
+    """
+    if not token or not isinstance(token, str) or "." not in token:
+        return None
+    try:
+        payload_b64, sig = token.strip().split(".", 1)
+        expected_sig = hmac.new(get_signing_secret().encode('utf-8'), payload_b64.encode('ascii'), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expected_sig):
+            return None
+        rem = len(payload_b64) % 4
+        padded = payload_b64 + ('=' * (4 - rem) if rem else '')
+        payload = json.loads(base64.urlsafe_b64decode(padded.encode('ascii')).decode('utf-8'))
+        if float(payload.get("exp", 0)) < time.time():
+            return None
+        return payload
+    except Exception:
+        return None
 
 
 def make_session(user_id: Optional[str] = None, tenant_id: str = "default_business") -> str:
@@ -241,6 +299,50 @@ async def require_auth_context(request: Request) -> TenantContext:
     )
 
 
+def get_optional_auth_context(request: Request) -> Optional[TenantContext]:
+    """
+    Safely resolves TenantContext from cookie or Authorization header without raising 401.
+    Used for dynamic traffic_source detection on endpoints that allow both anonymous and authenticated traffic.
+    Returns None if unauthenticated, session expired, or invalid.
+    """
+    token = request.cookies.get(OWNER_COOKIE)
+    if not token:
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:].strip()
+    if not token:
+        return None
+    try:
+        store = get_store()
+        token_hash = hash_token(token)
+        session = store.get_session(token_hash)
+        now = time.time()
+        if not session or session.get("revoked_at") is not None or session.get("expires_at", 0) < now:
+            return None
+        user = store.get_user_by_id(session["user_id"])
+        if not user or user.get("is_active") != 1:
+            return None
+        active_tenant_id = session["active_tenant_id"]
+        is_admin = bool(user.get("is_platform_admin", 0))
+        membership = store.get_membership(user["id"], active_tenant_id)
+        if not membership and not is_admin:
+            return None
+        active_tenant = store.get_tenant(active_tenant_id)
+        if not is_admin and active_tenant and active_tenant.get("status") != "active":
+            return None
+        effective_role = membership["role"] if membership else ("owner" if is_admin else "staff")
+        return TenantContext(
+            user_id=user["id"],
+            email=user["email"],
+            display_name=user.get("display_name", ""),
+            tenant_id=active_tenant_id,
+            role=effective_role,
+            is_platform_admin=is_admin
+        )
+    except Exception:
+        return None
+
+
 ROLE_RANKS = {
     "staff": 1,
     "manager": 2,
@@ -314,7 +416,7 @@ def require_tenant_access(required_role: str = "manager", required_entitlement: 
             )
 
         if required_entitlement:
-            from Backend.app.core.entitlements.entitlements import check_tenant_entitlement
+            from backend.app.core.entitlements.entitlements import check_tenant_entitlement
             if not check_tenant_entitlement(effective_tenant, required_entitlement):
                 raise HTTPException(
                     status_code=403,

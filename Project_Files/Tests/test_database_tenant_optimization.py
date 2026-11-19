@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 import pytest
 
-from Backend.app.core.database.storage import ReviewStore, normalize_tenant_id
+from backend.app.core.database.storage import ReviewStore, normalize_tenant_id
 
 
 def test_normalize_tenant_id():

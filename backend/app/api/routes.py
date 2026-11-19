@@ -10,25 +10,28 @@ import hmac
 import hashlib
 import re
 import struct
-from fastapi import APIRouter, HTTPException, Request, Response, Depends, UploadFile, File, Form
+import zoneinfo
+from datetime import datetime, date, time as dtime, timedelta
+from fastapi import APIRouter, HTTPException, Request, Response, Depends, UploadFile, File, Form, Query
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 
-from Backend.app.core.database.storage import ReviewStore
-from Backend.app.api.document_storage import (
+from backend.app.core.database.storage import ReviewStore
+from backend.app.api.document_storage import (
     DocumentStorageService,
     get_document_storage,
     MAX_DOCUMENT_SIZE_BYTES,
     sanitize_filename,
 )
-from Backend.app.api.svg_sanitizer import sanitize_svg
-from Backend.app.core.entitlements.entitlements import (
+from backend.app.api.svg_sanitizer import sanitize_svg
+from backend.app.core.entitlements.entitlements import (
     check_tenant_entitlement,
     ENTITLEMENT_REVIEW_MANAGER,
     ENTITLEMENT_DIGITAL_CARD,
 )
 
 BUSINESS_ID_REGEX = re.compile(r"^[a-zA-Z0-9_-]{1,100}$")
+DATE_PARAM_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 def validate_business_id(business_id: str) -> str:
     if not business_id or not BUSINESS_ID_REGEX.match(business_id):
@@ -38,7 +41,7 @@ def validate_business_id(business_id: str) -> str:
         )
     return business_id
 
-from Backend.app.schemas import (
+from backend.app.schemas import (
     ReviewIdeasRequest,
     ReviewIdeasResponse,
     ReviewGenerateRequest,
@@ -49,6 +52,8 @@ from Backend.app.schemas import (
     BusinessConfigUpdateRequest,
     ReviewSessionCreateRequest,
     ReviewSessionResponse,
+    PreviewTokenRequest,
+    PreviewTokenResponse,
     AnalyticsEventRequest,
     ManagerReplyRequest,
     ManagerReplyResponse,
@@ -66,6 +71,10 @@ from Backend.app.schemas import (
     ALLOWED_ANALYTICS_EVENTS,
     BusinessProfileResponse,
     BusinessProfileUpdateRequest,
+    IndustryConfigResponse,
+    TerminologySchema,
+    IndustrySummaryItem,
+    AvailableIndustriesResponse,
     SharedBusinessProfileResponse,
     SharedBusinessProfileUpdateRequest,
     SharedBusinessLogoUploadResponse,
@@ -74,9 +83,9 @@ from Backend.app.schemas import (
     PublicDigitalCardResponse,
     PublicDocumentItem,
 )
-from Backend.app.api.service import review_service
-from Backend.app.core.tenants.google_reviews import google_review_manager
-from Backend.app.core.auth.auth import (
+from backend.app.api.service import review_service
+from backend.app.core.tenants.google_reviews import google_review_manager
+from backend.app.core.auth.auth import (
     OWNER_COOKIE,
     SESSION_TTL_SECONDS,
     TenantContext,
@@ -91,6 +100,9 @@ from Backend.app.core.auth.auth import (
     require_tenant_access,
     require_platform_admin,
     require_owner,
+    create_preview_token,
+    verify_preview_token,
+    get_optional_auth_context,
 )
 
 router = APIRouter()
@@ -393,18 +405,73 @@ async def change_password(
 # ---------------------------------------------------------
 # Customer Review Flow Endpoints (Public)
 # ---------------------------------------------------------
+def _resolve_tenant_review_context(business_id: str) -> Dict[str, Any]:
+    valid_id = validate_business_id(business_id)
+    info = google_review_manager.get_review_url(valid_id)
+    if not info:
+        store = ReviewStore()
+        tenant = store.get_tenant(valid_id)
+        if tenant:
+            from backend.app.core.industry_registry import resolve_industry, resolve_effective_topics
+            from dataclasses import asdict, is_dataclass
+            ind_def = resolve_industry(category=tenant.get("category"), explicit_industry_id=tenant.get("industry_id"))
+            effective_topics = resolve_effective_topics(tenant.get("topics"), ind_def.industry_id)
+            info = {
+                "business_id": valid_id,
+                "business_name": tenant.get("business_name") or valid_id,
+                "category": tenant.get("category", "Breakfast & Snacks"),
+                "industry_id": ind_def.industry_id,
+                "topics": effective_topics,
+                "is_restricted": ind_def.is_restricted,
+                "restriction_notice": ind_def.restriction_notice,
+                "status": tenant.get("status", "active"),
+                "terminology": asdict(ind_def.terminology) if is_dataclass(ind_def.terminology) else ind_def.terminology,
+            }
+        else:
+            from backend.app.core.industry_registry import resolve_industry
+            from dataclasses import asdict, is_dataclass
+            ind_def = resolve_industry()
+            info = {
+                "business_id": valid_id,
+                "business_name": valid_id,
+                "category": "Unclassified",
+                "industry_id": ind_def.industry_id,
+                "topics": ind_def.default_topics,
+                "is_restricted": False,
+                "restriction_notice": None,
+                "status": "active",
+                "terminology": asdict(ind_def.terminology) if is_dataclass(ind_def.terminology) else ind_def.terminology,
+            }
+    if info.get("status") == "suspended":
+        raise HTTPException(status_code=403, detail=f"Business '{valid_id}' is inactive or suspended.")
+    if info.get("is_restricted"):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Customer review experience is restricted for industry '{info.get('industry_id')}' due to regulatory and safety compliance."
+        )
+    return info
+
+
 @router.post("/reviews/ideas", response_model=ReviewIdeasResponse)
 async def get_review_ideas(req: ReviewIdeasRequest, request: Request):
     if not review_service.check_rate_limit(f"ideas:{get_client_ip(request)}", max_per_minute=30):
         raise HTTPException(status_code=429, detail="Rate limit reached. Please wait a moment.")
-    from Backend.app.core.entitlements.entitlements import check_tenant_entitlement, ENTITLEMENT_REVIEW_MANAGER
+    from backend.app.core.entitlements.entitlements import check_tenant_entitlement, ENTITLEMENT_REVIEW_MANAGER
     if not check_tenant_entitlement(req.business_id, ENTITLEMENT_REVIEW_MANAGER):
         raise HTTPException(
             status_code=403,
             detail=f"Feature '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{req.business_id}'."
         )
+    info = _resolve_tenant_review_context(req.business_id)
     try:
-        return review_service.generate_ideas(req)
+        return review_service.generate_ideas(
+            req,
+            resolved_industry=info.get("industry_id"),
+            resolved_business_name=info.get("business_name"),
+            effective_topics=info.get("topics")
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[ReviewAssistant] Ideas error: {e}")
         raise HTTPException(
@@ -421,15 +488,24 @@ async def generate_review(req: ReviewGenerateRequest, request: Request):
             status_code=429,
             detail="Rate limit reached. Please wait a moment before generating another review."
         )
-    from Backend.app.core.entitlements.entitlements import check_tenant_entitlement, ENTITLEMENT_REVIEW_MANAGER
+    from backend.app.core.entitlements.entitlements import check_tenant_entitlement, ENTITLEMENT_REVIEW_MANAGER
     if not check_tenant_entitlement(req.business_id, ENTITLEMENT_REVIEW_MANAGER):
         raise HTTPException(
             status_code=403,
             detail=f"Feature '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{req.business_id}'."
         )
+    info = _resolve_tenant_review_context(req.business_id)
     try:
-        response = review_service.generate_review(req, client_key=client_ip)
+        response = review_service.generate_review(
+            req,
+            client_key=client_ip,
+            resolved_industry=info.get("industry_id"),
+            resolved_business_name=info.get("business_name"),
+            effective_topics=info.get("topics")
+        )
         return response
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[ReviewAssistant] Error: {e}")
         raise HTTPException(
@@ -453,11 +529,58 @@ async def validate_review(req: ReviewValidateRequest, request: Request):
         )
 
 
+@router.post("/reviews/preview-token", response_model=PreviewTokenResponse)
+@router.get("/reviews/preview-token", response_model=PreviewTokenResponse)
+async def issue_preview_token(
+    business_id: Optional[str] = None,
+    req: Optional[PreviewTokenRequest] = None,
+    ctx: TenantContext = Depends(require_tenant_access("staff", required_entitlement=ENTITLEMENT_REVIEW_MANAGER))
+):
+    """
+    Issues a cryptographically signed HMAC-SHA256 preview token for authenticated staff/owner/admin.
+    Prevents unauthorized or unverified preview traffic from polluting customer production metrics.
+    """
+    raw_id = (req.business_id if req and req.business_id else None) or business_id or ctx.tenant_id
+    valid_id = validate_business_id(raw_id)
+    target_id = "default_business" if valid_id in ("default_business", "nasta_ghar", "nasta-ghar") else valid_id
+
+    if not ctx.is_platform_admin and ctx.tenant_id != target_id:
+        raise HTTPException(status_code=403, detail="Cannot issue preview token for an unrelated tenant.")
+
+    token = create_preview_token(
+        tenant_id=target_id,
+        user_id=ctx.user_id,
+        role=ctx.role,
+        is_admin=ctx.is_platform_admin,
+    )
+    traffic_src = "internal_admin" if ctx.is_platform_admin else "preview"
+    return PreviewTokenResponse(
+        preview_token=token,
+        traffic_source=traffic_src,
+        tenant_id=target_id,
+        expires_at=time.time() + 7200,
+    )
+
+
+@router.get("/reviews/preview-events")
+async def list_preview_events_endpoint(
+    business_id: Optional[str] = None,
+    ctx: TenantContext = Depends(require_tenant_access("staff", required_entitlement=ENTITLEMENT_REVIEW_MANAGER)),
+    store: ReviewStore = Depends(get_store),
+):
+    """Retrieves segregated preview and internal admin telemetry without touching customer metrics."""
+    target = business_id or ctx.tenant_id
+    valid_id = validate_business_id(target)
+    target_id = "default_business" if valid_id in ("default_business", "nasta_ghar", "nasta-ghar") else valid_id
+    return {"events": store.list_preview_events(target_id)}
+
+
 @router.post("/reviews/session", response_model=ReviewSessionResponse)
 async def create_review_session(req: ReviewSessionCreateRequest, request: Request):
     if not review_service.check_rate_limit(f"session:{get_client_ip(request)}", max_per_minute=30):
         raise HTTPException(status_code=429, detail="Rate limit reached. Please wait a moment.")
     valid_id = validate_business_id(req.business_id)
+    _resolve_tenant_review_context(valid_id)
     store = get_store()
     if not store.tenant_exists(valid_id):
         raise HTTPException(status_code=404, detail=f"Business '{valid_id}' not found.")
@@ -469,21 +592,76 @@ async def create_review_session(req: ReviewSessionCreateRequest, request: Reques
             status_code=403,
             detail=f"Module '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{valid_id}'."
         )
+
+    target_id = "default_business" if valid_id in ("default_business", "nasta_ghar", "nasta-ghar") else valid_id
+
+    # 3-Way Traffic Source Determination:
+    # 'customer' (default) vs. 'preview' (authenticated tenant owner/staff) vs. 'internal_admin' (platform admin)
+    traffic_source = "customer"
+    verified_token = None
+
+    # 1. Verify signed preview token if supplied via body, header, or query
+    raw_token = (
+        req.preview_token
+        or request.headers.get("x-preview-token")
+        or request.query_params.get("preview_token")
+    )
+    if raw_token:
+        verified_payload = verify_preview_token(raw_token)
+        if verified_payload:
+            token_tenant = verified_payload.get("tenant_id")
+            if verified_payload.get("is_admin") or token_tenant == target_id:
+                traffic_source = verified_payload.get("traffic_source", "preview")
+                verified_token = raw_token
+
+    # 2. Check active server session context if preview token was not already provided
+    if traffic_source == "customer":
+        auth_ctx = get_optional_auth_context(request)
+        if auth_ctx:
+            if auth_ctx.is_platform_admin:
+                traffic_source = "internal_admin"
+                verified_token = create_preview_token(target_id, auth_ctx.user_id, auth_ctx.role, is_admin=True)
+            elif auth_ctx.tenant_id == target_id:
+                traffic_source = "preview"
+                verified_token = create_preview_token(target_id, auth_ctx.user_id, auth_ctx.role, is_admin=False)
+
+    # Note: Client-supplied unauthenticated ?preview=true or is_preview=True is strictly NOT trusted.
+    # Unverified claims automatically resolve to "customer".
+
     session_id = str(uuid.uuid4())
+    is_preview_session = traffic_source in ("preview", "internal_admin")
+
+    # Record verified session context in service
+    review_service.record_session(
+        session_id=session_id,
+        business_id=valid_id,
+        traffic_source=traffic_source,
+        table_number=req.table_number,
+        dining_type=req.dining_type,
+    )
+
     review_service.record_event(
         "session_created",
         session_id=session_id,
         metadata={
             "business_id": valid_id,
             "table_number": req.table_number,
-            "dining_type": req.dining_type
-        }
+            "dining_type": req.dining_type,
+            "traffic_source": traffic_source,
+            "is_preview": is_preview_session,
+        },
+        tenant_id=valid_id,
+        traffic_source=traffic_source,
     )
+
     return ReviewSessionResponse(
         session_id=session_id,
         business_id=valid_id,
         table_number=req.table_number,
-        created_at=str(time.time())
+        created_at=str(time.time()),
+        traffic_source=traffic_source,
+        is_preview=is_preview_session,
+        preview_token=verified_token,
     )
 
 
@@ -494,7 +672,19 @@ async def record_analytics_event(ev: AnalyticsEventRequest, request: Request):
     if ev.event_name not in ALLOWED_ANALYTICS_EVENTS:
         raise HTTPException(status_code=422, detail="Unknown event type.")
 
-    b_id = ev.metadata.get("business_id", "default_business") if ev.metadata else "default_business"
+    # Resolve target business ID from metadata or active session
+    b_id = None
+    explicit_business_id = False
+    if ev.metadata and "business_id" in ev.metadata and ev.metadata["business_id"]:
+        b_id = str(ev.metadata["business_id"]).strip()
+        explicit_business_id = True
+    elif ev.session_id and ev.session_id.strip():
+        sess_lookup = review_service.get_session_info(ev.session_id.strip())
+        if sess_lookup and sess_lookup.get("business_id"):
+            b_id = sess_lookup["business_id"]
+    if not b_id:
+        b_id = "default_business"
+
     valid_id = validate_business_id(b_id)
     store = get_store()
     if not store.tenant_exists(valid_id):
@@ -508,12 +698,90 @@ async def record_analytics_event(ev: AnalyticsEventRequest, request: Request):
             detail=f"Module '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{valid_id}'."
         )
 
-    review_service.record_event(
+    target_id = "default_business" if valid_id in ("default_business", "nasta_ghar", "nasta-ghar") else valid_id
+
+    # Session ID validation & cross-tenant ownership check
+    sid = (ev.session_id or "").strip()
+    is_valid_uuid = False
+    verified_session_id = "anonymous"
+    is_session_verified = False
+
+    if sid and sid.lower() not in ("anonymous", "none", "null", "undefined", ""):
+        try:
+            parsed_uuid = uuid.UUID(sid, version=4)
+            is_valid_uuid = (parsed_uuid.version == 4)
+        except (ValueError, AttributeError, TypeError):
+            is_valid_uuid = False
+
+        if is_valid_uuid:
+            normalized_sid = str(parsed_uuid)
+            sess_info = review_service.get_session_info(normalized_sid, check_expiry=True)
+            if sess_info:
+                sess_biz = sess_info.get("business_id", "")
+                norm_sess_biz = "default_business" if sess_biz in ("default_business", "nasta_ghar", "nasta-ghar") else sess_biz
+                if norm_sess_biz != target_id:
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"Cross-tenant session borrowing detected: session belongs to '{sess_biz}', not '{valid_id}'."
+                    )
+                verified_session_id = normalized_sid
+                is_session_verified = True
+            else:
+                # Unknown UUIDv4 or expired session: accepted as unverified customer session
+                verified_session_id = normalized_sid
+                is_session_verified = False
+        else:
+            # Malformed session ID (not UUIDv4): mark unverified telemetry
+            verified_session_id = "unverified"
+            is_session_verified = False
+
+    # 1. Check server-verified session context
+    traffic_source = "customer"
+    if is_session_verified and verified_session_id not in ("anonymous", "unverified"):
+        sess_info = review_service.get_session_info(verified_session_id)
+        if sess_info and sess_info.get("traffic_source"):
+            traffic_source = sess_info["traffic_source"]
+
+    # 2. Check signed preview token if supplied via payload, header, or query
+    if traffic_source == "customer":
+        raw_token = (
+            ev.preview_token
+            or request.headers.get("x-preview-token")
+            or request.query_params.get("preview_token")
+        )
+        if raw_token:
+            verified_payload = verify_preview_token(raw_token)
+            if verified_payload:
+                token_tenant = verified_payload.get("tenant_id")
+                if verified_payload.get("is_admin") or token_tenant == target_id:
+                    traffic_source = verified_payload.get("traffic_source", "preview")
+
+    # 3. Check active server session context
+    if traffic_source == "customer":
+        auth_ctx = get_optional_auth_context(request)
+        if auth_ctx:
+            if auth_ctx.is_platform_admin:
+                traffic_source = "internal_admin"
+            elif auth_ctx.tenant_id == target_id:
+                traffic_source = "preview"
+
+    meta = dict(ev.metadata or {})
+    meta["traffic_source"] = traffic_source
+    meta["is_preview"] = traffic_source in ("preview", "internal_admin")
+    meta["session_verified"] = is_session_verified
+    if not is_session_verified and sid and sid.lower() not in ("anonymous", "none", "null", "undefined", ""):
+        meta["raw_session_id"] = sid
+
+    res = review_service.record_event(
         event_name=ev.event_name,
-        session_id=ev.session_id,
-        metadata=ev.metadata
+        session_id=verified_session_id,
+        metadata=meta,
+        tenant_id=valid_id,
+        traffic_source=traffic_source,
+        idempotency_key=ev.idempotency_key,
+        session_verified=is_session_verified,
     )
-    return {"status": "recorded"}
+    return res
 
 
 @router.post("/reviews/private-feedback", response_model=PrivateFeedbackResponse)
@@ -521,6 +789,7 @@ async def submit_private_feedback(req: PrivateFeedbackRequest, request: Request)
     if not review_service.check_rate_limit(f"private-feedback:{get_client_ip(request)}", max_per_minute=5):
         raise HTTPException(status_code=429, detail="Please wait before sending another message.")
     valid_id = validate_business_id(req.business_id)
+    _resolve_tenant_review_context(valid_id)
     store = get_store()
     if not store.tenant_exists(valid_id):
         raise HTTPException(status_code=404, detail=f"Business '{valid_id}' not found.")
@@ -550,8 +819,21 @@ async def get_business_review_link(business_id: str):
         raise HTTPException(status_code=404, detail=f"Business '{valid_id}' not found.")
     if info.get("status") == "suspended":
         raise HTTPException(status_code=403, detail=f"Business '{valid_id}' is inactive or suspended.")
+    if info.get("is_restricted"):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Customer review experience is restricted for industry '{info.get('industry_id')}' due to regulatory and safety compliance."
+        )
     if not check_tenant_entitlement(valid_id, ENTITLEMENT_REVIEW_MANAGER):
         raise HTTPException(status_code=403, detail=f"Module '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{valid_id}'.")
+    raw_term = info.get("terminology")
+    term_dict = None
+    if raw_term is not None:
+        if hasattr(raw_term, "__dataclass_fields__"):
+            from dataclasses import asdict
+            term_dict = asdict(raw_term)
+        elif isinstance(raw_term, dict):
+            term_dict = raw_term
     return BusinessReviewLinkResponse(
         business_id=valid_id,
         platform=info.get("platform", "google"),
@@ -560,12 +842,14 @@ async def get_business_review_link(business_id: str):
         business_name=info.get("business_name", "Nasta Ghar"),
         branch=info.get("branch", ""),
         category=info.get("category", "Breakfast & Snacks"),
+        industry_id=info.get("industry_id", "restaurant"),
         description=info.get("description", "Authentic homestyle breakfast, chai, and snacks in Rajkot."),
         topics=info.get("topics", []),
         primary_accent=info.get("primary_accent", "#f97316"),
         domain=info.get("domain", ""),
         entitlements=info.get("entitlements", ["review_manager", "digital_card"]),
-        logo_path=info.get("logo_path", "")
+        logo_path=info.get("logo_path", ""),
+        terminology=term_dict
     )
 
 
@@ -623,6 +907,8 @@ async def get_business_by_domain(domain: str):
 async def get_analytics(
     business_id: Optional[str] = None,
     timezone: Optional[str] = "Asia/Kolkata",
+    start_date: Optional[str] = Query(None, description="Start date YYYY-MM-DD"),
+    end_date: Optional[str] = Query(None, description="End date YYYY-MM-DD"),
     ctx: TenantContext = Depends(require_tenant_access("staff", required_entitlement="review_manager"))
 ):
     target = business_id or ctx.tenant_id
@@ -634,7 +920,59 @@ async def get_analytics(
         profile = store.get_shared_business_profile(target_id)
         if profile and profile.get("timezone"):
             effective_tz = profile["timezone"]
-    return review_service.get_analytics_summary(business_id=target_id, timezone_str=effective_tz or "Asia/Kolkata")
+
+    try:
+        tz = zoneinfo.ZoneInfo(effective_tz or "Asia/Kolkata")
+    except Exception:
+        tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+
+    s_date = None
+    e_date = None
+
+    if start_date is not None:
+        s_str = start_date.strip()
+        if not DATE_PARAM_REGEX.match(s_str):
+            raise HTTPException(status_code=422, detail=f"Invalid start_date format: '{start_date}'. Expected YYYY-MM-DD.")
+        try:
+            s_date = datetime.strptime(s_str, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"Invalid start_date value: '{start_date}'. Must be a valid calendar date.")
+
+    if end_date is not None:
+        e_str = end_date.strip()
+        if not DATE_PARAM_REGEX.match(e_str):
+            raise HTTPException(status_code=422, detail=f"Invalid end_date format: '{end_date}'. Expected YYYY-MM-DD.")
+        try:
+            e_date = datetime.strptime(e_str, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"Invalid end_date value: '{end_date}'. Must be a valid calendar date.")
+
+    if s_date is not None and e_date is not None:
+        if e_date < s_date:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid date range: end_date '{end_date}' cannot be earlier than start_date '{start_date}'."
+            )
+
+    start_timestamp: Optional[float] = None
+    end_timestamp: Optional[float] = None
+
+    if s_date is not None:
+        # Inclusive start boundary: local 00:00:00 on start_date converted to UTC timestamp
+        dt_start = datetime.combine(s_date, dtime.min, tzinfo=tz)
+        start_timestamp = dt_start.timestamp()
+
+    if e_date is not None:
+        # Exclusive end boundary: local 00:00:00 on day following end_date converted to UTC timestamp
+        dt_end = datetime.combine(e_date + timedelta(days=1), dtime.min, tzinfo=tz)
+        end_timestamp = dt_end.timestamp()
+
+    return review_service.get_analytics_summary(
+        business_id=target_id,
+        timezone_str=effective_tz or "Asia/Kolkata",
+        start_timestamp=start_timestamp,
+        end_timestamp=end_timestamp
+    )
 
 
 @router.get("/reviews/private-tickets")
@@ -688,6 +1026,24 @@ async def update_business_config(
     valid_id = validate_business_id(business_id)
     # Only platform admins can modify entitlements; tenant owners cannot self-assign packages
     effective_entitlements = cfg.entitlements if ctx.is_platform_admin else None
+
+    # Check if industry is specified and validate
+    effective_industry = None
+    if cfg.industry_id is not None and cfg.industry_id.strip():
+        norm_ind = cfg.industry_id.strip().lower()
+        if norm_ind == "healthcare":
+            raise HTTPException(
+                status_code=400,
+                detail="Healthcare onboarding is disabled in production pending regulatory compliance and privacy review."
+            )
+        from backend.app.core.industry_registry import CANONICAL_INDUSTRIES
+        if norm_ind not in CANONICAL_INDUSTRIES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid industry_id '{cfg.industry_id}'. Must be a registered industry."
+            )
+        effective_industry = norm_ind
+
     info = google_review_manager.update_business_config(
         business_id=valid_id,
         google_review_url=cfg.google_review_url,
@@ -698,7 +1054,8 @@ async def update_business_config(
         topics=cfg.topics,
         primary_accent=cfg.primary_accent,
         domain=cfg.domain,
-        entitlements=effective_entitlements
+        entitlements=effective_entitlements,
+        industry_id=effective_industry
     )
     return BusinessReviewLinkResponse(
         business_id=valid_id,
@@ -708,12 +1065,87 @@ async def update_business_config(
         business_name=info.get("business_name", "Nasta Ghar"),
         branch=info.get("branch", ""),
         category=info.get("category", "Breakfast & Snacks"),
+        industry_id=info.get("industry_id", "restaurant"),
         description=info.get("description", "Authentic homestyle breakfast, chai, and snacks in Rajkot."),
         topics=info.get("topics", []),
         primary_accent=info.get("primary_accent", "#f97316"),
         domain=info.get("domain", ""),
         entitlements=info.get("entitlements", ["review_manager", "digital_card"]),
         logo_path=info.get("logo_path", "")
+    )
+
+
+@router.get("/businesses/{business_id}/industry-config", response_model=IndustryConfigResponse)
+async def get_business_industry_config(
+    business_id: str,
+    ctx: TenantContext = Depends(require_tenant_access("staff", required_entitlement=ENTITLEMENT_REVIEW_MANAGER)),
+    store: ReviewStore = Depends(get_store),
+):
+    """
+    Authenticated, tenant-scoped endpoint returning the resolved industry configuration,
+    authoritative topics with strict precedence (Tenant Custom Topics -> Industry Defaults -> Platform Fallbacks),
+    normalized terminology, and feature capabilities.
+    """
+    valid_id = validate_business_id(business_id)
+    target_id = ctx.tenant_id
+
+    tenant = store.get_tenant(target_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail=f"Business '{valid_id}' not found.")
+    if tenant.get("status") != "active":
+        raise HTTPException(status_code=403, detail=f"Business '{valid_id}' is inactive or suspended.")
+
+    from backend.app.core.industry_registry import (
+        resolve_industry,
+        resolve_effective_topics,
+    )
+
+    explicit_ind = tenant.get("industry_id")
+    category = tenant.get("category", "")
+    ind_def = resolve_industry(category=category, explicit_industry_id=explicit_ind)
+
+    tenant_topics = tenant.get("topics")
+    has_custom = bool(tenant_topics and len(tenant_topics) > 0)
+    effective_topics = resolve_effective_topics(tenant_topics, ind_def.industry_id)
+
+    return IndustryConfigResponse(
+        business_id=valid_id,
+        industry_id=ind_def.industry_id,
+        industry_name=ind_def.display_name,
+        description=ind_def.description,
+        subcategory=category if category else ind_def.default_subcategory,
+        subcategories=ind_def.subcategories,
+        terminology=TerminologySchema(
+            customer_noun_singular=ind_def.terminology.customer_noun_singular,
+            customer_noun_plural=ind_def.terminology.customer_noun_plural,
+            touchpoint_noun=ind_def.terminology.touchpoint_noun,
+            touchpoint_placeholder=ind_def.terminology.touchpoint_placeholder,
+            disclaimer_noun=ind_def.terminology.disclaimer_noun,
+            private_feedback_title=ind_def.terminology.private_feedback_title,
+        ),
+        default_topics=ind_def.default_topics,
+        effective_topics=effective_topics,
+        has_custom_topics=has_custom,
+        configuration_version=ind_def.configuration_version,
+        available_features=ind_def.available_features,
+        analytics_labels=ind_def.analytics_labels,
+        is_unclassified=bool(ind_def.industry_id == "unclassified"),
+    )
+
+
+@router.get("/industries", response_model=AvailableIndustriesResponse)
+async def list_available_industries(
+    _: TenantContext = Depends(require_auth_context),
+):
+    """
+    Returns active, production-ready industries for tenant onboarding and owner portal selection.
+    Restricted industries (e.g. Healthcare) are excluded from production onboarding.
+    """
+    from backend.app.core.industry_registry import get_available_industries
+    items = get_available_industries()
+    return AvailableIndustriesResponse(
+        industries=[IndustrySummaryItem(**item) for item in items],
+        count=len(items),
     )
 
 

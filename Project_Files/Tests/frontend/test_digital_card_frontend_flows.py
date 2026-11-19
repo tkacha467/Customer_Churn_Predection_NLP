@@ -12,13 +12,13 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from Backend.app.main import app
-from Backend.app.core.database.storage import ReviewStore
-from Backend.app.api.document_storage import (
+from backend.app.main import app
+from backend.app.core.database.storage import ReviewStore
+from backend.app.api.document_storage import (
     DocumentStorageService,
     _document_services,
 )
-from Backend.app.core.auth.auth import (
+from backend.app.core.auth.auth import (
     _stores,
     hash_password,
     hash_token,
@@ -28,7 +28,7 @@ from Backend.app.core.auth.auth import (
     _login_attempts,
     _login_lock,
 )
-from Backend.app.api.service import review_service
+from backend.app.api.service import review_service
 
 SAMPLE_PDF_BYTES = (
     b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj "

@@ -1,4 +1,4 @@
-from Backend.app.models.model_loader import loader, no_grad_inference
+from backend.app.models.model_loader import loader, no_grad_inference
 import time
 
 class SarcasmAnalyzer:

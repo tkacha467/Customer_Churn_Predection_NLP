@@ -222,7 +222,7 @@ if [ "$BACKEND_HEALTHY" -eq 0 ]; then
         printf 'cd %s || exit 1\n' "$ROOT_Q"
         printf 'export HF_HUB_CACHE=%s HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1\n' "$HF_CACHE_Q"
         printf 'printf "\\nNastaGhar backend on http://127.0.0.1:8000\\nCached CardiffNLP models only; downloads disabled.\\n\\n"\n'
-        printf '%s -m uvicorn Backend.app.main:app --host 127.0.0.1 --port 8000 --reload\n' "$PYTHON_Q"
+        printf '%s -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload\n' "$PYTHON_Q"
         printf 'result=$?\nprintf "\\nBackend exited with status %%s. Press Ctrl-D to close this Terminal window.\\n" "$result"\n/bin/bash -i\n'
     } > "$runner_file"
     launch_terminal_runner backend "$runner_file"

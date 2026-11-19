@@ -3,6 +3,16 @@ import { usePortalSession } from './PortalSessionContext';
 import PortalSidebar from './PortalSidebar';
 import PortalHeader from './PortalHeader';
 import SharedBusinessProfileView from './SharedBusinessProfileView';
+import { ProductAReviewSetup } from './product_a/ProductAReviewSetup';
+import { ProductAReviewAnalytics } from './product_a/ProductAReviewAnalytics';
+import { ProductAPrivateInbox } from './product_a/ProductAPrivateInbox';
+import { apiFetch } from '../../lib/api';
+import {
+  AdminCard,
+  AdminButton,
+  AdminInput,
+  AdminNotification,
+} from '../admin/common';
 import './UnifiedPortal.css';
 
 export function UnifiedClientPortal({
@@ -10,6 +20,7 @@ export function UnifiedClientPortal({
   onPreviewCard,
 }) {
   const {
+    user,
     activeTenant,
     sharedProfile,
     entitlements,
@@ -27,6 +38,13 @@ export function UnifiedClientPortal({
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [guardNotice, setGuardNotice] = useState('');
+
+  // Password management state for Settings section
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordStatus, setPasswordStatus] = useState({ type: '', text: '' });
 
   // Synchronize tab changes to URL search params
   const handleSelectTab = useCallback((newTab) => {
@@ -117,7 +135,7 @@ export function UnifiedClientPortal({
                 </div>
                 <h3 className="card-title">Google Review Manager</h3>
                 <p className="card-desc">
-                  Proactive diner feedback capture, AI-assisted review drafting, and authentic Google review analytics.
+                  Proactive customer feedback capture, AI-assisted review drafting, and authentic Google review analytics.
                 </p>
                 <div className="card-actions">
                   <button
@@ -196,33 +214,18 @@ export function UnifiedClientPortal({
       return <SharedBusinessProfileView />;
     }
 
-    // 3. Product A Views (Wired in Phase 3.4)
-    if (activeTab.startsWith('reviews-')) {
-      const titles = {
-        'reviews-setup': 'Review Setup & Keyword Configuration',
-        'reviews-analytics': 'Authentic Review Activity & Timezone Analytics',
-        'reviews-inbox': 'Private Feedback Management Inbox',
-      };
-      return (
-        <div className="vraja-portal-view-container">
-          <div className="vraja-view-header">
-            <h1 className="vraja-view-title">{titles[activeTab] || 'Google Review Manager'}</h1>
-            <p className="vraja-view-subtitle">
-              Product A module integrated into the unified client portal shell.
-            </p>
-          </div>
-          <div className="vraja-placeholder-panel">
-            <span className="placeholder-icon">⭐</span>
-            <h3>{titles[activeTab]}</h3>
-            <p>
-              Product A embedded component integration (Phase 3.4 target). Preserves the 5-section invariant standard.
-            </p>
-          </div>
-        </div>
-      );
+    // 3. Product A Views (Mounted in Phase 4)
+    if (activeTab === 'reviews-setup') {
+      return <ProductAReviewSetup businessId={activeTenant?.id} />;
+    }
+    if (activeTab === 'reviews-analytics') {
+      return <ProductAReviewAnalytics businessId={activeTenant?.id} />;
+    }
+    if (activeTab === 'reviews-inbox') {
+      return <ProductAPrivateInbox businessId={activeTenant?.id} />;
     }
 
-    // 4. Product B Views (Wired in Phase 3.5)
+    // 4. Product B Views (Phase 5 target)
     if (activeTab.startsWith('card-')) {
       const titles = {
         'card-editor': 'Digital Business Card Studio',
@@ -241,29 +244,190 @@ export function UnifiedClientPortal({
             <span className="placeholder-icon">🪪</span>
             <h3>{titles[activeTab]}</h3>
             <p>
-              Product B embedded component integration (Phase 3.5 target). Live card mockup, appearance controls, and document storage.
+              Product B embedded component integration (Phase 5 target). Live card mockup, appearance controls, and document storage.
             </p>
           </div>
         </div>
       );
     }
 
-    // 5. Settings Tab (Wired in Phase 3.6)
+    // 5. Settings Tab (Section 5 Standard)
     if (activeTab === 'settings') {
+      const handleChangePassword = async (e) => {
+        e.preventDefault();
+        setPasswordStatus({ type: '', text: '' });
+
+        if (newPassword.length < 8) {
+          setPasswordStatus({ type: 'error', text: 'New password must be at least 8 characters long.' });
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          setPasswordStatus({ type: 'error', text: 'New password confirmation does not match.' });
+          return;
+        }
+
+        setIsChangingPassword(true);
+        try {
+          const res = await apiFetch('/api/auth/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              current_password: currentPassword,
+              new_password: newPassword,
+            }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.detail || 'Failed to update password.');
+          }
+          setPasswordStatus({ type: 'success', text: '✓ Password updated successfully!' });
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+          setTimeout(() => setPasswordStatus({ type: '', text: '' }), 4000);
+        } catch (err) {
+          setPasswordStatus({ type: 'error', text: err.message || 'Error updating password.' });
+        } finally {
+          setIsChangingPassword(false);
+        }
+      };
+
       return (
         <div className="vraja-portal-view-container">
           <div className="vraja-view-header">
             <h1 className="vraja-view-title">Account Settings & Security</h1>
             <p className="vraja-view-subtitle">
-              Manage your credentials, membership role, and tenant metadata.
+              Manage credentials, authorized memberships, and canonical shared business profile.
             </p>
           </div>
-          <div className="vraja-placeholder-panel">
-            <span className="placeholder-icon">🔒</span>
-            <h3>Account Settings & Password Management</h3>
-            <p>
-              Shared portal settings integration (Phase 3.6 target). Self-service password change, active memberships, and role verification.
-            </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+            {/* Account & Tenant Identity Card */}
+            <AdminCard
+              title="Business Account & Identity"
+              subtitle="Tenant metadata and authorized membership credentials"
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+                <div style={{ backgroundColor: '#FAF9F6', padding: '14px', borderRadius: '8px', border: '1px solid #E3E8E3' }}>
+                  <span style={{ fontSize: '11px', color: '#718078', textTransform: 'uppercase', fontWeight: 600 }}>
+                    Tenant Identifier
+                  </span>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: '#26352D', marginTop: '4px' }}>
+                    {activeTenant?.id || 'default_business'}
+                  </div>
+                </div>
+
+                <div style={{ backgroundColor: '#FAF9F6', padding: '14px', borderRadius: '8px', border: '1px solid #E3E8E3' }}>
+                  <span style={{ fontSize: '11px', color: '#718078', textTransform: 'uppercase', fontWeight: 600 }}>
+                    Account Email
+                  </span>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: '#26352D', marginTop: '4px' }}>
+                    {user?.email || 'N/A'}
+                  </div>
+                </div>
+
+                <div style={{ backgroundColor: '#FAF9F6', padding: '14px', borderRadius: '8px', border: '1px solid #E3E8E3' }}>
+                  <span style={{ fontSize: '11px', color: '#718078', textTransform: 'uppercase', fontWeight: 600 }}>
+                    Membership Role
+                  </span>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: '#174D3A', marginTop: '4px', textTransform: 'capitalize' }}>
+                    {activeTenant?.role || 'Member'}
+                  </div>
+                </div>
+              </div>
+
+              {onPreviewReview && hasEntitlement('review_manager') && (
+                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #E3E8E3', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <strong style={{ color: '#26352D' }}>Customer Review Experience Preview</strong>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#718078' }}>
+                      Preview the customer review flow as a diner would experience it.
+                    </p>
+                  </div>
+                  <AdminButton
+                    type="button"
+                    variant="secondary"
+                    onClick={onPreviewReview}
+                  >
+                    Open Review Flow Preview ↗
+                  </AdminButton>
+                </div>
+              )}
+            </AdminCard>
+
+            {/* Shared Business Profile Navigation inside Settings */}
+            <AdminCard
+              title="Canonical Shared Business Profile"
+              subtitle="Business name, branch location, contact details, operating hours, and logo"
+              actions={
+                <AdminButton
+                  type="button"
+                  variant="primary"
+                  onClick={() => handleSelectTab('profile')}
+                >
+                  🏢 Open Shared Profile & Logo →
+                </AdminButton>
+              }
+            >
+              <p style={{ margin: 0, fontSize: '13.5px', color: '#718078', lineHeight: '1.6' }}>
+                Your business profile defines the authoritative brand identity across all enabled VRAJA AI products.
+                Any updates made to your name, contact details, opening hours, or logo automatically propagate across Product A and Product B.
+              </p>
+            </AdminCard>
+
+            {/* Password Management Card */}
+            <AdminCard
+              title="Password Management"
+              subtitle="Update your business account password securely"
+            >
+              {passwordStatus.text && (
+                <div style={{ marginBottom: '16px' }}>
+                  <AdminNotification
+                    type={passwordStatus.type}
+                    message={passwordStatus.text}
+                  />
+                </div>
+              )}
+
+              <form onSubmit={handleChangePassword} style={{ maxWidth: '520px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <AdminInput
+                  label="Current Password"
+                  id="portal-current-password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                />
+
+                <AdminInput
+                  label="New Password (min 8 characters)"
+                  id="portal-new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+
+                <AdminInput
+                  label="Confirm New Password"
+                  id="portal-confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+
+                <div>
+                  <AdminButton
+                    type="submit"
+                    variant="primary"
+                    disabled={isChangingPassword}
+                  >
+                    {isChangingPassword ? 'Updating Password...' : '🔒 Change Password'}
+                  </AdminButton>
+                </div>
+              </form>
+            </AdminCard>
           </div>
         </div>
       );

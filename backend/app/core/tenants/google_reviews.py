@@ -11,6 +11,7 @@ import copy
 import threading
 from pathlib import Path
 from typing import Dict, Any, Optional, List
+from dataclasses import asdict, is_dataclass
 
 SOURCE_CONFIG_FILE = Path(__file__).parent / "business_links.json"
 CONFIG_FILE = Path(os.getenv("BUSINESS_LINKS_PATH", str(SOURCE_CONFIG_FILE))).expanduser()
@@ -86,15 +87,35 @@ def get_category_topics(category: Optional[str]) -> List[str]:
 
 class GoogleReviewManager:
     def __init__(self):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._links: Dict[str, Dict[str, Any]] = {}
+        self._last_cache_key = (0, 0)
         self._load_links()
+
+    def _refresh_if_needed(self):
+        source = CONFIG_FILE if CONFIG_FILE.exists() else SOURCE_CONFIG_FILE
+        if source.exists():
+            try:
+                st = source.stat()
+                cache_key = (st.st_mtime_ns, st.st_size)
+                if cache_key != self._last_cache_key:
+                    self._load_links()
+            except OSError:
+                pass
+
+    def invalidate_cache(self):
+        """Force a fresh load of configuration from disk, invalidating worker cache."""
+        with self._lock:
+            self._last_cache_key = (0, 0)
+            self._load_links()
 
     def _load_links(self):
         with self._lock:
             source = CONFIG_FILE if CONFIG_FILE.exists() else SOURCE_CONFIG_FILE
             if source.exists():
                 try:
+                    st = source.stat()
+                    self._last_cache_key = (st.st_mtime_ns, st.st_size)
                     with open(source, "r", encoding="utf-8") as f:
                         self._links = json.load(f)
                 except Exception as e:
@@ -124,13 +145,16 @@ class GoogleReviewManager:
             with open(temporary, "w", encoding="utf-8") as f:
                 json.dump(self._links, f, indent=2)
             temporary.replace(CONFIG_FILE)
+            st = CONFIG_FILE.stat()
+            self._last_cache_key = (st.st_mtime_ns, st.st_size)
         except Exception as e:
             raise RuntimeError("Could not persist restaurant configuration") from e
 
     def get_review_url(self, business_id: str, allow_default_fallback: bool = False) -> Optional[Dict[str, Any]]:
         with self._lock:
-            # First attempt lookup in SQLite ReviewStore
-            from Backend.app.core.database.storage import ReviewStore
+            self._refresh_if_needed()
+            # First attempt lookup in SQLite ReviewStore (authoritative database-backed resolution)
+            from backend.app.core.database.storage import ReviewStore
             store = ReviewStore()
             tenant = store.get_tenant(business_id)
             if tenant:
@@ -139,7 +163,11 @@ class GoogleReviewManager:
                 if not url.strip():
                     url = "https://maps.google.com"
                 category = tenant.get("category", "Breakfast & Snacks")
-                topics = tenant.get("topics") or get_category_topics(category)
+                explicit_ind = tenant.get("industry_id") or self._links.get(business_id, {}).get("industry_id")
+                from backend.app.core.industry_registry import resolve_industry, resolve_effective_topics
+                ind_def = resolve_industry(category=category, explicit_industry_id=explicit_ind)
+                topics = tenant.get("topics")
+                effective_topics = resolve_effective_topics(topics, ind_def.industry_id)
                 return {
                     "business_id": business_id,
                     "platform": tenant.get("platform", "google"),
@@ -148,13 +176,17 @@ class GoogleReviewManager:
                     "business_name": tenant.get("business_name", "Nasta Ghar"),
                     "branch": tenant.get("branch", ""),
                     "category": category,
+                    "industry_id": ind_def.industry_id,
                     "description": tenant.get("description", "Authentic homestyle breakfast, chai, and snacks in Rajkot."),
-                    "topics": topics,
+                    "topics": effective_topics,
                     "primary_accent": tenant.get("primary_accent", "#f97316"),
                     "domain": tenant.get("domain", ""),
                     "entitlements": tenant.get("entitlements", ["review_manager"]),
                     "status": tenant.get("status", "active"),
-                    "logo_path": tenant.get("logo_path", "")
+                    "logo_path": tenant.get("logo_path", ""),
+                    "terminology": asdict(ind_def.terminology) if is_dataclass(ind_def.terminology) else ind_def.terminology,
+                    "is_restricted": ind_def.is_restricted,
+                    "restriction_notice": ind_def.restriction_notice
                 }
 
             if business_id in ("default_business", "nasta_ghar", "nasta-ghar"):
@@ -172,7 +204,11 @@ class GoogleReviewManager:
                 url = "https://maps.google.com"
 
             category = info.get("category", "Breakfast & Snacks")
+            explicit_ind = info.get("industry_id")
+            from backend.app.core.industry_registry import resolve_industry, resolve_effective_topics
+            ind_def = resolve_industry(category=category, explicit_industry_id=explicit_ind)
             topics = info.get("topics") or get_category_topics(category)
+            effective_topics = resolve_effective_topics(topics, ind_def.industry_id)
 
             return {
                 "business_id": business_id,
@@ -182,12 +218,17 @@ class GoogleReviewManager:
                 "business_name": info.get("business_name", "Nasta Ghar"),
                 "branch": info.get("branch", ""),
                 "category": category,
+                "industry_id": ind_def.industry_id,
                 "description": info.get("description", "Authentic homestyle breakfast, chai, and snacks in Rajkot."),
-                "topics": topics,
+                "topics": effective_topics,
                 "primary_accent": info.get("primary_accent", "#f97316"),
                 "domain": info.get("domain", ""),
                 "entitlements": info.get("entitlements", ["review_manager"]),
-                "status": info.get("status", "active")
+                "status": info.get("status", "active"),
+                "logo_path": info.get("logo_path", ""),
+                "terminology": asdict(ind_def.terminology) if is_dataclass(ind_def.terminology) else ind_def.terminology,
+                "is_restricted": ind_def.is_restricted,
+                "restriction_notice": ind_def.restriction_notice
             }
 
     def update_business_config(
@@ -202,7 +243,8 @@ class GoogleReviewManager:
         primary_accent: Optional[str] = None,
         domain: Optional[str] = None,
         entitlements: Optional[List[str]] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        industry_id: Optional[str] = None
     ) -> Dict[str, Any]:
         with self._lock:
             previous_links = copy.deepcopy(self._links)
@@ -231,11 +273,13 @@ class GoogleReviewManager:
                 self._links[business_id]["entitlements"] = list(entitlements)
             if status is not None:
                 self._links[business_id]["status"] = status.strip()
+            if industry_id is not None:
+                self._links[business_id]["industry_id"] = industry_id.strip().lower()
 
             try:
                 self._save_links()
                 # Mirror update to SQLite ReviewStore
-                from Backend.app.core.database.storage import ReviewStore
+                from backend.app.core.database.storage import ReviewStore
                 store = ReviewStore()
                 current_tenant = store.get_tenant(business_id)
                 persisted_status = self._links[business_id].get(
@@ -264,6 +308,8 @@ class GoogleReviewManager:
                 if cur_domain:
                     self._links[business_id]["domain"] = cur_domain
 
+                cur_ind = (industry_id if industry_id is not None else None) or (current_tenant.get("industry_id") if current_tenant else None) or self._links[business_id].get("industry_id")
+
                 store.upsert_tenant({
                     "id": business_id,
                     "business_name": cur_name,
@@ -276,7 +322,8 @@ class GoogleReviewManager:
                     "platform": self._links[business_id].get("platform", "google"),
                     "domain": cur_domain,
                     "entitlements": cur_entitlements,
-                    "status": persisted_status
+                    "status": persisted_status,
+                    "industry_id": cur_ind
                 })
 
                 # Synchronize shared identity fields to canonical business_profiles

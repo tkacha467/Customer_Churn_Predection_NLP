@@ -13,9 +13,9 @@ import tarfile
 import pytest
 from pathlib import Path
 
-from Backend.app.core.database.storage import ReviewStore
-from Backend.app.api.document_storage import DocumentStorageService
-from Backend.app.core.entitlements.entitlements import check_tenant_entitlement
+from backend.app.core.database.storage import ReviewStore
+from backend.app.api.document_storage import DocumentStorageService
+from backend.app.core.entitlements.entitlements import check_tenant_entitlement
 from scripts.backup_restore import create_backup, verify_backup, restore_backup, compute_sha256
 from scripts.package_release import build_release_package, verify_release_package
 

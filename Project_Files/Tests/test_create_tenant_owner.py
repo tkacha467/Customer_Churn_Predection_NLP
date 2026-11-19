@@ -16,7 +16,7 @@ from scripts.create_tenant_owner import (
     validate_tenant_identifier,
     resolve_password,
 )
-from Backend.app.core.database.storage import ReviewStore
+from backend.app.core.database.storage import ReviewStore
 
 
 def test_validate_email_format():

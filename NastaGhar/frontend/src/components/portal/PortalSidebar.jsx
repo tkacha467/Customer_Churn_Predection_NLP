@@ -99,7 +99,7 @@ export function PortalSidebar({
 
         {/* Navigation Sections */}
         <nav className="vraja-sidebar-nav" aria-label="Portal Navigation">
-          {/* Group 1: General Overview & Identity */}
+          {/* Group 1: General Overview */}
           <div className="vraja-nav-group">
             <span className="vraja-nav-group-title">OVERVIEW</span>
             <ul className="vraja-nav-list">
@@ -111,16 +111,6 @@ export function PortalSidebar({
                 >
                   <span className="nav-icon">📊</span>
                   <span className="nav-label">Dashboard Overview</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className={`vraja-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-                  onClick={() => handleTabClick('profile')}
-                >
-                  <span className="nav-icon">🏢</span>
-                  <span className="nav-label">Shared Profile & Logo</span>
                 </button>
               </li>
             </ul>
@@ -210,9 +200,9 @@ export function PortalSidebar({
             </div>
           )}
 
-          {/* Group 4: Account & System Settings */}
+          {/* Group 4: Settings & Canonical Profile */}
           <div className="vraja-nav-group">
-            <span className="vraja-nav-group-title">ACCOUNT</span>
+            <span className="vraja-nav-group-title">SETTINGS</span>
             <ul className="vraja-nav-list">
               <li>
                 <button
@@ -222,6 +212,16 @@ export function PortalSidebar({
                 >
                   <span className="nav-icon">🔒</span>
                   <span className="nav-label">Settings & Security</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className={`vraja-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('profile')}
+                >
+                  <span className="nav-icon">🏢</span>
+                  <span className="nav-label">Shared Profile & Logo</span>
                 </button>
               </li>
             </ul>

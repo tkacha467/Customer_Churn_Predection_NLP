@@ -15,14 +15,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from Backend.app.core.database.storage import ReviewStore
-from Backend.app.api.document_storage import (
+from backend.app.core.database.storage import ReviewStore
+from backend.app.api.document_storage import (
     DocumentStorageService,
     compute_sha256_bytes,
     sanitize_filename,
     MAX_DOCUMENT_SIZE_BYTES,
 )
-from Backend.app.schemas import (
+from backend.app.schemas import (
     BusinessProfileResponse,
     BusinessProfileUpdateRequest,
     CustomLinkItem,

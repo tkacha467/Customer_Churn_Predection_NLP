@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from Backend.app.main import app
+from backend.app.main import app
 
 client = TestClient(app)
 login = client.post("/api/auth/login", json={"password": "test-only-owner-password"})
@@ -32,7 +32,7 @@ def test_health_and_cors_allowlist():
     assert "access-control-allow-origin" not in response.headers
 
 def test_review_store_persists_events_and_private_tickets(tmp_path):
-    from Backend.app.core.database.storage import ReviewStore
+    from backend.app.core.database.storage import ReviewStore
 
     path = tmp_path / "reviews.sqlite3"
     first = ReviewStore(str(path))
@@ -44,7 +44,7 @@ def test_review_store_persists_events_and_private_tickets(tmp_path):
     assert restarted.list_tickets()[0]["diner_note"] == "private note"
 
 def test_business_configuration_persists_atomically():
-    from Backend.app.core.tenants.google_reviews import GoogleReviewManager
+    from backend.app.core.tenants.google_reviews import GoogleReviewManager
 
     manager = GoogleReviewManager()
     manager.update_business_config(

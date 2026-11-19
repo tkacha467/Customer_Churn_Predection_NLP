@@ -16,9 +16,9 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from Backend.app.main import app
-from Backend.app.core.database.storage import ReviewStore
-from Backend.app.core.auth.auth import (
+from backend.app.main import app
+from backend.app.core.database.storage import ReviewStore
+from backend.app.core.auth.auth import (
     _stores,
     hash_password,
     hash_token,
@@ -28,7 +28,7 @@ from Backend.app.core.auth.auth import (
     _login_attempts,
     _login_lock,
 )
-from Backend.app.api.service import review_service
+from backend.app.api.service import review_service
 
 
 @pytest.fixture
@@ -496,7 +496,7 @@ def test_legacy_tenant_without_explicit_entitlements_gets_only_review_manager(ad
     assert tenant["entitlements"] == ["review_manager"]
 
     # 2. Verify entitlement engine gates
-    from Backend.app.core.entitlements.entitlements import check_tenant_entitlement
+    from backend.app.core.entitlements.entitlements import check_tenant_entitlement
     assert check_tenant_entitlement("legacy_pre_phase8_cafe", "review_manager") is True
     assert check_tenant_entitlement("legacy_pre_phase8_cafe", "digital_card") is False
 

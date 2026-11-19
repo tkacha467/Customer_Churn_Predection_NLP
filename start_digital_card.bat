@@ -54,7 +54,7 @@ if not exist "%ROOT_DIR%\Digital_Card\frontend\node_modules" (
 
 echo.
 echo  [2/4] Starting FastAPI Backend on port 8000...
-start "VRAJA AI Shared Backend" cmd /k "title VRAJA AI Shared Backend && cd /d "%ROOT_DIR%" && set PYTHONCASEOK=1 && "%PY_CMD%" -m uvicorn Backend.app.main:app --host 127.0.0.1 --port 8000 --reload"
+start "VRAJA AI Shared Backend" cmd /k "title VRAJA AI Shared Backend && cd /d "%ROOT_DIR%" && "%PY_CMD%" -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload"
 
 echo  [3/4] Starting Digital Card Frontend on port 5174...
 start "VRAJA AI Digital Card" cmd /k "title VRAJA AI Digital Card && cd /d "%ROOT_DIR%\Digital_Card\frontend" && call npm run dev"

@@ -27,7 +27,7 @@ except ImportError:
     pass
 import time
 import threading
-from Backend.app.config.settings import settings
+from backend.app.config.settings import settings
 
 class ModelLoader:
     def __init__(self):

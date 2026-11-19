@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from Backend.app.main import app
-from Backend.app.core.auth.auth import (
+from backend.app.main import app
+from backend.app.core.auth.auth import (
     hash_password,
     hash_token,
     generate_session_token,
@@ -22,8 +22,8 @@ from Backend.app.core.auth.auth import (
     _login_lock,
     get_store,
 )
-from Backend.app.core.database.storage import ReviewStore
-from Backend.app.core.database.migration import migrate_database
+from backend.app.core.database.storage import ReviewStore
+from backend.app.core.database.migration import migrate_database
 
 
 @pytest.fixture(autouse=True)

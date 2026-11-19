@@ -8,8 +8,8 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from Backend.app.main import app
-from Backend.app.core.auth.auth import (
+from backend.app.main import app
+from backend.app.core.auth.auth import (
     hash_password,
     hash_token,
     generate_session_token,
@@ -27,7 +27,7 @@ def setup_two_tenant_environment():
     with _login_lock:
         _login_attempts.clear()
 
-    from Backend.app.api.service import review_service
+    from backend.app.api.service import review_service
     review_service._rate_limits.clear()
 
     store = get_store()

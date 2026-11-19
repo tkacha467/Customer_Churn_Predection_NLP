@@ -1,4 +1,4 @@
-from Backend.app.config.settings import settings
+from backend.app.config.settings import settings
 
 class FusionEngine:
     def fuse(self, sentiment_probs: dict, sarcasm_prob: float):

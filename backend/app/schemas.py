@@ -57,6 +57,14 @@ class ReviewValidateResponse(BaseModel):
     warnings: List[str] = Field(default_factory=list)
     is_sarcastic: bool = False
 
+class TerminologySchema(BaseModel):
+    customer_noun_singular: str
+    customer_noun_plural: str
+    touchpoint_noun: str
+    touchpoint_placeholder: str
+    disclaimer_noun: str
+    private_feedback_title: str
+
 class BusinessReviewLinkResponse(BaseModel):
     business_id: str
     platform: str = "google"
@@ -65,6 +73,7 @@ class BusinessReviewLinkResponse(BaseModel):
     business_name: str = "Nasta Ghar"
     branch: Optional[str] = ""
     category: str = "Breakfast & Snacks"
+    industry_id: Optional[str] = None
     description: Optional[str] = "Authentic homestyle breakfast, chai, and snacks in Rajkot."
     topics: Optional[List[str]] = Field(default_factory=lambda: [
         "Breakfast", "Chai & Beverages", "Snacks", "Taste & Flavour", "Friendly Staff", "Cleanliness", "Value for Money", "Quick Service"
@@ -73,12 +82,14 @@ class BusinessReviewLinkResponse(BaseModel):
     domain: Optional[str] = ""
     entitlements: List[str] = Field(default_factory=lambda: ["review_manager", "digital_card"])
     logo_path: Optional[str] = ""
+    terminology: Optional[TerminologySchema] = None
 
 class BusinessConfigUpdateRequest(BaseModel):
     business_name: Optional[str] = None
     google_review_url: str
     branch: Optional[str] = None
     category: Optional[str] = "Breakfast & Snacks"
+    industry_id: Optional[str] = None
     description: Optional[str] = None
     tagline: Optional[str] = None
     topics: Optional[List[str]] = None
@@ -86,17 +97,61 @@ class BusinessConfigUpdateRequest(BaseModel):
     domain: Optional[str] = None
     entitlements: Optional[List[str]] = None
 
+class IndustryConfigResponse(BaseModel):
+    business_id: str
+    industry_id: str
+    industry_name: str
+    description: str
+    subcategory: str
+    subcategories: List[str]
+    terminology: TerminologySchema
+    default_topics: List[str]
+    effective_topics: List[str]
+    has_custom_topics: bool
+    configuration_version: str
+    available_features: List[str]
+    analytics_labels: Dict[str, str] = Field(default_factory=dict)
+    is_unclassified: bool = False
+
+class IndustrySummaryItem(BaseModel):
+    industry_id: str
+    display_name: str
+    description: str
+    subcategories: List[str]
+    default_subcategory: str
+    default_topics: List[str]
+    touchpoint_noun: str
+    touchpoint_placeholder: str
+
+class AvailableIndustriesResponse(BaseModel):
+    industries: List[IndustrySummaryItem]
+    count: int
+
+class PreviewTokenRequest(BaseModel):
+    business_id: str = "default_business"
+
+class PreviewTokenResponse(BaseModel):
+    preview_token: str
+    traffic_source: str
+    tenant_id: str
+    expires_at: float
+
 class ReviewSessionCreateRequest(BaseModel):
     business_id: str = "default_business"
     customer_ref: Optional[str] = None
     table_number: Optional[str] = None
     dining_type: Optional[str] = "dine_in"
+    preview_token: Optional[str] = None
+    is_preview: Optional[bool] = False
 
 class ReviewSessionResponse(BaseModel):
     session_id: str
     business_id: str
     table_number: Optional[str] = None
     created_at: str
+    traffic_source: str = "customer"
+    is_preview: bool = False
+    preview_token: Optional[str] = None
 
 ALLOWED_ANALYTICS_EVENTS = {
     # Server-side events (recorded internally by ReviewService)
@@ -129,6 +184,8 @@ class AnalyticsEventRequest(BaseModel):
     session_id: Optional[str] = Field(default=None, max_length=200)
     event_name: str = Field(..., min_length=1, max_length=100)
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    preview_token: Optional[str] = Field(default=None, max_length=500)
+    idempotency_key: Optional[str] = Field(default=None, max_length=200)
 
 # Manager reply & private feedback for backwards compatibility
 class ManagerReplyRequest(BaseModel):

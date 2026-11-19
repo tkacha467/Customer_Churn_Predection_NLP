@@ -13,7 +13,7 @@ import tempfile
 import time
 from pathlib import Path
 
-ROOT_DIR = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[2])
+ROOT_DIR = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "backend").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[2])
 VERSION = "2.0.0-staging"
 OUTPUT_DIR = ROOT_DIR / "Project_Files" / "Releases" if (ROOT_DIR / "Project_Files" / "Releases").exists() else ROOT_DIR / "releases"
 PRODUCTS = ("NastaGhar", "Digital_Card")
@@ -69,7 +69,8 @@ def build_release_package(output_tar: Path | None = None) -> Path:
     with tempfile.TemporaryDirectory(prefix="vraja_pkg_") as tmp:
         stage = Path(tmp) / release_name
         stage.mkdir()
-        copy_tree(ROOT_DIR / "Backend", stage / "Backend")
+        backend_dir = ROOT_DIR / "backend" if (ROOT_DIR / "backend").exists() else ROOT_DIR / "Backend"
+        copy_tree(backend_dir, stage / "Backend")
         for product in PRODUCTS:
             copy_tree(ROOT_DIR / product, stage / product)
         for product in PRODUCTS[:2]:
@@ -95,7 +96,7 @@ def build_release_package(output_tar: Path | None = None) -> Path:
             "version": VERSION,
             "created_at_iso": timestamp_iso,
             "runtime": {"python": ">=3.11", "node": ">=20.0"},
-            "backend_entrypoint": "Backend.app.main:app",
+            "backend_entrypoint": "backend.app.main:app",
             "database": {"engine": "sqlite3", "wal_mode": True, "auto_migration": True},
             "frontends": [f"{product}/frontend/dist" for product in PRODUCTS[:2]],
             "health_check": {"endpoint": "/healthz", "expected_status": 200},
@@ -103,7 +104,7 @@ def build_release_package(output_tar: Path | None = None) -> Path:
             "files": files,
         }
         (stage / "RELEASE_MANIFEST.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-        lines = [f"# Vraja Release Artifact — {VERSION}", "", f"Created: `{timestamp_iso}`", "", "## Start the shared backend", "", "```bash", "python -m venv .venv && source .venv/bin/activate", "pip install -r requirements.txt", "uvicorn Backend.app.main:app --host 127.0.0.1 --port 8000", "```", "", "## Product frontends", "", "Build and run each Vite app from its product `frontend/` directory. Both use the shared backend and same-origin `/api` paths by default.", "", "## File checksums", "", "| Path | Bytes | SHA-256 |", "|---|---:|---|"]
+        lines = [f"# Vraja Release Artifact — {VERSION}", "", f"Created: `{timestamp_iso}`", "", "## Start the shared backend", "", "```bash", "python -m venv .venv && source .venv/bin/activate", "pip install -r requirements.txt", "uvicorn backend.app.main:app --host 127.0.0.1 --port 8000", "```", "", "## Product frontends", "", "Build and run each Vite app from its product `frontend/` directory. Both use the shared backend and same-origin `/api` paths by default.", "", "## File checksums", "", "| Path | Bytes | SHA-256 |", "|---|---:|---|"]
         lines.extend(f"| `{item['path']}` | {item['size_bytes']} | `{item['sha256']}` |" for item in files)
         (stage / "RELEASE_MANIFEST.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 

@@ -26,7 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from Backend.app.core.database.migration import (
+from backend.app.core.database.migration import (
     run_subpart_2b_migration,
     MigrationError,
     InvariantViolationError,
@@ -87,7 +87,7 @@ def execute_migration_runner(
                 raise MigrationError("foreign_keys = ON could not be enabled.")
 
             con.execute("BEGIN IMMEDIATE TRANSACTION;")
-            from Backend.app.core.database.migration import (
+            from backend.app.core.database.migration import (
                 apply_phase2_schema_alterations,
                 provision_unprovisioned_tenants,
                 reconcile_and_audit_existing_records,
