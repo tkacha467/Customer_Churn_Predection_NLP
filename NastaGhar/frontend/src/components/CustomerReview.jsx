@@ -399,7 +399,6 @@ const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, 
       { id: 'opt3', focus: 'Simple & Personal', text: personalText },
     ];
   }
-  }
 
   const cleanedAspects = Array.isArray(aspects) ? aspects.map((a) => String(a).toLowerCase().trim()).filter(Boolean) : [];
   const hasBreakfast = cleanedAspects.some((a) => a.includes('breakfast') || a.includes('nasto') || a.includes('nasta'));
@@ -1305,10 +1304,6 @@ export default function CustomerReview({
             </span>
             <span style={{ fontSize: '13px', color: '#94a3b8' }}>
               {templateData?.template?.name || businessCategory || 'Hospitality Review Assistant'}
-            </span>
-          </div>
-        );
-      })()}
             </span>
           </div>
         );

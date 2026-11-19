@@ -795,9 +795,17 @@ def seed_default_templates(db: sqlite3.Connection) -> None:
     # 4. Seed default business_configuration if missing
     existing_cfg = db.execute("SELECT id FROM business_configurations WHERE business_id = 'default_business'").fetchone()
     if not existing_cfg:
-        default_tenant = db.execute("SELECT review_url, primary_accent FROM tenants WHERE id = 'default_business'").fetchone()
-        r_url = default_tenant[0] if default_tenant else "https://search.google.com/local/writereview?placeid=ChIJZeK7NwDLWTkR1pOxt51jLro"
-        p_acc = default_tenant[1] if default_tenant else "#1B4332"
+        r_url = "https://search.google.com/local/writereview?placeid=ChIJZeK7NwDLWTkR1pOxt51jLro"
+        p_acc = "#1B4332"
+        try:
+            tenant_cols = [c[1] for c in db.execute("PRAGMA table_info(tenants)").fetchall()]
+            if "review_url" in tenant_cols and "primary_accent" in tenant_cols:
+                default_tenant = db.execute("SELECT review_url, primary_accent FROM tenants WHERE id = 'default_business'").fetchone()
+                if default_tenant:
+                    r_url = default_tenant[0] or r_url
+                    p_acc = default_tenant[1] or p_acc
+        except Exception:
+            pass
         db.execute("""
             INSERT INTO business_configurations (id, business_id, logo_url, cover_image_url, primary_accent, custom_topics_json, localized_content_json, google_review_url, status, created_at, updated_at)
             VALUES (?, 'default_business', '', '', ?, '[]', '{}', ?, 'active', ?, ?)
