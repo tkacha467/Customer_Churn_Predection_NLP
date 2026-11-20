@@ -19,8 +19,10 @@ import hashlib
 import json
 import os
 import sqlite3
+import stat
 import sys
 import time
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -53,16 +55,66 @@ def compute_sha256(filepath: Path) -> str:
     return h.hexdigest()
 
 
-def create_backup(target_path: Path, backup_dir: Optional[Path] = None) -> Path:
-    """Creates a WAL-safe hot SQLite backup and verifies PRAGMA integrity_check."""
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
+def generate_backup_filename(
+    target_path: Path,
+    timestamp: Optional[str] = None,
+    nonce: Optional[str] = None
+) -> str:
+    """Generates collision-resistant backup filename with timestamp and nonce."""
+    ts = timestamp or time.strftime("%Y%m%d_%H%M%S")
+    uid = nonce or uuid.uuid4().hex[:8]
+    return f"{target_path.stem}_{ts}_{uid}.sqlite3.bak"
+
+
+def create_backup(
+    target_path: Path,
+    backup_dir: Optional[Path] = None,
+    custom_filename: Optional[str] = None,
+) -> Path:
+    """
+    Creates a WAL-safe hot SQLite backup with strict restrictive permissions (0600 on POSIX)
+    and collision-resistant exclusive creation.
+    Never overwrites an existing backup file.
+    """
     dest_dir = backup_dir or (target_path.parent / "backups")
     dest_dir.mkdir(parents=True, exist_ok=True)
-    backup_file = dest_dir / f"{target_path.stem}_{timestamp}.sqlite3.bak"
+    filename = custom_filename or generate_backup_filename(target_path)
+    backup_file = dest_dir / filename
 
+    # Atomically create the backup file exclusively with mode 0600 on POSIX
+    if os.name == "posix":
+        try:
+            fd = os.open(str(backup_file), os.O_RDWR | os.O_CREAT | os.O_EXCL, 0o600)
+            os.fchmod(fd, 0o600)
+            os.close(fd)
+        except FileExistsError:
+            raise FileExistsError(
+                f"Backup destination already exists: {backup_file}. Aborting to prevent overwrite."
+            )
+    else:
+        # Non-POSIX (e.g. Windows) exclusive file creation
+        if backup_file.exists():
+            raise FileExistsError(
+                f"Backup destination already exists: {backup_file}. Aborting to prevent overwrite."
+            )
+        backup_file.touch(exist_ok=False)
+
+    # Perform hot online SQLite backup (WAL-safe)
     with sqlite3.connect(str(target_path)) as src, sqlite3.connect(str(backup_file)) as dst:
         src.backup(dst)
 
+    # Verify and enforce restrictive file permissions on POSIX systems
+    if os.name == "posix":
+        mode = stat.S_IMODE(os.stat(backup_file).st_mode)
+        if (mode & 0o077) != 0:
+            os.chmod(backup_file, 0o600)
+            mode = stat.S_IMODE(os.stat(backup_file).st_mode)
+            if (mode & 0o077) != 0:
+                raise PermissionError(
+                    f"Insecure backup file permissions ({oct(mode)}). Expected 0600."
+                )
+
+    # Verify backup database integrity
     with sqlite3.connect(str(backup_file)) as chk:
         integrity = chk.execute("PRAGMA integrity_check").fetchone()[0]
         if integrity != "ok":

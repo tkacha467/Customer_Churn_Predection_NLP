@@ -126,20 +126,63 @@ class ReviewStore:
             db.execute("CREATE INDEX IF NOT EXISTS idx_memberships_user ON tenant_memberships(user_id)")
             db.execute("CREATE INDEX IF NOT EXISTS idx_memberships_tenant ON tenant_memberships(tenant_id)")
 
-            # Multi-Worker Review Assistant Customer Sessions (Phase A5.0.5)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS review_sessions (
-                    session_id TEXT PRIMARY KEY,
-                    tenant_id TEXT NOT NULL,
-                    traffic_source TEXT NOT NULL DEFAULT 'customer',
-                    table_number TEXT DEFAULT '',
-                    dining_type TEXT DEFAULT '',
-                    created_at REAL NOT NULL,
-                    expires_at REAL NOT NULL
-                )
-            """)
-            db.execute("CREATE INDEX IF NOT EXISTS idx_review_sessions_tenant_created ON review_sessions(tenant_id, created_at DESC)")
-            db.execute("CREATE INDEX IF NOT EXISTS idx_review_sessions_expiry ON review_sessions(expires_at)")
+            # Multi-Worker Review Assistant Customer Sessions (Phase A5.0.5 & A5.0.11)
+            # In test and development environments, auto-create review_sessions schema for ephemeral test databases.
+            # In staging, production, or unconfigured/ambiguous environments, fail closed:
+            # Runtime startup MUST NOT create review_sessions or its indexes. It must perform a read-only check.
+            env = os.getenv("ENVIRONMENT", "").strip().lower()
+            if env in ("test", "testing", "dev", "development"):
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS review_sessions (
+                        session_id TEXT PRIMARY KEY,
+                        tenant_id TEXT NOT NULL,
+                        traffic_source TEXT NOT NULL DEFAULT 'customer',
+                        table_number TEXT DEFAULT '',
+                        dining_type TEXT DEFAULT '',
+                        created_at REAL NOT NULL,
+                        expires_at REAL NOT NULL
+                    )
+                """)
+                db.execute("CREATE INDEX IF NOT EXISTS idx_review_sessions_tenant_created ON review_sessions(tenant_id, created_at DESC)")
+                db.execute("CREATE INDEX IF NOT EXISTS idx_review_sessions_expiry ON review_sessions(expires_at)")
+            else:
+                # Staging / Production / Managed environments: read-only readiness check
+                table_row = db.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='review_sessions'"
+                ).fetchone()
+                if not table_row:
+                    raise RuntimeError(
+                        f"Database schema unmigrated: missing required table 'review_sessions'. "
+                        f"In environment '{env or 'unconfigured'}' runtime startup does not auto-create schema. "
+                        f"Run 'scripts/migrate_phase_a5_sessions.py --database {self.path}' before starting the application."
+                    )
+
+                col_info = db.execute("PRAGMA table_info(review_sessions)").fetchall()
+                existing_cols = {row[1] for row in col_info}
+                pk_cols = [row[1] for row in col_info if row[5] > 0]
+                expected_cols = {
+                    "session_id", "tenant_id", "traffic_source", "table_number", "dining_type", "created_at", "expires_at"
+                }
+                missing_cols = expected_cols - existing_cols
+                if missing_cols:
+                    raise RuntimeError(
+                        f"Incompatible 'review_sessions' table schema in environment '{env}': missing columns {missing_cols}. "
+                        f"Run 'scripts/migrate_phase_a5_sessions.py --database {self.path}'."
+                    )
+                if pk_cols != ["session_id"]:
+                    raise RuntimeError(
+                        f"Incompatible 'review_sessions' table in environment '{env}': expected primary key ['session_id'], got {pk_cols}."
+                    )
+
+                idx_info = db.execute("PRAGMA index_list(review_sessions)").fetchall()
+                existing_indexes = {row[1] for row in idx_info}
+                expected_indexes = {"idx_review_sessions_tenant_created", "idx_review_sessions_expiry"}
+                missing_idx = expected_indexes - existing_indexes
+                if missing_idx:
+                    raise RuntimeError(
+                        f"Database schema unmigrated: missing required indexes {missing_idx} on 'review_sessions'. "
+                        f"Run 'scripts/migrate_phase_a5_sessions.py --database {self.path}' before starting in '{env}' mode."
+                    )
 
             # Shared Business Profile & Tenant Documents (Vraja Multi-Product Foundation)
             db.execute("""
