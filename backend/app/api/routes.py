@@ -11,6 +11,7 @@ import hashlib
 import re
 import struct
 import zoneinfo
+import ipaddress
 from datetime import datetime, date, time as dtime, timedelta
 from fastapi import APIRouter, HTTPException, Request, Response, Depends, UploadFile, File, Form, Query
 from pydantic import BaseModel
@@ -88,8 +89,12 @@ from backend.app.core.tenants.google_reviews import google_review_manager
 from backend.app.core.auth.auth import (
     OWNER_COOKIE,
     SESSION_TTL_SECONDS,
+    DUMMY_SCRYPT_HASH,
     TenantContext,
     check_login_rate_limit,
+    check_account_login_rate_limit,
+    record_login_failure,
+    record_login_success,
     generate_session_token,
     hash_token,
     hash_password,
@@ -104,14 +109,36 @@ from backend.app.core.auth.auth import (
     verify_preview_token,
     get_optional_auth_context,
 )
+from backend.app.core.auth.security_store import (
+    SecurityStore,
+    verify_turnstile_token,
+    CF_DUMMY_PASS_SITEKEY,
+)
 
 router = APIRouter()
+
+def _ip_in_trusted_entries(ip_str: str, trusted_entries: list) -> bool:
+    try:
+        ip_obj = ipaddress.ip_address(ip_str.strip())
+    except ValueError:
+        return False
+    for item in trusted_entries:
+        if isinstance(item, (ipaddress.IPv4Network, ipaddress.IPv6Network)):
+            if ip_obj in item:
+                return True
+        elif ip_obj == item:
+            return True
+    return False
+
 
 def get_client_ip(request: Request) -> str:
     """
     Safely determine the client IP address.
-    If TRUSTED_PROXIES is configured in the environment (comma-separated IP list or '*'),
-    and the direct peer IP is in that trusted list, the X-Forwarded-For header is inspected.
+    If TRUSTED_PROXIES is configured in the environment (comma-separated list of IPv4/IPv6
+    addresses or CIDR networks; '*' permitted only in development/test), and the direct peer IP
+    matches a trusted proxy, the X-Forwarded-For header is inspected right-to-left.
+    Proxy traversal walks backwards to identify the first untrusted IP, preventing
+    attackers from spoofing client IPs by injecting arbitrary leftmost values.
     Otherwise, only the direct peer IP from request.client is returned to prevent header spoofing.
     """
     peer_ip = request.client.host if request.client else "127.0.0.1"
@@ -119,16 +146,63 @@ def get_client_ip(request: Request) -> str:
     if not trusted_proxies_env:
         return peer_ip
 
-    trusted_list = [p.strip() for p in trusted_proxies_env.split(",") if p.strip()]
-    if "*" in trusted_list or peer_ip in trusted_list:
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            client_ip = forwarded.split(",")[0].strip()
-            if client_ip:
-                return client_ip
-        real_ip = request.headers.get("x-real-ip")
-        if real_ip and real_ip.strip():
-            return real_ip.strip()
+    raw_tokens = [p.strip() for p in trusted_proxies_env.split(",") if p.strip()]
+    if not raw_tokens:
+        return peer_ip
+
+    env = os.getenv("ENVIRONMENT", "development").strip().lower()
+    is_wildcard = "*" in raw_tokens
+
+    # Wildcard is strictly forbidden in staging/production
+    if is_wildcard and env in ("staging", "production"):
+        logger.error("Wildcard '*' in TRUSTED_PROXIES is prohibited in staging/production. Falling back to direct peer IP.")
+        return peer_ip
+
+    # Parse trusted IP / CIDR entries
+    trusted_entries = []
+    for token in raw_tokens:
+        if token == "*":
+            continue
+        try:
+            if "/" in token:
+                trusted_entries.append(ipaddress.ip_network(token, strict=False))
+            else:
+                trusted_entries.append(ipaddress.ip_address(token))
+        except ValueError:
+            if env in ("staging", "production"):
+                logger.error(f"Malformed TRUSTED_PROXIES entry '{token}' ignored in {env}.")
+
+    # Direct peer validation
+    peer_trusted = is_wildcard or _ip_in_trusted_entries(peer_ip, trusted_entries)
+    if not peer_trusted:
+        return peer_ip
+
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+        if parts:
+            if is_wildcard:
+                candidate = parts[0]
+            else:
+                candidate = parts[0]
+                for p in reversed(parts):
+                    if not _ip_in_trusted_entries(p, trusted_entries):
+                        candidate = p
+                        break
+            try:
+                ipaddress.ip_address(candidate)
+                return candidate
+            except ValueError:
+                pass
+
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip and real_ip.strip():
+        clean_real = real_ip.strip()
+        try:
+            ipaddress.ip_address(clean_real)
+            return clean_real
+        except ValueError:
+            pass
 
     return peer_ip
 
@@ -139,17 +213,111 @@ def get_client_ip(request: Request) -> str:
 @router.post("/auth/login", response_model=AuthSessionResponse)
 async def owner_login(req: OwnerLoginRequest, request: Request, response: Response):
     client_ip = get_client_ip(request)
-    if not check_login_rate_limit(client_ip):
-        raise HTTPException(status_code=429, detail="Too many sign-in attempts. Please wait a minute.")
+    normalized_email = req.email.strip().lower() if req.email else "__legacy_owner__"
+
+    # Distributed Security Store Pre-Authentication Gate (SEC-04)
+    # Checks IP velocity, pair cooldowns, and evaluates Turnstile challenge requirements
+    is_allowed, status_code, wait_seconds, challenge_required = await SecurityStore.evaluate_pre_auth(
+        client_ip, normalized_email
+    )
+
+    if not is_allowed:
+        if status_code == "pair_cooldown_active":
+            raise HTTPException(
+                status_code=429,
+                detail=f"Too many sign-in attempts for this account. Please wait {wait_seconds} seconds.",
+                headers={"Retry-After": str(wait_seconds)},
+            )
+        elif status_code == "ip_rate_limited":
+            raise HTTPException(
+                status_code=429,
+                detail="Too many sign-in attempts. Please wait a minute.",
+                headers={"Retry-After": str(wait_seconds or 60)},
+            )
+        elif status_code == "valkey_unavailable":
+            raise HTTPException(
+                status_code=503,
+                detail="Authentication service temporarily unavailable. Please retry in a few moments.",
+                headers={"Retry-After": str(wait_seconds or 30)},
+            )
+        elif status_code == "ip_capacity_exhausted":
+            raise HTTPException(
+                status_code=429,
+                detail="Service capacity reached. Please wait before retrying.",
+                headers={"Retry-After": str(wait_seconds or 60)},
+            )
+        else:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Too many sign-in attempts. Please wait {wait_seconds} seconds.",
+                headers={"Retry-After": str(wait_seconds or 60)},
+            )
+
+    # Step-Up Bot Challenge Gate (Pre-Password Verification)
+    turnstile_enabled = os.getenv("TURNSTILE_ENABLED", "true").strip().lower() in ("true", "1", "yes")
+    site_key = os.getenv("TURNSTILE_SITE_KEY", "").strip()
+    env = os.getenv("ENVIRONMENT", "development").strip().lower()
+    is_dev_test = env in ("development", "test")
+
+    if not site_key:
+        if not is_dev_test:
+            logger.error(f"TURNSTILE_SITE_KEY is not configured in '{env}'. Challenge cannot be presented.")
+            raise HTTPException(
+                status_code=503,
+                detail="Security challenge configuration is unavailable.",
+            )
+        site_key = CF_DUMMY_PASS_SITEKEY
+    elif not is_dev_test and site_key in (CF_DUMMY_PASS_SITEKEY, CF_DUMMY_FAIL_SITEKEY):
+        logger.error(f"Dummy site key configured in '{env}'. Rejecting login challenge initiation.")
+        raise HTTPException(
+            status_code=503,
+            detail="Security challenge configuration is unavailable.",
+        )
+
+    if challenge_required and turnstile_enabled:
+        if not req.turnstile_token:
+            raise HTTPException(
+                status_code=403,
+                detail="Security verification required.",
+                headers={
+                    "X-Challenge-Required": "true",
+                    "X-Challenge-Site-Key": site_key,
+                },
+            )
+        is_valid, reason = await verify_turnstile_token(req.turnstile_token, client_ip)
+        if not is_valid:
+            if reason == "provider_timeout":
+                raise HTTPException(
+                    status_code=503,
+                    detail="Security challenge provider unavailable. Please retry.",
+                    headers={"Retry-After": "10"},
+                )
+            raise HTTPException(
+                status_code=403,
+                detail="Security verification failed or expired. Please complete the challenge again.",
+                headers={
+                    "X-Challenge-Required": "true",
+                    "X-Challenge-Site-Key": site_key,
+                    "X-Challenge-Error": reason,
+                },
+            )
 
     store = get_store()
 
     if req.email:
-        # Secure multi-tenant email + password authentication
+        # Constant-time multi-tenant email + password authentication (anti-enumeration defense)
         user = store.get_user_by_email(req.email)
-        if not user or user.get("is_active") != 1 or not verify_password(req.password, user["password_hash"]):
+        user_active = user is not None and user.get("is_active") == 1
+        password_hash = user["password_hash"] if user_active else DUMMY_SCRYPT_HASH
+        password_valid = verify_password(req.password, password_hash)
+
+        if not user_active or not password_valid:
+            cooldown, step = await SecurityStore.record_login_failure(client_ip, normalized_email)
+            headers = {"Retry-After": str(cooldown)} if cooldown > 0 else None
             # Generic error message to prevent user enumeration
-            raise HTTPException(status_code=401, detail="Invalid email or password")
+            raise HTTPException(status_code=401, detail="Invalid email or password", headers=headers)
+
+        await SecurityStore.record_login_success(client_ip, normalized_email)
 
         memberships = store.list_user_memberships(user["id"])
         is_admin = bool(user.get("is_platform_admin", 0))
@@ -180,7 +348,11 @@ async def owner_login(req: OwnerLoginRequest, request: Request, response: Respon
         if not expected:
             raise HTTPException(status_code=503, detail="Owner sign-in is not configured on this server.")
         if not hmac.compare_digest(req.password, expected):
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+            cooldown, step = await SecurityStore.record_login_failure(client_ip, normalized_email)
+            headers = {"Retry-After": str(cooldown)} if cooldown > 0 else None
+            raise HTTPException(status_code=401, detail="Invalid credentials", headers=headers)
+
+        await SecurityStore.record_login_success(client_ip, normalized_email)
 
         user = store.get_or_create_legacy_owner()
         is_admin = bool(user.get("is_platform_admin", 0))
@@ -449,6 +621,12 @@ def _resolve_tenant_review_context(business_id: str) -> Dict[str, Any]:
             status_code=403,
             detail=f"Customer review experience is restricted for industry '{info.get('industry_id')}' due to regulatory and safety compliance."
         )
+    from backend.app.core.tenants.google_reviews import is_safe_google_review_url
+    if "review_url" in info:
+        raw_u = info.get("review_url", "")
+        if raw_u and not is_safe_google_review_url(raw_u):
+            info["review_url"] = "https://maps.google.com"
+            info["is_configured"] = False
     return info
 
 
@@ -834,11 +1012,16 @@ async def get_business_review_link(business_id: str):
             term_dict = asdict(raw_term)
         elif isinstance(raw_term, dict):
             term_dict = raw_term
+    from backend.app.core.tenants.google_reviews import is_safe_google_review_url
+    raw_review_url = info.get("review_url", "")
+    safe_review_url = raw_review_url if is_safe_google_review_url(raw_review_url) else "https://maps.google.com"
+    is_conf = info.get("is_configured", False) if safe_review_url == raw_review_url else False
+
     return BusinessReviewLinkResponse(
         business_id=valid_id,
         platform=info.get("platform", "google"),
-        review_url=info.get("review_url", ""),
-        is_configured=info.get("is_configured", False),
+        review_url=safe_review_url,
+        is_configured=is_conf,
         business_name=info.get("business_name", "Nasta Ghar"),
         branch=info.get("branch", ""),
         category=info.get("category", "Breakfast & Snacks"),
@@ -1057,11 +1240,16 @@ async def update_business_config(
         entitlements=effective_entitlements,
         industry_id=effective_industry
     )
+    from backend.app.core.tenants.google_reviews import is_safe_google_review_url
+    raw_review_url = info.get("review_url", "")
+    safe_review_url = raw_review_url if is_safe_google_review_url(raw_review_url) else "https://maps.google.com"
+    is_conf = info.get("is_configured", False) if safe_review_url == raw_review_url else False
+
     return BusinessReviewLinkResponse(
         business_id=valid_id,
         platform=info.get("platform", "google"),
-        review_url=info.get("review_url", ""),
-        is_configured=info.get("is_configured", False),
+        review_url=safe_review_url,
+        is_configured=is_conf,
         business_name=info.get("business_name", "Nasta Ghar"),
         branch=info.get("branch", ""),
         category=info.get("category", "Breakfast & Snacks"),
@@ -1733,7 +1921,8 @@ async def upload_shared_business_logo(
                 temp_file.unlink()
             except OSError:
                 pass
-        raise HTTPException(status_code=500, detail=f"Failed to write image file: {str(e)}")
+        print(f"[SharedProfile] Failed to write image file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to write image file.")
 
     canonical_logo_url = f"/api/businesses/{valid_id}/shared-profile/logo/{unique_name}"
 
@@ -1749,7 +1938,8 @@ async def upload_shared_business_logo(
                 final_file.unlink()
             except OSError:
                 pass
-        raise HTTPException(status_code=500, detail=f"Database update failed; logo upload aborted: {str(db_err)}")
+        print(f"[SharedProfile] Database update failed during logo upload: {db_err}")
+        raise HTTPException(status_code=500, detail="Database update failed; logo upload aborted.")
 
     # 8. Post-commit cleanup of old managed logo
     if old_logo_path and "/shared-profile/logo/" in old_logo_path:
@@ -1925,7 +2115,8 @@ async def upload_tenant_document(
             is_published=is_published,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to persist document: {str(e)}")
+        print(f"[Documents] Failed to persist document: {e}")
+        raise HTTPException(status_code=500, detail="Failed to persist document.")
 
     record["download_url"] = f"/api/businesses/{valid_id}/documents/{record['id']}/file"
     return DocumentMetadataResponse(**record)
@@ -2199,7 +2390,8 @@ async def upload_tenant_image(
                 temp_file.unlink()
             except OSError:
                 pass
-        raise HTTPException(status_code=500, detail=f"Failed to save image: {str(e)}")
+        print(f"[Images] Failed to save image: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save image.")
 
     image_url = f"/api/businesses/{valid_id}/images/{unique_name}"
 

@@ -25,6 +25,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from unittest.mock import patch
 import pytest
 
 from scripts.migrate_phase_a5_sessions import (
@@ -41,6 +42,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 def _create_legacy_database(db_path: Path) -> None:
     """Helper creating a representative legacy SQLite database without review_sessions."""
+    now = time.time()
     with sqlite3.connect(str(db_path)) as conn:
         conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("""
@@ -48,7 +50,17 @@ def _create_legacy_database(db_path: Path) -> None:
                 id TEXT PRIMARY KEY,
                 business_name TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'active',
-                created_at REAL NOT NULL
+                platform TEXT NOT NULL DEFAULT 'google',
+                review_url TEXT NOT NULL DEFAULT '',
+                branch TEXT DEFAULT '',
+                category TEXT DEFAULT 'Breakfast & Snacks',
+                description TEXT DEFAULT '',
+                topics_json TEXT DEFAULT '[]',
+                primary_accent TEXT DEFAULT '#f97316',
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL,
+                domain TEXT DEFAULT '',
+                entitlements_json TEXT DEFAULT '["review_manager"]'
             )
         """)
         conn.execute("""
@@ -59,20 +71,133 @@ def _create_legacy_database(db_path: Path) -> None:
                 tenant_id TEXT
             )
         """)
+        conn.execute("""
+            CREATE TABLE private_tickets (
+                ticket_id TEXT PRIMARY KEY,
+                created_at REAL NOT NULL,
+                payload TEXT NOT NULL,
+                tenant_id TEXT
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE preview_analytics_events (
+                event_id TEXT PRIMARY KEY,
+                created_at REAL NOT NULL,
+                payload TEXT NOT NULL,
+                tenant_id TEXT,
+                traffic_source TEXT NOT NULL DEFAULT 'preview'
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE users (
+                id TEXT PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                display_name TEXT DEFAULT '',
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL,
+                is_platform_admin INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE tenant_memberships (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                role TEXT NOT NULL DEFAULT 'manager',
+                created_at REAL NOT NULL,
+                UNIQUE(user_id, tenant_id)
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE sessions (
+                token_hash TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                active_tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                created_at REAL NOT NULL,
+                expires_at REAL NOT NULL,
+                revoked_at REAL,
+                ip_address TEXT DEFAULT '',
+                user_agent TEXT DEFAULT ''
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE business_profiles (
+                tenant_id TEXT PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+                tagline TEXT DEFAULT '',
+                phone_number TEXT DEFAULT '',
+                website_url TEXT DEFAULT '',
+                address TEXT DEFAULT '',
+                map_url TEXT DEFAULT '',
+                whatsapp_url TEXT DEFAULT '',
+                instagram_url TEXT DEFAULT '',
+                facebook_url TEXT DEFAULT '',
+                youtube_url TEXT DEFAULT '',
+                logo_path TEXT DEFAULT '',
+                cover_image_path TEXT DEFAULT '',
+                custom_links_json TEXT DEFAULT '[]',
+                is_published INTEGER NOT NULL DEFAULT 0,
+                show_review_button INTEGER NOT NULL DEFAULT 1,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL,
+                display_name TEXT DEFAULT '',
+                category TEXT DEFAULT '',
+                opening_hours TEXT DEFAULT '',
+                welcome_message TEXT DEFAULT '',
+                email TEXT DEFAULT '',
+                whatsapp_group_url TEXT DEFAULT '',
+                background_preset TEXT DEFAULT '',
+                overlay_opacity REAL DEFAULT 0.75,
+                primary_accent TEXT DEFAULT '#078BFF',
+                branch_name TEXT DEFAULT '',
+                description TEXT DEFAULT '',
+                brand_accent TEXT DEFAULT NULL,
+                timezone TEXT DEFAULT 'Asia/Kolkata'
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE tenant_documents (
+                id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                document_type TEXT NOT NULL DEFAULT 'food_menu',
+                display_name TEXT NOT NULL,
+                original_filename TEXT NOT NULL,
+                stored_filename TEXT NOT NULL,
+                file_size_bytes INTEGER NOT NULL,
+                mime_type TEXT NOT NULL DEFAULT 'application/pdf',
+                sha256_hash TEXT NOT NULL,
+                is_published INTEGER NOT NULL DEFAULT 1,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_memberships_user ON tenant_memberships(user_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_memberships_tenant ON tenant_memberships(tenant_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_business_profiles_published ON business_profiles(is_published)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_tenant_documents_tenant ON tenant_documents(tenant_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_tenant_documents_published ON tenant_documents(is_published)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_analytics_tenant_created ON analytics_events(tenant_id, created_at DESC)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_tenant_created ON private_tickets(tenant_id, created_at DESC)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_preview_events_tenant_created ON preview_analytics_events(tenant_id, created_at DESC)")
+
         # Insert sample tenant and analytics records
         conn.execute(
-            "INSERT INTO tenants VALUES ('default_business', 'Nasta Ghar', 'active', ?)",
-            (time.time(),),
+            "INSERT INTO tenants (id, business_name, status, created_at, updated_at) VALUES ('default_business', 'Nasta Ghar', 'active', ?, ?)",
+            (now, now),
         )
         conn.execute(
-            "INSERT INTO tenants VALUES ('test_cafe', 'Test Cafe', 'active', ?)",
-            (time.time(),),
+            "INSERT INTO tenants (id, business_name, status, created_at, updated_at) VALUES ('test_cafe', 'Test Cafe', 'active', ?, ?)",
+            (now, now),
         )
         conn.execute(
             "INSERT INTO analytics_events VALUES ('ev-1', ?, '{\"rating\": 5}', 'test_cafe')",
-            (time.time(),),
+            (now,),
         )
         conn.commit()
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
 
 
 def test_migration_on_temporary_database(tmp_path):
@@ -387,12 +512,16 @@ def test_reviewstore_startup_schema_ownership_unconfigured_env_fails_closed(tmp_
 
 def test_reviewstore_startup_schema_ownership_staging_migrated_db_succeeds(tmp_path, monkeypatch):
     """When the database is properly migrated via script, staging startup succeeds cleanly."""
+    from scripts.migrate_template_subsystem import run_template_migration
+
     db_file = tmp_path / "staging_migrated.sqlite3"
     _create_legacy_database(db_file)
 
-    # Migrate using migration script
+    # Migrate using migration scripts
     res = run_a5_migration(str(db_file), dry_run=False, backup_dir=tmp_path / "backups")
     assert res["status"] == "success"
+    res_tpl = run_template_migration(str(db_file), dry_run=False, backup_dir=tmp_path / "backups")
+    assert res_tpl["status"] == "success"
 
     # Now boot in staging
     monkeypatch.setenv("ENVIRONMENT", "staging")
@@ -427,11 +556,14 @@ def test_reviewstore_startup_schema_ownership_production_incompatible_schema(tmp
 
 def test_reviewstore_startup_schema_ownership_preserves_tenant_and_analytics_tables(tmp_path, monkeypatch):
     """Existing tenant and analytics records are preserved completely untouched during migration and staging startup."""
+    from scripts.migrate_template_subsystem import run_template_migration
+
     db_file = tmp_path / "preserve_all.sqlite3"
     _create_legacy_database(db_file)
 
-    # 1. Run explicit migration
+    # 1. Run explicit migrations
     run_a5_migration(str(db_file), backup_dir=tmp_path / "backups")
+    run_template_migration(str(db_file), backup_dir=tmp_path / "backups")
 
     # 2. Boot in staging
     monkeypatch.setenv("ENVIRONMENT", "staging")
@@ -447,3 +579,238 @@ def test_reviewstore_startup_schema_ownership_preserves_tenant_and_analytics_tab
         event = conn.execute("SELECT * FROM analytics_events WHERE event_id='ev-1'").fetchone()
         assert event["tenant_id"] == "test_cafe"
         assert "rating" in event["payload"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE A5.0.13: BACKUP FAILURE CLEANUP & RESILIENCE TESTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_backup_failure_during_sqlite_backup_cleans_up_incomplete_file(tmp_path):
+    """If an error occurs during SQLite backup, the incomplete backup file is removed."""
+    db_file = tmp_path / "backup_fail_src.sqlite3"
+    _create_legacy_database(db_file)
+    src_sha_before = compute_sha256(db_file)
+    bdir = tmp_path / "backups"
+
+    orig_connect = sqlite3.connect
+    def mock_connect(path_str, *args, **kwargs):
+        conn = orig_connect(path_str, *args, **kwargs)
+        if str(path_str) == str(db_file):
+            class BrokenSrcConn:
+                def __init__(self, c): self._c = c
+                def __enter__(self): return self
+                def __exit__(self, *a): return self._c.__exit__(*a)
+                def backup(self, dst, **k):
+                    raise OSError("Simulated disk full during backup")
+                def __getattr__(self, name): return getattr(self._c, name)
+            return BrokenSrcConn(conn)
+        return conn
+
+    with patch("sqlite3.connect", side_effect=mock_connect):
+        with pytest.raises(OSError, match="Simulated disk full during backup"):
+            create_backup(db_file, backup_dir=bdir)
+
+    # Incomplete backup file must have been cleaned up
+    leftovers = list(bdir.glob("*.bak"))
+    assert leftovers == [], f"Expected 0 leftover backup files, found: {leftovers}"
+
+    # Original database remains completely untouched
+    assert compute_sha256(db_file) == src_sha_before
+
+
+def test_backup_failure_during_integrity_check_cleans_up_incomplete_file(tmp_path):
+    """If PRAGMA integrity_check fails on the backup, the corrupt backup file is removed."""
+    db_file = tmp_path / "integrity_fail_src.sqlite3"
+    _create_legacy_database(db_file)
+    src_sha_before = compute_sha256(db_file)
+    bdir = tmp_path / "backups"
+
+    orig_connect = sqlite3.connect
+    calls = {"count": 0}
+    def mock_connect(path_str, *args, **kwargs):
+        calls["count"] += 1
+        conn = orig_connect(path_str, *args, **kwargs)
+        if calls["count"] == 3:  # Third connect in create_backup is integrity check
+            class CorruptConn:
+                def __init__(self, c): self._c = c
+                def __enter__(self): return self
+                def __exit__(self, *a): return self._c.__exit__(*a)
+                def execute(self, q):
+                    class FakeCursor:
+                        def fetchone(self): return ["*** in database main *** Page 1: wrong header"]
+                    return FakeCursor()
+                def __getattr__(self, name): return getattr(self._c, name)
+            return CorruptConn(conn)
+        return conn
+
+    with patch("sqlite3.connect", side_effect=mock_connect):
+        with pytest.raises(RuntimeError, match="Backup integrity check failed"):
+            create_backup(db_file, backup_dir=bdir)
+
+    # Incomplete corrupt backup must have been unlinked
+    leftovers = list(bdir.glob("*.bak"))
+    assert leftovers == [], f"Expected 0 leftover backup files, found: {leftovers}"
+
+    # Source database must remain 100% untouched
+    assert compute_sha256(db_file) == src_sha_before
+
+
+def test_backup_failure_preserves_preexisting_backups(tmp_path):
+    """Failure or collision during backup never deletes or modifies pre-existing backup files."""
+    db_file = tmp_path / "preserve_prev.sqlite3"
+    _create_legacy_database(db_file)
+    bdir = tmp_path / "backups"
+    bdir.mkdir(parents=True, exist_ok=True)
+
+    # Pre-existing backup file
+    pre_existing = bdir / "pre_existing_backup.sqlite3.bak"
+    pre_existing.write_text("critical prior backup data")
+    pre_sha = compute_sha256(pre_existing)
+
+    # 1. Collision failure preserves existing file
+    with pytest.raises(FileExistsError):
+        create_backup(db_file, backup_dir=bdir, custom_filename="pre_existing_backup.sqlite3.bak")
+
+    assert pre_existing.exists()
+    assert compute_sha256(pre_existing) == pre_sha
+    assert pre_existing.read_text() == "critical prior backup data"
+
+    # 2. Subsequent failed backup removes only its own newly created file, leaving prior backup
+    orig_connect = sqlite3.connect
+    def mock_connect(path_str, *args, **kwargs):
+        conn = orig_connect(path_str, *args, **kwargs)
+        if str(path_str) == str(db_file):
+            class BrokenConn:
+                def __init__(self, c): self._c = c
+                def __enter__(self): return self
+                def __exit__(self, *a): return self._c.__exit__(*a)
+                def backup(self, dst, **k): raise IOError("Simulated IO error")
+                def __getattr__(self, name): return getattr(self._c, name)
+            return BrokenConn(conn)
+        return conn
+
+    with patch("sqlite3.connect", side_effect=mock_connect):
+        with pytest.raises(IOError, match="Simulated IO error"):
+            create_backup(db_file, backup_dir=bdir)
+
+    # Only pre-existing backup remains
+    remaining = list(bdir.glob("*.bak"))
+    assert remaining == [pre_existing]
+    assert compute_sha256(pre_existing) == pre_sha
+
+
+def test_wal_data_preserved_and_restored_from_backup(tmp_path):
+    """WAL frames not yet checkpointed are preserved in backup and successfully restored."""
+    db_file = tmp_path / "wal_source.sqlite3"
+    with sqlite3.connect(str(db_file)) as conn:
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("CREATE TABLE wal_test (id INT PRIMARY KEY, val TEXT)")
+        conn.execute("INSERT INTO wal_test VALUES (1, 'initial')")
+        conn.commit()
+        # Uncheckpointed write
+        conn.execute("INSERT INTO wal_test VALUES (2, 'uncheckpointed_wal_row')")
+        conn.commit()
+
+    # Create backup while in WAL mode
+    bdir = tmp_path / "backups"
+    bak_file = create_backup(db_file, backup_dir=bdir)
+    assert bak_file.exists()
+
+    # Restore from backup into new isolated database
+    restore_file = tmp_path / "restored.sqlite3"
+    with sqlite3.connect(str(bak_file)) as b_conn, sqlite3.connect(str(restore_file)) as r_conn:
+        b_conn.backup(r_conn)
+
+    with sqlite3.connect(str(restore_file)) as r_conn:
+        rows = r_conn.execute("SELECT id, val FROM wal_test ORDER BY id").fetchall()
+        assert rows == [(1, "initial"), (2, "uncheckpointed_wal_row")]
+
+
+def test_backup_cleanup_itself_failing_preserves_original_exception(tmp_path, monkeypatch):
+    """If unlinking the incomplete backup file fails, the original exception is preserved with a note."""
+    db_file = tmp_path / "unlink_fail.sqlite3"
+    _create_legacy_database(db_file)
+    bdir = tmp_path / "backups"
+
+    orig_connect = sqlite3.connect
+    def mock_connect(path_str, *args, **kwargs):
+        conn = orig_connect(path_str, *args, **kwargs)
+        if str(path_str) == str(db_file):
+            class BrokenConn:
+                def __init__(self, c): self._c = c
+                def __enter__(self): return self
+                def __exit__(self, *a): return self._c.__exit__(*a)
+                def backup(self, dst, **k): raise OSError("Original backup disk failure")
+                def __getattr__(self, name): return getattr(self._c, name)
+            return BrokenConn(conn)
+        return conn
+
+    orig_unlink = Path.unlink
+    def mock_unlink(self, *args, **kwargs):
+        raise PermissionError("Simulated cleanup unlink failure")
+
+    with patch("sqlite3.connect", side_effect=mock_connect):
+        with patch.object(Path, "unlink", side_effect=mock_unlink):
+            with pytest.raises(OSError, match="Original backup disk failure") as exc_info:
+                create_backup(db_file, backup_dir=bdir)
+
+    # Verify original exception is raised and contains diagnostic note if supported
+    exc = exc_info.value
+    if hasattr(exc, "__notes__"):
+        assert any("cleanup of incomplete backup file failed" in n for n in exc.__notes__)
+
+
+def test_incompatible_schema_b_rejection_in_migration(tmp_path):
+    """An existing review_sessions table adhering to legacy Schema B is strictly rejected."""
+    db_file = tmp_path / "schema_b_test.sqlite3"
+    with sqlite3.connect(str(db_file)) as conn:
+        conn.execute("""
+            CREATE TABLE review_sessions (
+                session_id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL,
+                branch_id TEXT NOT NULL,
+                table_number TEXT,
+                created_at TIMESTAMP NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                status TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+
+    with pytest.raises(ValueError, match="Incompatible review_sessions table: expected exact columns"):
+        run_a5_migration(str(db_file), dry_run=False, backup_dir=tmp_path / "backups")
+
+
+def test_incompatible_schema_b_rejection_in_production_runtime(tmp_path, monkeypatch):
+    """In production runtime, ReviewStore startup against legacy Schema B fails closed."""
+    from backend.app.core.database.storage import ReviewStore
+    from scripts.migrate_template_subsystem import apply_template_migration
+
+    db_file = tmp_path / "schema_b_prod.sqlite3"
+    with sqlite3.connect(str(db_file)) as conn:
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("""
+            CREATE TABLE tenants (
+                id TEXT PRIMARY KEY,
+                business_name TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at REAL NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE review_sessions (
+                session_id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL,
+                branch_id TEXT NOT NULL,
+                table_number TEXT,
+                created_at TIMESTAMP NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                status TEXT NOT NULL
+            )
+        """)
+        apply_template_migration(conn)
+        conn.commit()
+
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    with pytest.raises(RuntimeError, match="Incompatible 'review_sessions' table schema"):
+        ReviewStore(database_path=str(db_file))

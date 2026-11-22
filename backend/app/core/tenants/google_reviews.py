@@ -8,10 +8,88 @@ the customer performs the final review submission.
 import os
 import json
 import copy
+import logging
 import threading
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from dataclasses import asdict, is_dataclass
+from urllib.parse import urlsplit
+
+logger = logging.getLogger(__name__)
+
+ALLOWED_GOOGLE_REVIEW_HOSTS = {
+    "search.google.com",
+    "maps.google.com",
+    "www.google.com",
+    "google.com",
+    "g.page",
+    "maps.app.goo.gl",
+    "goo.gl",
+}
+
+
+def validate_google_review_url(url: Optional[str], allow_empty: bool = False) -> str:
+    """
+    Validates a Google Review URL strictly against approved criteria:
+    - Must be a string (non-empty unless allow_empty=True)
+    - Scheme must be HTTPS
+    - Hostname must be in ALLOWED_GOOGLE_REVIEW_HOSTS (exact match)
+    - Must not contain user credentials (username, password, @ in netloc)
+    - Must not specify a non-standard port
+    - Length must be <= 2000 chars
+    """
+    if url is None or (isinstance(url, str) and not url.strip()):
+        if allow_empty:
+            return ""
+        raise ValueError("Google review URL is required and cannot be empty")
+
+    if not isinstance(url, str):
+        raise ValueError("Google review URL must be a string")
+
+    cleaned_url = url.strip()
+    if len(cleaned_url) > 2000:
+        raise ValueError("Google review URL exceeds maximum length of 2000 characters")
+
+    try:
+        parsed = urlsplit(cleaned_url)
+    except Exception as e:
+        raise ValueError(f"Malformed Google review URL: {e}")
+
+    scheme = (parsed.scheme or "").lower()
+    if scheme != "https":
+        raise ValueError(f"Google review URL must use HTTPS scheme, got '{scheme or 'none'}'")
+
+    if "@" in parsed.netloc or parsed.username or parsed.password:
+        raise ValueError("Google review URL must not contain user credentials")
+
+    hostname = (parsed.hostname or "").lower()
+    if not hostname:
+        raise ValueError("Google review URL missing valid hostname")
+
+    if hostname not in ALLOWED_GOOGLE_REVIEW_HOSTS:
+        raise ValueError(
+            f"Invalid Google review URL domain '{hostname}'. "
+            f"Allowed domains: {sorted(ALLOWED_GOOGLE_REVIEW_HOSTS)}"
+        )
+
+    if parsed.port is not None and parsed.port != 443:
+        raise ValueError(f"Google review URL must not use custom port '{parsed.port}'")
+
+    return cleaned_url
+
+
+def is_safe_google_review_url(url: Optional[str]) -> bool:
+    """Check if a URL is an acceptable Google review URL without raising an exception."""
+    if not url or not isinstance(url, str):
+        return False
+    url = url.strip()
+    if not url:
+        return False
+    try:
+        validate_google_review_url(url, allow_empty=False)
+        return True
+    except (ValueError, Exception):
+        return False
 
 SOURCE_CONFIG_FILE = Path(__file__).parent / "business_links.json"
 CONFIG_FILE = Path(os.getenv("BUSINESS_LINKS_PATH", str(SOURCE_CONFIG_FILE))).expanduser()
@@ -159,7 +237,15 @@ class GoogleReviewManager:
             tenant = store.get_tenant(business_id)
             if tenant:
                 url = tenant.get("review_url") or os.getenv("GOOGLE_REVIEW_URL", "")
-                is_configured = bool(url.strip()) and url.strip() != "https://maps.google.com"
+                if url and not is_safe_google_review_url(url):
+                    logger.warning(
+                        "[Security] Stored review URL '%s' for business '%s' is unsafe/invalid. Neutralizing to default.",
+                        url, business_id
+                    )
+                    url = "https://maps.google.com"
+                    is_configured = False
+                else:
+                    is_configured = bool(url.strip()) and url.strip() != "https://maps.google.com"
                 if not url.strip():
                     url = "https://maps.google.com"
                 category = tenant.get("category", "Breakfast & Snacks")
@@ -199,7 +285,15 @@ class GoogleReviewManager:
                 return None
 
             url = info.get("google_review_url") or os.getenv("GOOGLE_REVIEW_URL", "")
-            is_configured = bool(url.strip()) and url.strip() != "https://maps.google.com"
+            if url and not is_safe_google_review_url(url):
+                logger.warning(
+                    "[Security] Config review URL '%s' for business '%s' is unsafe/invalid. Neutralizing to default.",
+                    url, business_id
+                )
+                url = "https://maps.google.com"
+                is_configured = False
+            else:
+                is_configured = bool(url.strip()) and url.strip() != "https://maps.google.com"
             if not url.strip():
                 url = "https://maps.google.com"
 
@@ -247,6 +341,7 @@ class GoogleReviewManager:
         industry_id: Optional[str] = None
     ) -> Dict[str, Any]:
         with self._lock:
+            clean_review_url = validate_google_review_url(google_review_url, allow_empty=True)
             previous_links = copy.deepcopy(self._links)
             if business_id not in self._links:
                 self._links[business_id] = {
@@ -254,7 +349,7 @@ class GoogleReviewManager:
                     "topics": DEFAULT_TOPICS
                 }
 
-            self._links[business_id]["google_review_url"] = google_review_url.strip()
+            self._links[business_id]["google_review_url"] = clean_review_url
             if business_name:
                 self._links[business_id]["business_name"] = business_name.strip()
             if branch is not None:
@@ -287,7 +382,7 @@ class GoogleReviewManager:
                     current_tenant.get("status", "active") if current_tenant else "active"
                 )
                 cur_name = (business_name if business_name is not None else None) or (current_tenant.get("business_name") if current_tenant else None) or self._links[business_id].get("business_name") or "Nasta Ghar"
-                cur_url = (google_review_url if google_review_url is not None else None) or (current_tenant.get("review_url") if current_tenant else None) or self._links[business_id].get("google_review_url", "")
+                cur_url = clean_review_url
                 cur_branch = (branch if branch is not None else None) or (current_tenant.get("branch") if current_tenant and current_tenant.get("branch") is not None else None) or self._links[business_id].get("branch", "")
                 cur_cat = (category if category is not None else None) or (current_tenant.get("category") if current_tenant else None) or self._links[business_id].get("category") or "Cafe"
                 cur_desc = (description if description is not None else None) or (current_tenant.get("description") if current_tenant and current_tenant.get("description") is not None else None) or self._links[business_id].get("description", "")

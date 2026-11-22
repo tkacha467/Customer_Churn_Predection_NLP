@@ -32,6 +32,21 @@ def normalize_tenant_id(tenant_id: Optional[str]) -> Optional[str]:
     return tid
 
 
+def set_secure_file_permissions(file_path: Path | str) -> None:
+    """
+    Applies restrictive permissions (0600: read/write by owner only) on POSIX systems (SEC-03).
+    Silently handles platforms where POSIX permissions are unavailable (e.g. Windows)
+    or filesystems that do not support permission bits.
+    Never alters directory permissions or ownership.
+    """
+    try:
+        p = Path(file_path)
+        if p.exists() and os.name == "posix":
+            os.chmod(p, 0o600)
+    except (OSError, NotImplementedError, PermissionError):
+        pass
+
+
 class ReviewStore:
     def __init__(self, database_path: str | None = None):
         _repo_root = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[5])
@@ -42,274 +57,415 @@ class ReviewStore:
         default_path = next((p for p in _candidate_dbs if p.exists()), _candidate_dbs[0])
         self.path = Path(database_path or os.getenv("REVIEW_DB_PATH", str(default_path))).expanduser()
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        env = os.getenv("ENVIRONMENT", "").strip().lower()
+        db_exists_before = self.path.exists()
         with self._connect() as db:
-            db.execute("PRAGMA journal_mode=WAL")
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS analytics_events (
-                    event_id TEXT PRIMARY KEY,
-                    created_at REAL NOT NULL,
-                    payload TEXT NOT NULL,
-                    tenant_id TEXT
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS private_tickets (
-                    ticket_id TEXT PRIMARY KEY,
-                    created_at REAL NOT NULL,
-                    payload TEXT NOT NULL,
-                    tenant_id TEXT
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS preview_analytics_events (
-                    event_id TEXT PRIMARY KEY,
-                    created_at REAL NOT NULL,
-                    payload TEXT NOT NULL,
-                    tenant_id TEXT,
-                    traffic_source TEXT NOT NULL DEFAULT 'preview'
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS tenants (
-                    id TEXT PRIMARY KEY,
-                    business_name TEXT NOT NULL,
-                    status TEXT NOT NULL DEFAULT 'active',
-                    platform TEXT NOT NULL DEFAULT 'google',
-                    review_url TEXT NOT NULL DEFAULT '',
-                    branch TEXT DEFAULT '',
-                    category TEXT DEFAULT 'Breakfast & Snacks',
-                    description TEXT DEFAULT '',
-                    topics_json TEXT DEFAULT '[]',
-                    primary_accent TEXT DEFAULT '#f97316',
-                    domain TEXT DEFAULT '',
-                    entitlements_json TEXT DEFAULT '["review_manager"]',
-                    created_at REAL NOT NULL,
-                    updated_at REAL NOT NULL
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id TEXT PRIMARY KEY,
-                    email TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    display_name TEXT DEFAULT '',
-                    is_active INTEGER NOT NULL DEFAULT 1,
-                    is_platform_admin INTEGER NOT NULL DEFAULT 0,
-                    created_at REAL NOT NULL,
-                    updated_at REAL NOT NULL
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS tenant_memberships (
-                    id TEXT PRIMARY KEY,
-                    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                    tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-                    role TEXT NOT NULL DEFAULT 'manager',
-                    created_at REAL NOT NULL,
-                    UNIQUE(user_id, tenant_id)
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS sessions (
-                    token_hash TEXT PRIMARY KEY,
-                    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                    active_tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-                    created_at REAL NOT NULL,
-                    expires_at REAL NOT NULL,
-                    revoked_at REAL,
-                    ip_address TEXT DEFAULT '',
-                    user_agent TEXT DEFAULT ''
-                )
-            """)
-            db.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
-            db.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at)")
-            db.execute("CREATE INDEX IF NOT EXISTS idx_memberships_user ON tenant_memberships(user_id)")
-            db.execute("CREATE INDEX IF NOT EXISTS idx_memberships_tenant ON tenant_memberships(tenant_id)")
-
-            # Multi-Worker Review Assistant Customer Sessions (Phase A5.0.5 & A5.0.11)
-            # In test and development environments, auto-create review_sessions schema for ephemeral test databases.
-            # In staging, production, or unconfigured/ambiguous environments, fail closed:
-            # Runtime startup MUST NOT create review_sessions or its indexes. It must perform a read-only check.
-            env = os.getenv("ENVIRONMENT", "").strip().lower()
             if env in ("test", "testing", "dev", "development"):
-                db.execute("""
-                    CREATE TABLE IF NOT EXISTS review_sessions (
-                        session_id TEXT PRIMARY KEY,
-                        tenant_id TEXT NOT NULL,
-                        traffic_source TEXT NOT NULL DEFAULT 'customer',
-                        table_number TEXT DEFAULT '',
-                        dining_type TEXT DEFAULT '',
-                        created_at REAL NOT NULL,
-                        expires_at REAL NOT NULL
-                    )
-                """)
-                db.execute("CREATE INDEX IF NOT EXISTS idx_review_sessions_tenant_created ON review_sessions(tenant_id, created_at DESC)")
-                db.execute("CREATE INDEX IF NOT EXISTS idx_review_sessions_expiry ON review_sessions(expires_at)")
+                self._init_dev_test_db(db)
             else:
-                # Staging / Production / Managed environments: read-only readiness check
-                table_row = db.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name='review_sessions'"
-                ).fetchone()
-                if not table_row:
-                    raise RuntimeError(
-                        f"Database schema unmigrated: missing required table 'review_sessions'. "
-                        f"In environment '{env or 'unconfigured'}' runtime startup does not auto-create schema. "
-                        f"Run 'scripts/migrate_phase_a5_sessions.py --database {self.path}' before starting the application."
-                    )
+                self._validate_authoritative_schema(db, env)
 
-                col_info = db.execute("PRAGMA table_info(review_sessions)").fetchall()
-                existing_cols = {row[1] for row in col_info}
-                pk_cols = [row[1] for row in col_info if row[5] > 0]
-                expected_cols = {
-                    "session_id", "tenant_id", "traffic_source", "table_number", "dining_type", "created_at", "expires_at"
-                }
-                missing_cols = expected_cols - existing_cols
-                if missing_cols:
-                    raise RuntimeError(
-                        f"Incompatible 'review_sessions' table schema in environment '{env}': missing columns {missing_cols}. "
-                        f"Run 'scripts/migrate_phase_a5_sessions.py --database {self.path}'."
-                    )
-                if pk_cols != ["session_id"]:
-                    raise RuntimeError(
-                        f"Incompatible 'review_sessions' table in environment '{env}': expected primary key ['session_id'], got {pk_cols}."
-                    )
-
-                idx_info = db.execute("PRAGMA index_list(review_sessions)").fetchall()
-                existing_indexes = {row[1] for row in idx_info}
-                expected_indexes = {"idx_review_sessions_tenant_created", "idx_review_sessions_expiry"}
-                missing_idx = expected_indexes - existing_indexes
-                if missing_idx:
-                    raise RuntimeError(
-                        f"Database schema unmigrated: missing required indexes {missing_idx} on 'review_sessions'. "
-                        f"Run 'scripts/migrate_phase_a5_sessions.py --database {self.path}' before starting in '{env}' mode."
-                    )
-
-            # Shared Business Profile & Tenant Documents (Vraja Multi-Product Foundation)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS business_profiles (
-                    tenant_id TEXT PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
-                    tagline TEXT DEFAULT '',
-                    display_name TEXT DEFAULT '',
-                    category TEXT DEFAULT '',
-                    branch_name TEXT DEFAULT '',
-                    description TEXT DEFAULT '',
-                    opening_hours TEXT DEFAULT '',
-                    welcome_message TEXT DEFAULT '',
-                    email TEXT DEFAULT '',
-                    phone_number TEXT DEFAULT '',
-                    website_url TEXT DEFAULT '',
-                    address TEXT DEFAULT '',
-                    map_url TEXT DEFAULT '',
-                    whatsapp_url TEXT DEFAULT '',
-                    whatsapp_group_url TEXT DEFAULT '',
-                    instagram_url TEXT DEFAULT '',
-                    facebook_url TEXT DEFAULT '',
-                    youtube_url TEXT DEFAULT '',
-                    logo_path TEXT DEFAULT '',
-                    cover_image_path TEXT DEFAULT '',
-                    background_preset TEXT DEFAULT '',
-                    overlay_opacity REAL DEFAULT 0.75,
-                    primary_accent TEXT DEFAULT '#078BFF',
-                    brand_accent TEXT DEFAULT NULL,
-                    timezone TEXT DEFAULT 'Asia/Kolkata',
-                    custom_links_json TEXT DEFAULT '[]',
-                    is_published INTEGER NOT NULL DEFAULT 0,
-                    show_review_button INTEGER NOT NULL DEFAULT 1,
-                    created_at REAL NOT NULL,
-                    updated_at REAL NOT NULL
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS tenant_documents (
-                    id TEXT PRIMARY KEY,
-                    tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-                    document_type TEXT NOT NULL DEFAULT 'food_menu',
-                    display_name TEXT NOT NULL,
-                    original_filename TEXT NOT NULL,
-                    stored_filename TEXT NOT NULL,
-                    file_size_bytes INTEGER NOT NULL,
-                    mime_type TEXT NOT NULL DEFAULT 'application/pdf',
-                    sha256_hash TEXT NOT NULL,
-                    is_published INTEGER NOT NULL DEFAULT 1,
-                    created_at REAL NOT NULL,
-                    updated_at REAL NOT NULL
-                )
-            """)
-            db.execute("CREATE INDEX IF NOT EXISTS idx_business_profiles_published ON business_profiles(is_published)")
-            db.execute("CREATE INDEX IF NOT EXISTS idx_tenant_documents_tenant ON tenant_documents(tenant_id)")
-            db.execute("CREATE INDEX IF NOT EXISTS idx_tenant_documents_published ON tenant_documents(is_published)")
-
-            # Upgrade existing schemas safely
-            for stmt in (
-                "ALTER TABLE analytics_events ADD COLUMN tenant_id TEXT",
-                "ALTER TABLE private_tickets ADD COLUMN tenant_id TEXT",
-                "ALTER TABLE tenants ADD COLUMN domain TEXT DEFAULT ''",
-                "ALTER TABLE tenants ADD COLUMN entitlements_json TEXT DEFAULT '[\"review_manager\"]'",
-                "ALTER TABLE users ADD COLUMN is_platform_admin INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE business_profiles ADD COLUMN display_name TEXT DEFAULT ''",
-                "ALTER TABLE business_profiles ADD COLUMN category TEXT DEFAULT ''",
-                "ALTER TABLE business_profiles ADD COLUMN branch_name TEXT DEFAULT ''",
-                "ALTER TABLE business_profiles ADD COLUMN description TEXT DEFAULT ''",
-                "ALTER TABLE business_profiles ADD COLUMN brand_accent TEXT DEFAULT NULL",
-                "ALTER TABLE business_profiles ADD COLUMN timezone TEXT DEFAULT 'Asia/Kolkata'",
-                "ALTER TABLE business_profiles ADD COLUMN opening_hours TEXT DEFAULT ''",
-                "ALTER TABLE business_profiles ADD COLUMN welcome_message TEXT DEFAULT ''",
-                "ALTER TABLE business_profiles ADD COLUMN email TEXT DEFAULT ''",
-                "ALTER TABLE business_profiles ADD COLUMN whatsapp_group_url TEXT DEFAULT ''",
-                "ALTER TABLE business_profiles ADD COLUMN background_preset TEXT DEFAULT ''",
-                "ALTER TABLE business_profiles ADD COLUMN overlay_opacity REAL DEFAULT 0.75",
-                "ALTER TABLE business_profiles ADD COLUMN primary_accent TEXT DEFAULT '#078BFF'",
-            ):
-                try:
-                    db.execute(stmt)
-                except sqlite3.OperationalError:
-                    pass
-
-            # Composite indexes for tenant-scoped analytics and tickets
-            db.execute("CREATE INDEX IF NOT EXISTS idx_analytics_tenant_created ON analytics_events(tenant_id, created_at DESC)")
-            db.execute("CREATE INDEX IF NOT EXISTS idx_tickets_tenant_created ON private_tickets(tenant_id, created_at DESC)")
-            db.execute("CREATE INDEX IF NOT EXISTS idx_preview_events_tenant_created ON preview_analytics_events(tenant_id, created_at DESC)")
-
-            # Auto-seed initial tenants from business_links.json if database is newly initialized
-            count = db.execute("SELECT COUNT(*) FROM tenants").fetchone()[0]
-            if count == 0:
-                self._seed_initial_tenants(db)
-
-            # Idempotent backfill of tenant_id for historical records
-            # 1. Authoritative default business aliases
-            db.execute("""
-                UPDATE analytics_events
-                SET tenant_id = 'default_business'
-                WHERE tenant_id IS NULL
-                  AND json_extract(payload, '$.metadata.business_id') IN ('default_business', 'nasta_ghar', 'nasta-ghar')
-            """)
-            db.execute("""
-                UPDATE private_tickets
-                SET tenant_id = 'default_business'
-                WHERE tenant_id IS NULL
-                  AND json_extract(payload, '$.business_id') IN ('default_business', 'nasta_ghar', 'nasta-ghar')
-            """)
-            # 2. Authoritative known registered tenants (unmapped/null remain NULL for tenant isolation)
-            db.execute("""
-                UPDATE analytics_events
-                SET tenant_id = json_extract(payload, '$.metadata.business_id')
-                WHERE tenant_id IS NULL
-                  AND json_extract(payload, '$.metadata.business_id') IN (SELECT id FROM tenants)
-            """)
-            db.execute("""
-                UPDATE private_tickets
-                SET tenant_id = json_extract(payload, '$.business_id')
-                WHERE tenant_id IS NULL
-                  AND json_extract(payload, '$.business_id') IN (SELECT id FROM tenants)
-            """)
-
-            # 3. Dynamic Industry Template System initialization
-            from backend.app.core.database.template_storage import init_template_schema, seed_default_templates
-            init_template_schema(db)
-            seed_default_templates(db)
+        # SEC-03: Apply secure permissions (0600) to newly created database files,
+        # and safely correct dev/test databases. Never unsafely mutate existing production/staging files.
+        if not db_exists_before or env in ("test", "testing", "dev", "development"):
+            set_secure_file_permissions(self.path)
+            for suffix in ("-wal", "-shm"):
+                wal_or_shm = self.path.parent / (self.path.name + suffix)
+                if wal_or_shm.exists():
+                    set_secure_file_permissions(wal_or_shm)
 
         from backend.app.core.database.template_storage import TemplateRepository
         self.template_repo = TemplateRepository(self._connect)
+
+    def _init_dev_test_db(self, db) -> None:
+        """
+        Ephemeral test and development initialization only.
+        Executes schema creation DDL, index creations, legacy migrations, and initial seeds.
+        Strictly prohibited in staging and production.
+        """
+        db.execute("PRAGMA journal_mode=WAL")
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS analytics_events (
+                event_id TEXT PRIMARY KEY,
+                created_at REAL NOT NULL,
+                payload TEXT NOT NULL,
+                tenant_id TEXT
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS private_tickets (
+                ticket_id TEXT PRIMARY KEY,
+                created_at REAL NOT NULL,
+                payload TEXT NOT NULL,
+                tenant_id TEXT
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS preview_analytics_events (
+                event_id TEXT PRIMARY KEY,
+                created_at REAL NOT NULL,
+                payload TEXT NOT NULL,
+                tenant_id TEXT,
+                traffic_source TEXT NOT NULL DEFAULT 'preview'
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS tenants (
+                id TEXT PRIMARY KEY,
+                business_name TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                platform TEXT NOT NULL DEFAULT 'google',
+                review_url TEXT NOT NULL DEFAULT '',
+                branch TEXT DEFAULT '',
+                category TEXT DEFAULT 'Breakfast & Snacks',
+                description TEXT DEFAULT '',
+                topics_json TEXT DEFAULT '[]',
+                primary_accent TEXT DEFAULT '#f97316',
+                domain TEXT DEFAULT '',
+                entitlements_json TEXT DEFAULT '["review_manager"]',
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                display_name TEXT DEFAULT '',
+                is_active INTEGER NOT NULL DEFAULT 1,
+                is_platform_admin INTEGER NOT NULL DEFAULT 0,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS tenant_memberships (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                role TEXT NOT NULL DEFAULT 'manager',
+                created_at REAL NOT NULL,
+                UNIQUE(user_id, tenant_id)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                token_hash TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                active_tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                created_at REAL NOT NULL,
+                expires_at REAL NOT NULL,
+                revoked_at REAL,
+                ip_address TEXT DEFAULT '',
+                user_agent TEXT DEFAULT ''
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_memberships_user ON tenant_memberships(user_id)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_memberships_tenant ON tenant_memberships(tenant_id)")
+
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS review_sessions (
+                session_id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL,
+                traffic_source TEXT NOT NULL DEFAULT 'customer',
+                table_number TEXT DEFAULT '',
+                dining_type TEXT DEFAULT '',
+                created_at REAL NOT NULL,
+                expires_at REAL NOT NULL
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS idx_review_sessions_tenant_created ON review_sessions(tenant_id, created_at DESC)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_review_sessions_expiry ON review_sessions(expires_at)")
+
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS business_profiles (
+                tenant_id TEXT PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+                tagline TEXT DEFAULT '',
+                display_name TEXT DEFAULT '',
+                category TEXT DEFAULT '',
+                branch_name TEXT DEFAULT '',
+                description TEXT DEFAULT '',
+                opening_hours TEXT DEFAULT '',
+                welcome_message TEXT DEFAULT '',
+                email TEXT DEFAULT '',
+                phone_number TEXT DEFAULT '',
+                website_url TEXT DEFAULT '',
+                address TEXT DEFAULT '',
+                map_url TEXT DEFAULT '',
+                whatsapp_url TEXT DEFAULT '',
+                whatsapp_group_url TEXT DEFAULT '',
+                instagram_url TEXT DEFAULT '',
+                facebook_url TEXT DEFAULT '',
+                youtube_url TEXT DEFAULT '',
+                logo_path TEXT DEFAULT '',
+                cover_image_path TEXT DEFAULT '',
+                background_preset TEXT DEFAULT '',
+                overlay_opacity REAL DEFAULT 0.75,
+                primary_accent TEXT DEFAULT '#078BFF',
+                brand_accent TEXT DEFAULT NULL,
+                timezone TEXT DEFAULT 'Asia/Kolkata',
+                custom_links_json TEXT DEFAULT '[]',
+                is_published INTEGER NOT NULL DEFAULT 0,
+                show_review_button INTEGER NOT NULL DEFAULT 1,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS tenant_documents (
+                id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                document_type TEXT NOT NULL DEFAULT 'food_menu',
+                display_name TEXT NOT NULL,
+                original_filename TEXT NOT NULL,
+                stored_filename TEXT NOT NULL,
+                file_size_bytes INTEGER NOT NULL,
+                mime_type TEXT NOT NULL DEFAULT 'application/pdf',
+                sha256_hash TEXT NOT NULL,
+                is_published INTEGER NOT NULL DEFAULT 1,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            )
+        """)
+        db.execute("CREATE INDEX IF NOT EXISTS idx_business_profiles_published ON business_profiles(is_published)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_tenant_documents_tenant ON tenant_documents(tenant_id)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_tenant_documents_published ON tenant_documents(is_published)")
+
+        for stmt in (
+            "ALTER TABLE analytics_events ADD COLUMN tenant_id TEXT",
+            "ALTER TABLE private_tickets ADD COLUMN tenant_id TEXT",
+            "ALTER TABLE tenants ADD COLUMN domain TEXT DEFAULT ''",
+            "ALTER TABLE tenants ADD COLUMN entitlements_json TEXT DEFAULT '[\"review_manager\"]'",
+            "ALTER TABLE users ADD COLUMN is_platform_admin INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE business_profiles ADD COLUMN display_name TEXT DEFAULT ''",
+            "ALTER TABLE business_profiles ADD COLUMN category TEXT DEFAULT ''",
+            "ALTER TABLE business_profiles ADD COLUMN branch_name TEXT DEFAULT ''",
+            "ALTER TABLE business_profiles ADD COLUMN description TEXT DEFAULT ''",
+            "ALTER TABLE business_profiles ADD COLUMN brand_accent TEXT DEFAULT NULL",
+            "ALTER TABLE business_profiles ADD COLUMN timezone TEXT DEFAULT 'Asia/Kolkata'",
+            "ALTER TABLE business_profiles ADD COLUMN opening_hours TEXT DEFAULT ''",
+            "ALTER TABLE business_profiles ADD COLUMN welcome_message TEXT DEFAULT ''",
+            "ALTER TABLE business_profiles ADD COLUMN email TEXT DEFAULT ''",
+            "ALTER TABLE business_profiles ADD COLUMN whatsapp_group_url TEXT DEFAULT ''",
+            "ALTER TABLE business_profiles ADD COLUMN background_preset TEXT DEFAULT ''",
+            "ALTER TABLE business_profiles ADD COLUMN overlay_opacity REAL DEFAULT 0.75",
+            "ALTER TABLE business_profiles ADD COLUMN primary_accent TEXT DEFAULT '#078BFF'",
+        ):
+            try:
+                db.execute(stmt)
+            except sqlite3.OperationalError:
+                pass
+
+        db.execute("CREATE INDEX IF NOT EXISTS idx_analytics_tenant_created ON analytics_events(tenant_id, created_at DESC)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_tickets_tenant_created ON private_tickets(tenant_id, created_at DESC)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_preview_events_tenant_created ON preview_analytics_events(tenant_id, created_at DESC)")
+
+        count = db.execute("SELECT COUNT(*) FROM tenants").fetchone()[0]
+        if count == 0:
+            self._seed_initial_tenants(db)
+
+        db.execute("""
+            UPDATE analytics_events
+            SET tenant_id = 'default_business'
+            WHERE tenant_id IS NULL
+              AND json_extract(payload, '$.metadata.business_id') IN ('default_business', 'nasta_ghar', 'nasta-ghar')
+        """)
+        db.execute("""
+            UPDATE private_tickets
+            SET tenant_id = 'default_business'
+            WHERE tenant_id IS NULL
+              AND json_extract(payload, '$.business_id') IN ('default_business', 'nasta_ghar', 'nasta-ghar')
+        """)
+        db.execute("""
+            UPDATE analytics_events
+            SET tenant_id = json_extract(payload, '$.metadata.business_id')
+            WHERE tenant_id IS NULL
+              AND json_extract(payload, '$.metadata.business_id') IN (SELECT id FROM tenants)
+        """)
+        db.execute("""
+            UPDATE private_tickets
+            SET tenant_id = json_extract(payload, '$.business_id')
+            WHERE tenant_id IS NULL
+              AND json_extract(payload, '$.business_id') IN (SELECT id FROM tenants)
+        """)
+
+        from backend.app.core.database.template_storage import init_template_schema, seed_default_templates
+        init_template_schema(db)
+        seed_default_templates(db)
+
+    def _validate_authoritative_schema(self, db, env: str) -> None:
+        """
+        In staging, production, and unconfigured environments, performs strict read-only
+        schema validation.
+        Executes ZERO DDL statements and ZERO DML statements.
+        Fails closed with RuntimeError on any missing table, missing/unexpected column,
+        incompatible primary key, or missing index.
+        """
+        # 1. Strict validation of review_sessions table and its indexes
+        table_row = db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='review_sessions'"
+        ).fetchone()
+        if not table_row:
+            raise RuntimeError(
+                f"Database schema unmigrated: missing required table 'review_sessions'. "
+                f"In environment '{env or 'unconfigured'}' runtime startup does not auto-create schema. "
+                f"Run 'scripts/migrate_phase_a5_sessions.py --database {self.path}' before starting the application."
+            )
+
+        col_info = db.execute("PRAGMA table_info(review_sessions)").fetchall()
+        existing_cols = {row[1] for row in col_info}
+        pk_cols = [row[1] for row in col_info if row[5] > 0]
+        expected_cols = {
+            "session_id", "tenant_id", "traffic_source", "table_number", "dining_type", "created_at", "expires_at"
+        }
+        missing_cols = expected_cols - existing_cols
+        unexpected_cols = existing_cols - expected_cols
+        if missing_cols or unexpected_cols:
+            raise RuntimeError(
+                f"Incompatible 'review_sessions' table schema in environment '{env}': "
+                f"expected columns {expected_cols}, got {existing_cols} "
+                f"(missing: {missing_cols}, unexpected: {unexpected_cols}). "
+                f"Run 'scripts/migrate_phase_a5_sessions.py --database {self.path}'."
+            )
+        if pk_cols != ["session_id"]:
+            raise RuntimeError(
+                f"Incompatible 'review_sessions' table in environment '{env}': expected primary key ['session_id'], got {pk_cols}."
+            )
+
+        idx_info = db.execute("PRAGMA index_list(review_sessions)").fetchall()
+        existing_indexes = {row[1] for row in idx_info}
+        expected_indexes = {"idx_review_sessions_tenant_created", "idx_review_sessions_expiry"}
+        missing_idx = expected_indexes - existing_indexes
+        if missing_idx:
+            raise RuntimeError(
+                f"Database schema unmigrated: missing required indexes {missing_idx} on 'review_sessions'. "
+                f"Run 'scripts/migrate_phase_a5_sessions.py --database {self.path}' before starting in '{env}' mode."
+            )
+
+        # 2. Strict validation of Dynamic Industry Template subsystem (5 tables & indexes)
+        self._validate_template_subsystem_schema(db, env)
+
+        # 3. Strict validation of base application tables, columns, and primary keys
+        base_tables_contract = {
+            "analytics_events": (
+                {"event_id", "created_at", "payload", "tenant_id"},
+                ["event_id"]
+            ),
+            "private_tickets": (
+                {"ticket_id", "created_at", "payload", "tenant_id"},
+                ["ticket_id"]
+            ),
+            "preview_analytics_events": (
+                {"event_id", "created_at", "payload", "tenant_id", "traffic_source"},
+                ["event_id"]
+            ),
+            "tenants": (
+                {
+                    "id", "business_name", "status", "platform", "review_url", "branch",
+                    "category", "description", "topics_json", "primary_accent", "created_at",
+                    "updated_at", "domain", "entitlements_json"
+                },
+                ["id"]
+            ),
+            "users": (
+                {"id", "email", "password_hash", "display_name", "is_active", "is_platform_admin", "created_at", "updated_at"},
+                ["id"]
+            ),
+            "tenant_memberships": (
+                {"id", "user_id", "tenant_id", "role", "created_at"},
+                ["id"]
+            ),
+            "sessions": (
+                {"token_hash", "user_id", "active_tenant_id", "created_at", "expires_at", "revoked_at", "ip_address", "user_agent"},
+                ["token_hash"]
+            ),
+            "business_profiles": (
+                {
+                    "tenant_id", "tagline", "phone_number", "website_url", "address", "map_url",
+                    "whatsapp_url", "instagram_url", "facebook_url", "youtube_url", "logo_path",
+                    "cover_image_path", "custom_links_json", "is_published", "show_review_button",
+                    "created_at", "updated_at", "display_name", "category", "opening_hours",
+                    "welcome_message", "email", "whatsapp_group_url", "background_preset",
+                    "overlay_opacity", "primary_accent", "branch_name", "description",
+                    "brand_accent", "timezone"
+                },
+                ["tenant_id"]
+            ),
+            "tenant_documents": (
+                {
+                    "id", "tenant_id", "document_type", "display_name", "original_filename",
+                    "stored_filename", "file_size_bytes", "mime_type", "sha256_hash", "is_published",
+                    "created_at", "updated_at"
+                },
+                ["id"]
+            ),
+        }
+
+        all_existing_tables = {
+            r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        }
+
+        for table_name, (expected_c, expected_pk) in base_tables_contract.items():
+            if table_name not in all_existing_tables:
+                raise RuntimeError(
+                    f"Database schema unmigrated: missing required table '{table_name}'. "
+                    f"In environment '{env or 'unconfigured'}' runtime startup does not auto-create schema."
+                )
+            t_col_info = db.execute(f"PRAGMA table_info({table_name})").fetchall()
+            t_cols = {r[1] for r in t_col_info}
+            t_pks = [r[1] for r in t_col_info if r[5] > 0]
+            missing_t_cols = expected_c - t_cols
+            unexpected_t_cols = t_cols - expected_c
+            if missing_t_cols or unexpected_t_cols:
+                raise RuntimeError(
+                    f"Incompatible '{table_name}' table schema in environment '{env}': "
+                    f"expected columns {expected_c}, got {t_cols} "
+                    f"(missing: {missing_t_cols}, unexpected: {unexpected_t_cols})."
+                )
+            if t_pks != expected_pk:
+                raise RuntimeError(
+                    f"Incompatible '{table_name}' table in environment '{env}': expected primary key {expected_pk}, got {t_pks}."
+                )
+
+        # 4. Strict validation of required base composite/lookup indexes
+        base_required_indexes = {
+            "idx_sessions_user",
+            "idx_sessions_expiry",
+            "idx_memberships_user",
+            "idx_memberships_tenant",
+            "idx_business_profiles_published",
+            "idx_tenant_documents_tenant",
+            "idx_tenant_documents_published",
+            "idx_analytics_tenant_created",
+            "idx_tickets_tenant_created",
+            "idx_preview_events_tenant_created",
+        }
+        all_existing_indexes = {
+            r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='index'").fetchall()
+        }
+        missing_base_indexes = base_required_indexes - all_existing_indexes
+        if missing_base_indexes:
+            raise RuntimeError(
+                f"Database schema unmigrated: missing required base indexes {missing_base_indexes} in environment '{env}'. "
+                f"Runtime startup does not auto-create indexes in staging/production."
+            )
+
+        from backend.app.core.database.template_storage import TemplateRepository
+        self.template_repo = TemplateRepository(self._connect)
+
+    def _validate_template_subsystem_schema(self, db, env: str) -> None:
+        """
+        In staging and production, performs a strict read-only schema validation on the
+        5 dynamic industry template subsystem tables and their indexes.
+        Fails closed with RuntimeError if any table, column, type, nullability, default,
+        PK, unique constraint, FK, or index is missing or incompatible.
+        Never executes DDL or seeds records.
+        """
+        from backend.app.core.database.template_storage import validate_strict_template_schema
+        validate_strict_template_schema(db, env, str(self.path))
 
     def _seed_initial_tenants(self, db):
         from backend.app.core.tenants.google_reviews import DEFAULT_TOPICS

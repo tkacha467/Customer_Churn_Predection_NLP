@@ -23,7 +23,7 @@ Covers:
 import pytest
 from starlette.testclient import TestClient
 from backend.app.main import app
-from backend.app.core.auth.auth import get_store, _login_attempts, _login_lock
+from backend.app.core.auth.auth import get_store, _login_attempts, _login_lock, _ip_attempts, _account_failures, _ip_account_failures
 from backend.app.api.template_schemas import (
     TemplateConfigurationPayload,
     VisualTokensConfig,
@@ -39,7 +39,12 @@ def admin_login():
     """Authenticate client with platform administrator credentials."""
     with _login_lock:
         _login_attempts.clear()
+        _ip_attempts.clear()
+        _account_failures.clear()
+        _ip_account_failures.clear()
     res = client.post("/api/auth/login", json={"email": "owner@nastaghar.com", "password": "Owner123!"})
+    if res.status_code != 200:
+        print("LOGIN ERROR:", res.status_code, res.text)
     assert res.status_code == 200
     assert res.json().get("authenticated") is True
     yield
@@ -617,7 +622,7 @@ def test_phase_b_manifest_trust_and_deployment_gate():
        triggers TemplateNotDeployableError and returns HTTP 409 Conflict.
     3. Deployable templates succeed without conflict.
     """
-    from Backend.app.core.database.template_storage import (
+    from backend.app.core.database.template_storage import (
         TemplateNotDeployableError,
         get_frontend_template_manifest,
     )

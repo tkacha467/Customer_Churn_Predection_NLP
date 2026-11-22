@@ -4,7 +4,7 @@ Enterprise structured security event logging, incident response,
 and notification pipeline.
 """
 
-from Backend.app.core.security.security_shield import (
+from backend.app.core.security.security_shield import (
     SecurityEventType,
     SecuritySeverity,
     SecurityShield,
@@ -12,8 +12,8 @@ from Backend.app.core.security.security_shield import (
     emit_security_event,
     SecurityAuditRecord,
 )
-from Backend.app.core.security.security_store import SecurityStore
-from Backend.app.core.security.alert_mailer import AlertMailer, alert_mailer, alert_dispatcher, AlertDispatcherWorker
+from backend.app.core.security.security_store import SecurityStore
+from backend.app.core.security.alert_mailer import AlertMailer, alert_mailer, alert_dispatcher, AlertDispatcherWorker
 
 __all__ = [
     "SecurityEventType",

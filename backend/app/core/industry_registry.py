@@ -668,3 +668,12 @@ def get_all_industries_metadata() -> List[Dict[str, Any]]:
         d = ind.to_dict()
         res.append(d)
     return res
+
+
+class IndustryRegistry:
+    """Canonical registry wrapper for industry resolution."""
+    CANONICAL_INDUSTRIES = CANONICAL_INDUSTRIES
+    get_available_industries = staticmethod(get_available_industries)
+    get_all_industries_metadata = staticmethod(get_all_industries_metadata)
+    resolve_industry = staticmethod(resolve_industry)
+    resolve_effective_topics = staticmethod(resolve_effective_topics)

@@ -443,6 +443,14 @@ class UpdateBusinessConfigRequest(BaseModel):
     localized_content: Optional[Dict[str, Any]] = None
     google_review_url: Optional[str] = None
 
+    @field_validator("google_review_url")
+    @classmethod
+    def validate_google_url(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or not str(v).strip():
+            return v
+        from backend.app.core.tenants.google_reviews import validate_google_review_url
+        return validate_google_review_url(str(v), allow_empty=True)
+
     @field_validator("primary_accent")
     @classmethod
     def validate_accent(cls, v: Optional[str]) -> Optional[str]:

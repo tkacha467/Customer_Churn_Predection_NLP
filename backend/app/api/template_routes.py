@@ -3,8 +3,11 @@ FastAPI Routes for Product A Dynamic Restaurant Template Configuration Foundatio
 Provides administrative template versioning, assignment, explicit upgrades,
 and sanitized public configuration resolution.
 """
+import logging
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+
+logger = logging.getLogger("backend.app.template_routes")
 
 from backend.app.core.auth.auth import (
     TenantContext,
@@ -12,6 +15,7 @@ from backend.app.core.auth.auth import (
     require_auth_context,
     require_platform_admin,
 )
+from backend.app.core.database.template_storage import TemplateNotDeployableError
 from backend.app.api.template_schemas import (
     AssignTemplateRequest,
     CreateDraftVersionRequest,
@@ -43,7 +47,8 @@ async def get_public_business_config(business_id: str):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load business configuration: {str(e)}")
+        logger.error(f"Failed to load business configuration for '{business_id}': {e}")
+        raise HTTPException(status_code=500, detail="Failed to load business configuration.")
 
 
 # ─── 2. PLATFORM ADMIN TEMPLATE CATALOG ENDPOINTS ────────────────────────────
@@ -86,7 +91,8 @@ async def archive_template(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to archive template: {str(e)}")
+        logger.error(f"Failed to archive template '{template_id}': {e}")
+        raise HTTPException(status_code=500, detail="Failed to archive template.")
 
 
 # ─── 3. TEMPLATE VERSION MANAGEMENT ENDPOINTS ───────────────────────────────
@@ -126,7 +132,8 @@ async def create_template_draft_version(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create draft version: {str(e)}")
+        logger.error(f"Failed to create draft version for template '{template_id}': {e}")
+        raise HTTPException(status_code=500, detail="Failed to create draft version.")
 
 
 @template_router.put("/platform/templates/{template_id}/versions/{version_id}")
@@ -151,7 +158,8 @@ async def update_template_draft_version(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update draft version: {str(e)}")
+        logger.error(f"Failed to update draft version '{version_id}': {e}")
+        raise HTTPException(status_code=500, detail="Failed to update draft version.")
 
 
 @template_router.post("/platform/templates/{template_id}/versions/{version_id}/publish")
@@ -174,7 +182,8 @@ async def publish_template_version(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to publish version: {str(e)}")
+        logger.error(f"Failed to publish version '{version_id}': {e}")
+        raise HTTPException(status_code=500, detail="Failed to publish version.")
 
 
 # ─── 4. BUSINESS ASSIGNMENT & VERSION PINNING ENDPOINTS ──────────────────────
@@ -210,10 +219,13 @@ async def assign_template_to_business(
             assigned_by=admin.email
         )
         return {"status": "success", "message": f"Template assigned successfully to '{business_id}'", "data": result}
+    except TemplateNotDeployableError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to assign template: {str(e)}")
+        logger.error(f"Failed to assign template '{req.template_id}' to business '{business_id}': {e}")
+        raise HTTPException(status_code=500, detail="Failed to assign template.")
 
 
 @template_router.post("/platform/businesses/{business_id}/upgrade-assignment")
@@ -237,7 +249,8 @@ async def upgrade_business_assignment(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upgrade assignment: {str(e)}")
+        logger.error(f"Failed to upgrade assignment for business '{business_id}': {e}")
+        raise HTTPException(status_code=500, detail="Failed to upgrade assignment.")
 
 
 @template_router.put("/platform/businesses/{business_id}/template-config")
@@ -262,4 +275,5 @@ async def update_business_template_config(
         )
         return {"status": "success", "data": updated}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update template configuration: {str(e)}")
+        logger.error(f"Failed to update template configuration for business '{business_id}': {e}")
+        raise HTTPException(status_code=500, detail="Failed to update template configuration.")

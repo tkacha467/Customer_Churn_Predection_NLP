@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import NastaGharRestaurantScene from './NastaGharRestaurantScene';
 import { apiFetch } from '../lib/api';
 import { useIndustryConfig } from './portal/useIndustryConfig';
+import { isSafeGoogleUrl } from './CustomerReview';
 import './admin/AdminDesignSystem.css';
 import {
   AdminCard,
@@ -38,6 +39,11 @@ export default function OwnerPortal({
   const [ownerPassword, setOwnerPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [challengeRequired, setChallengeRequired] = useState(false);
+  const [turnstileSiteKey, setTurnstileSiteKey] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileContainerRef = useRef(null);
+  const turnstileWidgetIdRef = useRef(null);
 
   // Fixed 5-Section Navigation:
   // 1. 'home' (Home)
@@ -160,6 +166,36 @@ export default function OwnerPortal({
     return () => { active = false; };
   }, []);
 
+  // Cloudflare Turnstile explicit render effect
+  useEffect(() => {
+    if (!challengeRequired || !turnstileContainerRef.current) return;
+    if (window.turnstile && turnstileSiteKey) {
+      try {
+        if (turnstileWidgetIdRef.current !== null) {
+          window.turnstile.reset(turnstileWidgetIdRef.current);
+        } else {
+          turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
+            sitekey: turnstileSiteKey,
+            action: 'owner_login',
+            callback: (token) => {
+              setTurnstileToken(token);
+              setAuthError('');
+            },
+            'error-callback': () => {
+              setAuthError('Verification check failed. Please refresh or retry.');
+            },
+            'expired-callback': () => {
+              setTurnstileToken('');
+              setAuthError('Verification expired. Please verify again.');
+            },
+          });
+        }
+      } catch (e) {
+        console.warn('Turnstile render warning:', e);
+      }
+    }
+  }, [challengeRequired, turnstileSiteKey]);
+
   const handleOwnerLogin = async (event) => {
     event.preventDefault();
     setAuthError('');
@@ -172,6 +208,9 @@ export default function OwnerPortal({
       if (ownerEmail.trim()) {
         payload.email = ownerEmail.trim();
       }
+      if (turnstileToken.trim()) {
+        payload.turnstile_token = turnstileToken.trim();
+      }
       const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -179,10 +218,30 @@ export default function OwnerPortal({
       });
       if (!res.ok) {
         const error = await res.json().catch(() => ({}));
+        const isChallenge = res.status === 403 && (
+          res.headers.get('X-Challenge-Required') === 'true' ||
+          error.detail === 'Security verification required.' ||
+          (typeof error.detail === 'string' && error.detail.includes('Security verification'))
+        );
+        if (isChallenge) {
+          const headerSiteKey = res.headers.get('X-Challenge-Site-Key');
+          const envSiteKey = import.meta.env && import.meta.env.VITE_TURNSTILE_SITE_KEY;
+          const isDev = Boolean(import.meta.env && (import.meta.env.DEV || import.meta.env.MODE === 'development'));
+          const resolvedSiteKey = (headerSiteKey && headerSiteKey.trim()) || (envSiteKey && envSiteKey.trim()) || (isDev ? '1x00000000000000000000AA' : '');
+          if (!resolvedSiteKey) {
+            setChallengeRequired(false);
+            throw new Error('Security verification configuration is missing. Please contact support.');
+          }
+          setChallengeRequired(true);
+          setTurnstileSiteKey(resolvedSiteKey);
+          throw new Error('Security verification required. Please complete the verification below.');
+        }
         throw new Error(error.detail || 'Sign-in failed. Please check your credentials and try again.');
       }
       const data = await res.json();
       setOwnerPassword('');
+      setTurnstileToken('');
+      setChallengeRequired(false);
       setAuthSession(data);
       setIsAuthenticated(true);
     } catch (error) {
@@ -513,6 +572,34 @@ export default function OwnerPortal({
               required
               autoComplete="current-password"
             />
+
+            {challengeRequired && (
+              <div style={{
+                background: '#F8FAF9',
+                border: '1px solid #DCE5DD',
+                borderRadius: '8px',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#174D3A' }}>
+                  <span>🛡️</span>
+                  <span>Security Verification Required</span>
+                </div>
+                <div ref={turnstileContainerRef} id="turnstile-widget-container" style={{ minHeight: '65px' }} />
+                {(!window.turnstile) && (
+                  <AdminInput
+                    label="Verification Token"
+                    id="owner-turnstile-token"
+                    type="text"
+                    value={turnstileToken}
+                    onChange={(e) => setTurnstileToken(e.target.value)}
+                    placeholder="Enter verification token"
+                  />
+                )}
+              </div>
+            )}
 
             <AdminButton
               type="submit"
@@ -953,7 +1040,7 @@ export default function OwnerPortal({
                   required
                 />
 
-                {googleReviewUrl && (
+                {googleReviewUrl && isSafeGoogleUrl(googleReviewUrl) && (
                   <div style={{ marginTop: '8px' }}>
                     <a
                       href={googleReviewUrl}

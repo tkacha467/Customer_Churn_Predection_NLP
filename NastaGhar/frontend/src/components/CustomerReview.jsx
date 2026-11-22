@@ -44,6 +44,29 @@ export const getLanguageLabel = (l) => {
   return 'English';
 };
 
+export const APPROVED_GOOGLE_HOSTS = [
+  'search.google.com',
+  'maps.google.com',
+  'www.google.com',
+  'google.com',
+  'g.page',
+  'maps.app.goo.gl',
+  'goo.gl',
+];
+
+export const isSafeGoogleUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url.trim());
+    if (parsed.protocol !== 'https:') return false;
+    if (parsed.username || parsed.password) return false;
+    if (parsed.port && parsed.port !== '443') return false;
+    return APPROVED_GOOGLE_HOSTS.includes(parsed.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+};
+
 export const getStyleLabel = (focus, lang) => {
   const f = String(focus || '').toLowerCase();
   const l = (lang || 'english').toLowerCase();
@@ -782,7 +805,11 @@ export default function CustomerReview({
               : (d.category ? (language === 'gujarati' ? `આ ${d.category}` : language === 'hindi' ? `इस ${d.category}` : `The ${d.category}`) : 'Review Assistant'));
         setBusinessName(resolvedName);
         const rUrl = d.googleReviewUrl || d.review_url;
-        if (rUrl) setGoogleReviewUrl(rUrl);
+        if (rUrl && isSafeGoogleUrl(rUrl)) {
+          setGoogleReviewUrl(rUrl);
+        } else if (rUrl) {
+          setGoogleReviewUrl(BRAND.googleMapUrl);
+        }
         if (d.category) setBusinessCategory(d.category);
         if (d.industry_id) setIndustryId(d.industry_id);
         if (d.terminology) setTerminology(d.terminology);
@@ -1084,6 +1111,11 @@ export default function CustomerReview({
     logEvent(copiedSuccessfully ? 'review_clipboard_success' : 'review_clipboard_failed', { review_id: reviewId });
 
     if (copiedSuccessfully) {
+      if (!isSafeGoogleUrl(googleReviewUrl)) {
+        console.error('Blocked redirect to unsafe review URL destination:', googleReviewUrl);
+        setHandoffOpen(true);
+        return;
+      }
       logEvent('google_maps_redirect', { destination: googleReviewUrl });
       // Clear draft upon successful completion so customer or new session does not restore stale draft
       clearSessionDraft(businessId);
@@ -1727,6 +1759,10 @@ export default function CustomerReview({
                 className="ng-btn-primary"
                 disabled={copyingReview}
                 onClick={() => {
+                  if (!isSafeGoogleUrl(googleReviewUrl)) {
+                    console.error('Blocked redirect to unsafe review URL destination:', googleReviewUrl);
+                    return;
+                  }
                   logEvent('google_maps_redirect', { destination: googleReviewUrl });
                   clearSessionDraft(businessId);
                   window.location.href = googleReviewUrl;

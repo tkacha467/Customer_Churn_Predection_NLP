@@ -32,18 +32,33 @@ def compute_sha256(filepath: Path) -> str:
     return h.hexdigest()
 
 
+def set_secure_file_permissions(file_path: Path | str) -> None:
+    """Applies restrictive permissions (0600: read/write by owner only) on POSIX platforms (SEC-03)."""
+    try:
+        p = Path(file_path)
+        if p.exists() and os.name == "posix":
+            os.chmod(p, 0o600)
+    except (OSError, NotImplementedError, PermissionError):
+        pass
+
+
 def get_table_counts(db_path: Path) -> dict[str, int]:
-    """Retrieves record counts across all relational tables."""
+    """Retrieves record counts across all relational tables in the database."""
     counts = {}
     with sqlite3.connect(db_path) as db:
-        tables = [
-            "tenants", "users", "tenant_memberships",
-            "sessions", "analytics_events", "private_tickets",
-            "business_profiles", "tenant_documents"
-        ]
+        cursor = db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+        )
+        tables = [row[0] for row in cursor.fetchall()]
+        if not tables:
+            tables = [
+                "tenants", "users", "tenant_memberships",
+                "sessions", "analytics_events", "private_tickets",
+                "business_profiles", "tenant_documents"
+            ]
         for t in tables:
             try:
-                row = db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()
+                row = db.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()
                 counts[t] = int(row[0]) if row else 0
             except sqlite3.OperationalError:
                 counts[t] = 0
@@ -119,6 +134,8 @@ def create_backup(dest_dir: Path | None = None) -> Path:
         "source_cfg": str(source_cfg) if source_cfg.exists() else None,
         "source_cfg_sha256": compute_sha256(backup_cfg_path) if backup_cfg_path else None,
         "documents": doc_manifest_entries if doc_manifest_entries else None,
+        "table_count": len(counts),
+        "database_table_count": len(counts),
         "table_counts": counts,
         "sqlite_integrity": integrity
     }
@@ -127,7 +144,14 @@ def create_backup(dest_dir: Path | None = None) -> Path:
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
 
+    # SEC-03: Restrictive filesystem permissions on backup database and manifest
+    set_secure_file_permissions(backup_db_path)
+    set_secure_file_permissions(manifest_path)
+    if backup_cfg_path:
+        set_secure_file_permissions(backup_cfg_path)
+
     print(f"[+] Backup successfully created at: {target}")
+    print(f"    Database Table Count: {len(counts)}")
     print(f"    Table Counts: {counts}")
     print(f"    Documents Count: {len(doc_manifest_entries)}")
     print(f"    Integrity: {integrity}")
@@ -172,7 +196,15 @@ def verify_backup(backup_dir: Path) -> bool:
                 return False
 
     counts = get_table_counts(db_path)
+    # SEC-11: Validate database table count if recorded in manifest (gracefully handles legacy manifests)
+    expected_table_count = manifest.get("table_count") or manifest.get("database_table_count")
+    if expected_table_count is not None:
+        if len(counts) != expected_table_count:
+            print(f"[-] Database table count mismatch: expected {expected_table_count}, found {len(counts)}")
+            return False
+
     print(f"[+] Backup verification PASSED for {backup_dir}")
+    print(f"    Manifest Table Count: {expected_table_count}")
     print(f"    Manifest Counts: {manifest.get('table_counts')}")
     print(f"    Verified Counts: {counts}")
     return True
@@ -198,8 +230,11 @@ def restore_backup(backup_dir: Path, restore_dir: Path, allow_overwrite: bool = 
 
     restore_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(db_path, target_db)
+    # SEC-03: Set restrictive permissions on restored database
+    set_secure_file_permissions(target_db)
     if cfg_path.exists():
         shutil.copy2(cfg_path, restore_dir / "business_links.json")
+        set_secure_file_permissions(restore_dir / "business_links.json")
 
     # Restore document assets if present in backup archive
     if docs_dir.exists() and docs_dir.is_dir():

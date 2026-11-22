@@ -6,7 +6,24 @@ import json
 import sqlite3
 import time
 import uuid
+from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+class TemplateNotDeployableError(Exception):
+    """Raised when attempting to deploy or assign a template without a production-ready renderer."""
+    pass
+
+_FRONTEND_MANIFEST_PATH = Path(__file__).resolve().parents[4] / "NastaGhar" / "frontend" / "src" / "templates" / "template-manifest.json"
+
+def get_frontend_template_manifest() -> Optional[Dict[str, Any]]:
+    """Loads and returns the frontend template manifest, or None if unavailable."""
+    try:
+        if _FRONTEND_MANIFEST_PATH.exists():
+            with open(_FRONTEND_MANIFEST_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return None
 
 # ─── DEFAULT INDUSTRY SEED DATA ───────────────────────────────────────────────
 DEFAULT_INDUSTRIES = [
@@ -658,6 +675,232 @@ FOUR_APPROVED_RESTAURANT_PRESETS = [
 
 # ─── DATABASE INITIALIZATION & SCHEMA ─────────────────────────────────────────
 
+TEMPLATE_SCHEMA_CONTRACT = {
+    "industries": {
+        "columns": [
+            {"cid": 0, "name": "id", "type": "TEXT", "notnull": 0, "dflt_value": None, "pk": 1},
+            {"cid": 1, "name": "name", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 2, "name": "slug", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 3, "name": "description", "type": "TEXT", "notnull": 0, "dflt_value": "''", "pk": 0},
+            {"cid": 4, "name": "icon", "type": "TEXT", "notnull": 0, "dflt_value": "'🏢'", "pk": 0},
+            {"cid": 5, "name": "status", "type": "TEXT", "notnull": 1, "dflt_value": "'active'", "pk": 0},
+            {"cid": 6, "name": "created_at", "type": "REAL", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 7, "name": "updated_at", "type": "REAL", "notnull": 1, "dflt_value": None, "pk": 0},
+        ],
+        "pk": ["id"],
+        "unique_constraints": [["slug"]],
+        "foreign_keys": [],
+        "indexes": {
+            "idx_industries_slug": {"columns": [("slug", 0)]},
+        },
+    },
+    "templates": {
+        "columns": [
+            {"cid": 0, "name": "id", "type": "TEXT", "notnull": 0, "dflt_value": None, "pk": 1},
+            {"cid": 1, "name": "industry_id", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 2, "name": "name", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 3, "name": "slug", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 4, "name": "description", "type": "TEXT", "notnull": 0, "dflt_value": "''", "pk": 0},
+            {"cid": 5, "name": "status", "type": "TEXT", "notnull": 1, "dflt_value": "'active'", "pk": 0},
+            {"cid": 6, "name": "created_at", "type": "REAL", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 7, "name": "updated_at", "type": "REAL", "notnull": 1, "dflt_value": None, "pk": 0},
+        ],
+        "pk": ["id"],
+        "unique_constraints": [["slug"]],
+        "foreign_keys": [
+            {"from": "industry_id", "table": "industries", "to": "id", "on_delete": "CASCADE"},
+        ],
+        "indexes": {
+            "idx_templates_industry": {"columns": [("industry_id", 0)]},
+            "idx_templates_slug": {"columns": [("slug", 0)]},
+        },
+    },
+    "template_versions": {
+        "columns": [
+            {"cid": 0, "name": "id", "type": "TEXT", "notnull": 0, "dflt_value": None, "pk": 1},
+            {"cid": 1, "name": "template_id", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 2, "name": "version", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 3, "name": "configuration_json", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 4, "name": "schema_version", "type": "TEXT", "notnull": 1, "dflt_value": "'1.0'", "pk": 0},
+            {"cid": 5, "name": "publication_status", "type": "TEXT", "notnull": 1, "dflt_value": "'published'", "pk": 0},
+            {"cid": 6, "name": "published_at", "type": "REAL", "notnull": 0, "dflt_value": None, "pk": 0},
+            {"cid": 7, "name": "created_at", "type": "REAL", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 8, "name": "created_by", "type": "TEXT", "notnull": 0, "dflt_value": "'system'", "pk": 0},
+        ],
+        "pk": ["id"],
+        "unique_constraints": [["template_id", "version"]],
+        "foreign_keys": [
+            {"from": "template_id", "table": "templates", "to": "id", "on_delete": "CASCADE"},
+        ],
+        "indexes": {
+            "idx_template_versions_tpl": {"columns": [("template_id", 0)]},
+            "idx_template_versions_pub": {"columns": [("template_id", 0), ("publication_status", 0)]},
+        },
+    },
+    "business_template_assignments": {
+        "columns": [
+            {"cid": 0, "name": "id", "type": "TEXT", "notnull": 0, "dflt_value": None, "pk": 1},
+            {"cid": 1, "name": "business_id", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 2, "name": "template_id", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 3, "name": "template_version_id", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 4, "name": "assigned_by", "type": "TEXT", "notnull": 0, "dflt_value": "'system'", "pk": 0},
+            {"cid": 5, "name": "assigned_at", "type": "REAL", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 6, "name": "status", "type": "TEXT", "notnull": 1, "dflt_value": "'active'", "pk": 0},
+        ],
+        "pk": ["id"],
+        "unique_constraints": [],
+        "foreign_keys": [
+            {"from": "business_id", "table": "tenants", "to": "id", "on_delete": "CASCADE"},
+            {"from": "template_id", "table": "templates", "to": "id", "on_delete": "RESTRICT"},
+            {"from": "template_version_id", "table": "template_versions", "to": "id", "on_delete": "RESTRICT"},
+        ],
+        "indexes": {
+            "idx_biz_assignments_biz": {"columns": [("business_id", 0)]},
+            "idx_biz_assignments_status": {"columns": [("business_id", 0), ("status", 0)]},
+        },
+    },
+    "business_configurations": {
+        "columns": [
+            {"cid": 0, "name": "id", "type": "TEXT", "notnull": 0, "dflt_value": None, "pk": 1},
+            {"cid": 1, "name": "business_id", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 2, "name": "logo_url", "type": "TEXT", "notnull": 0, "dflt_value": "''", "pk": 0},
+            {"cid": 3, "name": "cover_image_url", "type": "TEXT", "notnull": 0, "dflt_value": "''", "pk": 0},
+            {"cid": 4, "name": "primary_accent", "type": "TEXT", "notnull": 0, "dflt_value": "''", "pk": 0},
+            {"cid": 5, "name": "custom_topics_json", "type": "TEXT", "notnull": 0, "dflt_value": "'[]'", "pk": 0},
+            {"cid": 6, "name": "localized_content_json", "type": "TEXT", "notnull": 0, "dflt_value": "'{}'", "pk": 0},
+            {"cid": 7, "name": "google_review_url", "type": "TEXT", "notnull": 0, "dflt_value": "''", "pk": 0},
+            {"cid": 8, "name": "status", "type": "TEXT", "notnull": 1, "dflt_value": "'active'", "pk": 0},
+            {"cid": 9, "name": "created_at", "type": "REAL", "notnull": 1, "dflt_value": None, "pk": 0},
+            {"cid": 10, "name": "updated_at", "type": "REAL", "notnull": 1, "dflt_value": None, "pk": 0},
+        ],
+        "pk": ["id"],
+        "unique_constraints": [["business_id"]],
+        "foreign_keys": [
+            {"from": "business_id", "table": "tenants", "to": "id", "on_delete": "CASCADE"},
+        ],
+        "indexes": {
+            "idx_biz_configs_biz": {"columns": [("business_id", 0)]},
+        },
+    },
+}
+
+
+def validate_strict_template_table(db: sqlite3.Connection, table_name: str, contract: dict, env: str, db_path_str: str) -> None:
+    """Strictly validates one template table against its authoritative schema contract."""
+    # 1. Existence
+    row = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,)).fetchone()
+    if not row:
+        raise RuntimeError(
+            f"Database schema unmigrated: missing required template table '{table_name}'. "
+            f"In environment '{env or 'unconfigured'}' runtime startup does not auto-create schema or seed data. "
+            f"Run 'scripts/migrate_template_subsystem.py --database {db_path_str}' before starting the application."
+        )
+
+    # 2. Columns (count, names, types, notnull, defaults, pk)
+    actual_cols = db.execute(f"PRAGMA table_info({table_name})").fetchall()
+    expected_cols = contract["columns"]
+    if len(actual_cols) != len(expected_cols):
+        act_names = [c[1] for c in actual_cols]
+        exp_names = [c["name"] for c in expected_cols]
+        missing = set(exp_names) - set(act_names)
+        unexpected = set(act_names) - set(exp_names)
+        raise RuntimeError(
+            f"Incompatible '{table_name}' table schema in environment '{env}': "
+            f"expected {len(expected_cols)} columns, got {len(actual_cols)} "
+            f"(missing: {missing}, unexpected: {unexpected}). "
+            f"Run 'scripts/migrate_template_subsystem.py --database {db_path_str}'."
+        )
+
+    for exp, act in zip(expected_cols, actual_cols):
+        col_name = act[1]
+        if col_name != exp["name"]:
+            raise RuntimeError(
+                f"Incompatible '{table_name}' table schema in environment '{env}': "
+                f"column at position {exp['cid']} expected name '{exp['name']}', got '{col_name}'. "
+                f"Run 'scripts/migrate_template_subsystem.py --database {db_path_str}'."
+            )
+        if act[2].upper() != exp["type"].upper():
+            raise RuntimeError(
+                f"Incompatible '{table_name}.{col_name}' declared type in environment '{env}': "
+                f"expected '{exp['type']}', got '{act[2]}'. "
+                f"Run 'scripts/migrate_template_subsystem.py --database {db_path_str}'."
+            )
+        if act[3] != exp["notnull"]:
+            raise RuntimeError(
+                f"Incompatible '{table_name}.{col_name}' NOT NULL constraint in environment '{env}': "
+                f"expected notnull={exp['notnull']}, got {act[3]}. "
+                f"Run 'scripts/migrate_template_subsystem.py --database {db_path_str}'."
+            )
+        if act[4] != exp["dflt_value"]:
+            raise RuntimeError(
+                f"Incompatible '{table_name}.{col_name}' default value in environment '{env}': "
+                f"expected default {exp['dflt_value']!r}, got {act[4]!r}. "
+                f"Run 'scripts/migrate_template_subsystem.py --database {db_path_str}'."
+            )
+        if act[5] != exp["pk"]:
+            raise RuntimeError(
+                f"Incompatible '{table_name}.{col_name}' primary key flag in environment '{env}': "
+                f"expected pk={exp['pk']}, got {act[5]}. "
+                f"Run 'scripts/migrate_template_subsystem.py --database {db_path_str}'."
+            )
+
+    # 3. Foreign Keys
+    actual_fks = []
+    for fk in db.execute(f"PRAGMA foreign_key_list({table_name})").fetchall():
+        actual_fks.append({"from": fk[3], "table": fk[2], "to": fk[4], "on_delete": fk[6].upper()})
+    actual_fks.sort(key=lambda x: (x["from"], x["table"]))
+    expected_fks = sorted(contract["foreign_keys"], key=lambda x: (x["from"], x["table"]))
+    if actual_fks != expected_fks:
+        raise RuntimeError(
+            f"Incompatible '{table_name}' foreign keys in environment '{env}': "
+            f"expected {expected_fks}, got {actual_fks}. "
+            f"Run 'scripts/migrate_template_subsystem.py --database {db_path_str}'."
+        )
+
+    # 4. Unique Constraints (checked from autoindexes)
+    idx_list = db.execute(f"PRAGMA index_list({table_name})").fetchall()
+    actual_uniques = []
+    for idx in idx_list:
+        if idx[2] == 1 and idx[3] == "u":
+            cols = [r[2] for r in db.execute(f"PRAGMA index_info({idx[1]})").fetchall()]
+            actual_uniques.append(cols)
+    actual_uniques.sort()
+    expected_uniques = sorted(contract["unique_constraints"])
+    if actual_uniques != expected_uniques:
+        raise RuntimeError(
+            f"Incompatible '{table_name}' unique constraints in environment '{env}': "
+            f"expected unique constraints on {expected_uniques}, got {actual_uniques}. "
+            f"Run 'scripts/migrate_template_subsystem.py --database {db_path_str}'."
+        )
+
+    # 5. User Indexes
+    for idx_name, idx_spec in contract["indexes"].items():
+        found = False
+        for idx in idx_list:
+            if idx[1] == idx_name:
+                found = True
+                xinfo = db.execute(f"PRAGMA index_xinfo({idx_name})").fetchall()
+                key_cols = [(r[2], r[3]) for r in xinfo if r[5] == 1]
+                if key_cols != idx_spec["columns"]:
+                    raise RuntimeError(
+                        f"Incompatible index '{idx_name}' on '{table_name}' in environment '{env}': "
+                        f"expected columns/order/direction {idx_spec['columns']}, got {key_cols}. "
+                        f"Run 'scripts/migrate_template_subsystem.py --database {db_path_str}'."
+                    )
+                break
+        if not found:
+            raise RuntimeError(
+                f"Database schema unmigrated: missing required index '{idx_name}' on '{table_name}'. "
+                f"In environment '{env or 'unconfigured'}' runtime startup does not auto-create schema. "
+                f"Run 'scripts/migrate_template_subsystem.py --database {db_path_str}' before starting in '{env}' mode."
+            )
+
+
+def validate_strict_template_schema(db: sqlite3.Connection, env: str, db_path_str: str) -> None:
+    """Strictly validates all five dynamic industry template tables against their authoritative schema."""
+    for table_name, contract in TEMPLATE_SCHEMA_CONTRACT.items():
+        validate_strict_template_table(db, table_name, contract, env, db_path_str)
+
 def init_template_schema(db: sqlite3.Connection) -> None:
     """Create additive tables and indexes for Dynamic Industry Template system."""
     db.execute("""
@@ -1045,11 +1288,19 @@ class TemplateRepository:
                 raise ValueError(f"Business '{business_id}' does not exist as an authorized tenant")
 
             # 2. Validate template exists and is active
-            tpl = db.execute("SELECT id, status, industry_id FROM templates WHERE id = ?", (template_id,)).fetchone()
+            tpl = db.execute("SELECT id, slug, status, industry_id FROM templates WHERE id = ?", (template_id,)).fetchone()
             if not tpl:
                 raise ValueError(f"Template '{template_id}' not found")
             if tpl["status"] == "archived":
                 raise ValueError(f"Cannot assign archived template '{template_id}' to business")
+
+            manifest = get_frontend_template_manifest()
+            if manifest and "templates" in manifest:
+                tpl_info = manifest["templates"].get(tpl["slug"]) or manifest["templates"].get(template_id)
+                if tpl_info and not tpl_info.get("deployable", True):
+                    raise TemplateNotDeployableError(
+                        f"Template '{tpl['slug']}' is preview-only and has no deployable frontend renderer."
+                    )
 
             # 3. Determine or validate published version
             if version_id:
@@ -1261,13 +1512,19 @@ class TemplateRepository:
         }
 
         # 5. Effective Google Review URL (Strictly present for Anti-Gating compliance)
-        effective_review_url = biz_cfg.get("google_review_url") or t_dict.get("review_url") or "https://search.google.com/local/writereview?placeid=ChIJZeK7NwDLWTkR1pOxt51jLro"
+        effective_review_url = biz_cfg.get("google_review_url") or t_dict.get("review_url") or ""
+        if not effective_review_url and t_dict["id"] == "default_business":
+            effective_review_url = "https://search.google.com/local/writereview?placeid=ChIJZeK7NwDLWTkR1pOxt51jLro"
 
         # 6. Localized content merge
         merged_localized = {
             **template_config.get("localized_content", {}),
             **biz_cfg.get("localized_content", {})
         }
+
+        compat_flags = None
+        if t_dict["id"] == "default_business":
+            compat_flags = {"legacy_experience": "nasta_ghar_canvas_world"}
 
         return {
             "businessId": t_dict["id"],
@@ -1296,5 +1553,7 @@ class TemplateRepository:
             "topics": effective_topics,
             "ratingLabels": template_config.get("rating_labels", {}),
             "experienceLabels": template_config.get("experience_labels", {}),
-            "localizedContent": merged_localized
+            "localizedContent": merged_localized,
+            "compatibility_flags": compat_flags,
+            "compatibilityFlags": compat_flags,
         }

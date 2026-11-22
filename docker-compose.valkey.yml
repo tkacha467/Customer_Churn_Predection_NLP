@@ -1,0 +1,29 @@
+# Development-only Valkey service for Product A shared security state (SEC-04)
+# Usage: docker compose -f docker-compose.valkey.yml up -d
+services:
+  valkey-dev:
+    image: valkey/valkey:7.2.5-alpine
+    container_name: vraja-valkey-dev
+    restart: unless-stopped
+    ports:
+      # Bind strictly to localhost loopback to prevent external network exposure
+      - "127.0.0.1:6379:6379"
+    command: >
+      valkey-server
+      --save 300 1
+      --maxmemory 256mb
+      --maxmemory-policy noeviction
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  valkey-data:
+    driver: local

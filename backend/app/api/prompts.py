@@ -659,3 +659,17 @@ def build_humanized_prompt(
 - Tone: Natural, friendly, human tone. Never use marketing or corporate words. Zero fabrication.
 
 Output ONLY the review text."""
+
+
+def resolve_industry_id(business_id: Optional[str] = None, category: Optional[str] = None) -> str:
+    """Helper to resolve canonical industry ID from business attributes."""
+    from backend.app.core.industry_registry import resolve_industry
+    ind = resolve_industry(category=category)
+    return ind.industry_id if ind else "restaurant"
+
+
+def extract_aspect_summary(aspects: Optional[List[str]] = None, language: str = "english") -> str:
+    """Helper to format a concise aspect summary for prompts."""
+    if not aspects:
+        return ""
+    return ", ".join(aspects)

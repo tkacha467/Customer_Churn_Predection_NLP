@@ -1,5 +1,6 @@
 import os
 import warnings
+import ipaddress
 
 # Suppress HF Hub unauthenticated warnings and progress bars
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
@@ -14,10 +15,62 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from typing import Any
+import logging
 from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
 import time
+
+logger = logging.getLogger("backend.app")
+
+GENERIC_500_DETAIL = "An internal server error occurred. Please contact support if the issue persists."
+
+def _is_safe_500_detail(detail: Any) -> bool:
+    """Checks if an error detail string is safe for client exposure without leaking internal info."""
+    if not isinstance(detail, str) or not detail.strip():
+        return False
+    lowered = detail.lower()
+    leak_indicators = [
+        "traceback", "exception:", "syntaxerror", "operationalerror",
+        "select *", "select ", "insert into", "delete from", "sqlite3.",
+        "/", "\\", "c:\\", "token=", "secret=", "password=", "errno",
+        "failed to load business configuration: ", "failed to archive template: ",
+        "failed to persist document: ", "failed to save image: "
+    ]
+    return not any(ind in lowered for ind in leak_indicators)
+
+def get_allowed_hosts() -> list[str]:
+    """
+    Configures trusted hostnames for TrustedHostMiddleware (SEC-05).
+    - In staging and production, ALLOWED_HOSTS must be explicitly configured.
+      Missing configuration or wildcard '*' fails closed immediately.
+    - In development and test, defaults to safe local and test hosts
+      ('localhost', '127.0.0.1', 'testserver', '::1') if unconfigured.
+    """
+    env = os.getenv("ENVIRONMENT", "development").strip().lower()
+    raw = os.getenv("ALLOWED_HOSTS", "").strip()
+    hosts = [h.strip() for h in raw.split(",") if h.strip()] if raw else []
+
+    if env in ("production", "staging"):
+        if not hosts:
+            raise RuntimeError(
+                f"ALLOWED_HOSTS must be explicitly configured in '{env}' environment. "
+                "Specify a comma-separated list of trusted hostnames without wildcards."
+            )
+        if "*" in hosts:
+            raise RuntimeError(
+                f"Wildcard '*' is strictly prohibited in ALLOWED_HOSTS for '{env}' environment."
+            )
+        return hosts
+
+    # Development and test environments
+    if not hosts:
+        return ["localhost", "127.0.0.1", "testserver", "::1"]
+
+    return hosts
 
 # Import Canonical Modular Architecture
 from backend.app.config.settings import settings
@@ -43,17 +96,110 @@ _cors_origins = [
     ).split(",")
     if origin.strip()
 ]
-if _environment == "production":
-    if len(os.getenv("OWNER_PASSWORD", "")) < 20:
-        raise RuntimeError("OWNER_PASSWORD must contain at least 20 characters in production")
-    if len(os.getenv("OWNER_SESSION_SECRET", "")) < 32:
-        raise RuntimeError("OWNER_SESSION_SECRET must contain at least 32 characters in production")
-    if not _cors_origins or "*" in _cors_origins:
-        raise RuntimeError("CORS_ORIGINS must list exact trusted HTTPS origins in production")
-    if any(not origin.startswith("https://") for origin in _cors_origins):
-        raise RuntimeError("Production CORS_ORIGINS must use HTTPS")
-    if not os.getenv("REVIEW_DB_PATH") or not os.getenv("BUSINESS_LINKS_PATH"):
-        raise RuntimeError("Production must configure persistent REVIEW_DB_PATH and BUSINESS_LINKS_PATH")
+def validate_environment_config(env: str | None = None) -> None:
+    """
+    Validates required production and staging security invariants at boot time.
+    Enforces strict fail-closed policy, Cloudflare Turnstile bot challenge configuration,
+    persistent database paths, and secure CORS origins.
+    """
+    _env = (env or os.getenv("ENVIRONMENT", "development")).strip().lower()
+    if _env not in ("production", "staging"):
+        return
+
+    # 1. Session secret length
+    session_secret = os.getenv("OWNER_SESSION_SECRET", "").strip()
+    if len(session_secret) < 32:
+        raise RuntimeError(f"OWNER_SESSION_SECRET must contain at least 32 characters in {_env}")
+
+    # 2. Redis / Valkey URL
+    redis_url = os.getenv("REDIS_URL", "").strip() or os.getenv("VALKEY_URL", "").strip()
+    if not redis_url:
+        raise RuntimeError(f"REDIS_URL must be configured in '{_env}' for distributed security state")
+
+    # 3. Security HMAC secret
+    hmac_secret = os.getenv("SECURITY_HMAC_SECRET", "").strip()
+    if len(hmac_secret) < 32:
+        raise RuntimeError(f"SECURITY_HMAC_SECRET must contain at least 32 characters in '{_env}'")
+
+    # 4. Redis failure policy
+    redis_policy = os.getenv("REDIS_FAILURE_POLICY", "fail_closed").strip().lower()
+    if not redis_policy or redis_policy != "fail_closed":
+        raise RuntimeError(
+            f"REDIS_FAILURE_POLICY must be set to 'fail_closed' in '{_env}' (received '{redis_policy}')"
+        )
+
+    # 5. Cloudflare Turnstile bot protection
+    turnstile_enabled = os.getenv("TURNSTILE_ENABLED", "true").strip().lower()
+    if turnstile_enabled not in ("true", "1", "yes"):
+        raise RuntimeError(
+            f"TURNSTILE_ENABLED must be explicitly enabled ('true') in '{_env}'"
+        )
+
+    site_key = os.getenv("TURNSTILE_SITE_KEY", "").strip()
+    if not site_key:
+        raise RuntimeError(f"TURNSTILE_SITE_KEY must be configured in '{_env}'")
+    if site_key in ("1x00000000000000000000AA", "2x00000000000000000000AB", "3x00000000000000000000AA"):
+        raise RuntimeError(f"TURNSTILE_SITE_KEY cannot use Cloudflare dummy test keys in '{_env}'")
+
+    secret_key = os.getenv("TURNSTILE_SECRET_KEY", "").strip()
+    if not secret_key:
+        raise RuntimeError(f"TURNSTILE_SECRET_KEY must be configured in '{_env}'")
+    if secret_key in ("1x0000000000000000000000000000000AA", "2x0000000000000000000000000000000AB", "3x0000000000000000000000000000000AA"):
+        raise RuntimeError(f"TURNSTILE_SECRET_KEY cannot use Cloudflare dummy test keys in '{_env}'")
+
+    allowed_hostnames = os.getenv("TURNSTILE_ALLOWED_HOSTNAMES", "").strip()
+    if not allowed_hostnames:
+        raise RuntimeError(
+            f"TURNSTILE_ALLOWED_HOSTNAMES must be configured with valid deployment hostnames in '{_env}'"
+        )
+
+    verify_url = os.getenv("TURNSTILE_VERIFY_URL", "https://challenges.cloudflare.com/turnstile/v0/siteverify").strip()
+    if not verify_url.startswith("https://") or "challenges.cloudflare.com" not in verify_url:
+        raise RuntimeError(
+            f"TURNSTILE_VERIFY_URL must use HTTPS and Cloudflare Siteverify endpoint in '{_env}'"
+        )
+
+    # 6. Trusted proxies validation in staging/production
+    trusted_proxies_raw = os.getenv("TRUSTED_PROXIES", "").strip()
+    if trusted_proxies_raw:
+        raw_entries = [p.strip() for p in trusted_proxies_raw.split(",") if p.strip()]
+        if "*" in raw_entries:
+            raise RuntimeError(f"TRUSTED_PROXIES cannot contain wildcard '*' in '{_env}'")
+        for entry in raw_entries:
+            try:
+                if "/" in entry:
+                    ipaddress.ip_network(entry, strict=False)
+                else:
+                    ipaddress.ip_address(entry)
+            except ValueError:
+                raise RuntimeError(f"Invalid IP address or CIDR network in TRUSTED_PROXIES: '{entry}'")
+
+    # 7. Additional production-only requirements
+    if _env == "production":
+        if "127.0.0.1" in redis_url.lower() or "localhost" in redis_url.lower():
+            if os.getenv("ALLOW_LOCALHOST_REDIS_IN_PRODUCTION", "false").lower() not in ("true", "1"):
+                raise RuntimeError(
+                    "Production REDIS_URL cannot point to localhost/127.0.0.1 without explicit ALLOW_LOCALHOST_REDIS_IN_PRODUCTION=true override"
+                )
+        if len(os.getenv("OWNER_PASSWORD", "")) < 20:
+            raise RuntimeError("OWNER_PASSWORD must contain at least 20 characters in production")
+        cors_raw = [
+            origin.strip().rstrip("/")
+            for origin in os.getenv("CORS_ORIGINS", "").split(",")
+            if origin.strip()
+        ]
+        if not cors_raw or "*" in cors_raw:
+            raise RuntimeError("CORS_ORIGINS must list exact trusted HTTPS origins in production")
+        if any(not origin.startswith("https://") for origin in cors_raw):
+            raise RuntimeError("Production CORS_ORIGINS must use HTTPS")
+        if not os.getenv("REVIEW_DB_PATH") or not os.getenv("BUSINESS_LINKS_PATH"):
+            raise RuntimeError("Production must configure persistent REVIEW_DB_PATH and BUSINESS_LINKS_PATH")
+
+
+if _environment in ("production", "staging"):
+    validate_environment_config(_environment)
+
+_allowed_hosts = get_allowed_hosts()
 
 app.add_middleware(
     CORSMiddleware,
@@ -62,6 +208,49 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=_allowed_hosts,
+)
+
+
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Passes through client-safe 4xx errors unchanged.
+    Intercepts 500+ server errors to ensure no raw exceptions, stack traces,
+    or internal path details leak to clients, while preserving internal diagnostic logging (SEC-08).
+    """
+    if exc.status_code >= 500:
+        logger.error(
+            f"Internal server error ({exc.status_code}) on {request.method} {request.url.path}: {exc.detail}"
+        )
+        safe_detail = exc.detail if _is_safe_500_detail(exc.detail) else GENERIC_500_DETAIL
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": safe_detail},
+            headers=getattr(exc, "headers", None),
+        )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=getattr(exc, "headers", None),
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """
+    Catches any unhandled Python exception, logs the full exception and traceback internally,
+    and returns a clean, generic 500 response without internal details (SEC-08).
+    """
+    logger.exception(f"Unhandled server error on {request.method} {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": GENERIC_500_DETAIL},
+    )
+
 
 # Register Review Assistant endpoints
 app.include_router(review_router, prefix="/api", tags=["review_assistant"])
@@ -98,13 +287,19 @@ def startup_event():
         print(f"Background alert dispatcher startup warning: {e}")
 
 @app.on_event("shutdown")
-def shutdown_event():
+async def shutdown_event():
     try:
         from backend.app.core.security.alert_mailer import alert_dispatcher
         alert_dispatcher.stop(timeout=2.0)
         print("Security Shield alert dispatcher worker stopped.")
     except Exception as e:
         print(f"Alert dispatcher shutdown warning: {e}")
+
+    try:
+        from backend.app.core.auth.security_store import close_redis_client
+        await close_redis_client()
+    except Exception as e:
+        print(f"Security store shutdown warning: {e}")
 
 class ReviewRequest(BaseModel):
     review: str

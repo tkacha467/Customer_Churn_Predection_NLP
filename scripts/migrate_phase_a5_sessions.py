@@ -81,44 +81,63 @@ def create_backup(
     filename = custom_filename or generate_backup_filename(target_path)
     backup_file = dest_dir / filename
 
-    # Atomically create the backup file exclusively with mode 0600 on POSIX
-    if os.name == "posix":
-        try:
-            fd = os.open(str(backup_file), os.O_RDWR | os.O_CREAT | os.O_EXCL, 0o600)
-            os.fchmod(fd, 0o600)
-            os.close(fd)
-        except FileExistsError:
-            raise FileExistsError(
-                f"Backup destination already exists: {backup_file}. Aborting to prevent overwrite."
-            )
-    else:
-        # Non-POSIX (e.g. Windows) exclusive file creation
-        if backup_file.exists():
-            raise FileExistsError(
-                f"Backup destination already exists: {backup_file}. Aborting to prevent overwrite."
-            )
-        backup_file.touch(exist_ok=False)
+    created_by_us = False
+    try:
+        # Atomically create the backup file exclusively with mode 0600 on POSIX
+        if os.name == "posix":
+            try:
+                fd = os.open(str(backup_file), os.O_RDWR | os.O_CREAT | os.O_EXCL, 0o600)
+            except FileExistsError:
+                raise FileExistsError(
+                    f"Backup destination already exists: {backup_file}. Aborting to prevent overwrite."
+                )
+            created_by_us = True
+            try:
+                os.fchmod(fd, 0o600)
+            finally:
+                os.close(fd)
+        else:
+            # Non-POSIX (e.g. Windows) exclusive file creation
+            if backup_file.exists():
+                raise FileExistsError(
+                    f"Backup destination already exists: {backup_file}. Aborting to prevent overwrite."
+                )
+            backup_file.touch(exist_ok=False)
+            created_by_us = True
 
-    # Perform hot online SQLite backup (WAL-safe)
-    with sqlite3.connect(str(target_path)) as src, sqlite3.connect(str(backup_file)) as dst:
-        src.backup(dst)
+        # Perform hot online SQLite backup (WAL-safe)
+        with sqlite3.connect(str(target_path)) as src, sqlite3.connect(str(backup_file)) as dst:
+            src.backup(dst)
 
-    # Verify and enforce restrictive file permissions on POSIX systems
-    if os.name == "posix":
-        mode = stat.S_IMODE(os.stat(backup_file).st_mode)
-        if (mode & 0o077) != 0:
-            os.chmod(backup_file, 0o600)
+        # Verify and enforce restrictive file permissions on POSIX systems
+        if os.name == "posix":
             mode = stat.S_IMODE(os.stat(backup_file).st_mode)
             if (mode & 0o077) != 0:
-                raise PermissionError(
-                    f"Insecure backup file permissions ({oct(mode)}). Expected 0600."
-                )
+                os.chmod(backup_file, 0o600)
+                mode = stat.S_IMODE(os.stat(backup_file).st_mode)
+                if (mode & 0o077) != 0:
+                    raise PermissionError(
+                        f"Insecure backup file permissions ({oct(mode)}). Expected 0600."
+                    )
 
-    # Verify backup database integrity
-    with sqlite3.connect(str(backup_file)) as chk:
-        integrity = chk.execute("PRAGMA integrity_check").fetchone()[0]
-        if integrity != "ok":
-            raise RuntimeError(f"Backup integrity check failed: {integrity}")
+        # Verify backup database integrity
+        with sqlite3.connect(str(backup_file)) as chk:
+            integrity = chk.execute("PRAGMA integrity_check").fetchone()[0]
+            if integrity != "ok":
+                raise RuntimeError(f"Backup integrity check failed: {integrity}")
+
+    except Exception as exc:
+        if created_by_us and backup_file.exists():
+            try:
+                backup_file.unlink()
+            except Exception as cleanup_err:
+                print(
+                    f"[!] Warning: Failed to clean up incomplete backup file {backup_file}: {cleanup_err}",
+                    file=sys.stderr,
+                )
+                if hasattr(exc, "add_note"):
+                    exc.add_note(f"Additionally, cleanup of incomplete backup file failed: {cleanup_err}")
+        raise
 
     return backup_file
 
@@ -141,11 +160,13 @@ def validate_existing_schema(conn: sqlite3.Connection) -> bool:
     existing_cols = {row[1] for row in col_info}
     pk_cols = [row[1] for row in col_info if row[5] > 0]
 
-    # Verify all expected columns are present
+    # Verify all expected columns are present and no unexpected columns exist
     missing_cols = EXPECTED_COLUMNS - existing_cols
-    if missing_cols:
+    unexpected_cols = existing_cols - EXPECTED_COLUMNS
+    if missing_cols or unexpected_cols:
         raise ValueError(
-            f"Incompatible review_sessions table: missing columns {missing_cols}"
+            f"Incompatible review_sessions table: expected exact columns {EXPECTED_COLUMNS}, "
+            f"got {existing_cols} (missing: {missing_cols}, unexpected: {unexpected_cols})"
         )
 
     # Verify primary key
@@ -187,8 +208,12 @@ def verify_migrated_schema(conn: sqlite3.Connection) -> Dict[str, Any]:
         raise RuntimeError("Verification failed: review_sessions table not found.")
     cols = {row[1] for row in col_info}
     missing = EXPECTED_COLUMNS - cols
-    if missing:
-        raise RuntimeError(f"Verification failed: missing columns {missing}")
+    unexpected = cols - EXPECTED_COLUMNS
+    if missing or unexpected:
+        raise RuntimeError(
+            f"Verification failed: expected exact columns {EXPECTED_COLUMNS}, "
+            f"got {cols} (missing: {missing}, unexpected: {unexpected})"
+        )
 
     # 2. Indexes
     idx_info = conn.execute("PRAGMA index_list(review_sessions)").fetchall()

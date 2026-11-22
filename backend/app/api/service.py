@@ -38,6 +38,7 @@ class ReviewService:
         self._private_tickets: List[Dict[str, Any]] = []
         self._recent_submissions: Dict[str, Dict[str, Any]] = {}
         self._active_sessions: Dict[str, Dict[str, Any]] = {}
+        self._verified_preview_sessions: Dict[str, Any] = {}
         self._dedup_cache: Dict[str, float] = {}
 
     @property

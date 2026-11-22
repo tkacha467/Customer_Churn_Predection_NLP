@@ -99,6 +99,12 @@ class BusinessConfigUpdateRequest(BaseModel):
     domain: Optional[str] = None
     entitlements: Optional[List[str]] = None
 
+    @field_validator("google_review_url")
+    @classmethod
+    def validate_google_url(cls, v: str) -> str:
+        from backend.app.core.tenants.google_reviews import validate_google_review_url
+        return validate_google_review_url(v, allow_empty=False)
+
 class IndustryConfigResponse(BaseModel):
     business_id: str
     industry_id: str
@@ -219,6 +225,7 @@ class OwnerLoginRequest(BaseModel):
     email: Optional[str] = Field(default=None, max_length=256)
     password: str = Field(..., min_length=1, max_length=256)
     tenant_id: Optional[str] = Field(default=None, max_length=100)
+    turnstile_token: Optional[str] = Field(default=None, max_length=4096, description="Cloudflare Turnstile verification token")
 
 class UserResponse(BaseModel):
     id: str
@@ -257,6 +264,14 @@ class TenantOnboardingRequest(BaseModel):
     ])
     entitlements: Optional[List[str]] = Field(default_factory=lambda: ["review_manager", "digital_card"])
     status: Optional[str] = Field(default="active", pattern=r"^(active|suspended|inactive)$")
+
+    @field_validator("review_url")
+    @classmethod
+    def validate_onboarding_review_url(cls, v: Optional[str]) -> Optional[str]:
+        if not v or not str(v).strip():
+            return ""
+        from backend.app.core.tenants.google_reviews import validate_google_review_url
+        return validate_google_review_url(str(v), allow_empty=True)
 
     @field_validator("entitlements")
     @classmethod

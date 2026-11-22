@@ -14,7 +14,69 @@ if "scripts" not in sys.modules:
 elif hasattr(sys.modules["scripts"], "__path__") and str(_root_scripts_dir) not in sys.modules["scripts"].__path__:
     sys.modules["scripts"].__path__.append(str(_root_scripts_dir))
 
+# Support case-insensitive import compatibility for 'Backend'
+import importlib
+import importlib.abc
+import importlib.util
+
+class _AliasLoader(importlib.abc.Loader):
+    def __init__(self, target_module):
+        self.target_module = target_module
+    def create_module(self, spec):
+        return self.target_module
+    def exec_module(self, module):
+        pass
+
+class BackendAliasFinder(importlib.abc.MetaPathFinder):
+    @classmethod
+    def find_spec(cls, fullname, path=None, target=None):
+        if fullname == "Backend" or fullname.startswith("Backend."):
+            real_name = "backend" + fullname[len("Backend"):]
+            real_mod = importlib.import_module(real_name)
+            sys.modules[fullname] = real_mod
+            return importlib.util.spec_from_loader(fullname, _AliasLoader(real_mod))
+        return None
+
+sys.meta_path.insert(0, BackendAliasFinder())
+import backend.app
+
 import pytest
+
+@pytest.fixture(autouse=True)
+def _reset_auth_rate_limits_per_test():
+    try:
+        from backend.app.core.auth.auth import reset_rate_limits
+        reset_rate_limits()
+    except Exception:
+        pass
+    try:
+        from backend.app.api.service import review_service
+        review_service._rate_limits.clear()
+    except Exception:
+        pass
+    try:
+        import asyncio
+        from backend.app.core.auth.security_store import SecurityStore
+        asyncio.run(SecurityStore.clear_all_security_keys())
+    except Exception:
+        pass
+    yield
+    try:
+        from backend.app.core.auth.auth import reset_rate_limits
+        reset_rate_limits()
+    except Exception:
+        pass
+    try:
+        from backend.app.api.service import review_service
+        review_service._rate_limits.clear()
+    except Exception:
+        pass
+    try:
+        import asyncio
+        from backend.app.core.auth.security_store import SecurityStore
+        asyncio.run(SecurityStore.clear_all_security_keys())
+    except Exception:
+        pass
 
 # Stable local credentials for isolated API tests; never used by app deployments.
 os.environ["ENVIRONMENT"] = "test"
