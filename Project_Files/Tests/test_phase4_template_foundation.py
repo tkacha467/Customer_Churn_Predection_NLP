@@ -565,3 +565,109 @@ def test_public_business_config_three_cases():
     res_c = client.get("/api/public/businesses/non_existent_tenant_99999/config")
     assert res_c.status_code == 404
     assert "not found" in res_c.json()["detail"].lower()
+
+
+def test_phase_a_tenant_isolation_and_legacy_compatibility():
+    """
+    Phase A: Compatibility & Tenant Isolation
+    1. default_business retains legacy_experience: 'nasta_ghar_canvas_world'.
+    2. test_cafe or other tenants do NOT receive legacy_experience: 'nasta_ghar_canvas_world'.
+    3. Tenants without review_url NEVER leak Nasta Ghar's Rajkot Google PlaceID.
+    """
+    store = get_store()
+
+    # 1. default_business compatibility
+    res_def = client.get("/api/public/businesses/default_business/config")
+    assert res_def.status_code == 200
+    cfg_def = res_def.json()
+    assert cfg_def.get("compatibility_flags", {}).get("legacy_experience") == "nasta_ghar_canvas_world"
+    assert "ChIJZeK7NwDLWTkR1pOxt51jLro" in cfg_def["googleReviewUrl"]
+
+    # 2. test_cafe isolation
+    res_cafe = client.get("/api/public/businesses/test_cafe/config")
+    if res_cafe.status_code == 200:
+        cfg_cafe = res_cafe.json()
+        assert cfg_cafe.get("compatibility_flags") is None
+        assert "ChIJZeK7NwDLWTkR1pOxt51jLro" not in cfg_cafe.get("googleReviewUrl", "")
+
+    # 3. Newly created tenant with empty review_url NEVER gets Nasta Ghar review URL or Nasta Ghar name
+    with store._connect() as db:
+        db.execute("""
+            INSERT OR IGNORE INTO tenants (id, business_name, status, platform, review_url, category, primary_accent, created_at, updated_at)
+            VALUES ('tenant_isolated_retail', 'Retail Shop', 'active', 'google', '', 'Retail', '#4F46E5', 2000.0, 2000.0)
+        """)
+    try:
+        res_retail = client.get("/api/public/businesses/tenant_isolated_retail/config")
+        assert res_retail.status_code == 200
+        cfg_retail = res_retail.json()
+        assert cfg_retail["businessName"] == "Retail Shop"
+        assert cfg_retail["googleReviewUrl"] == ""  # Zero leak!
+        assert "ChIJZeK7NwDLWTkR1pOxt51jLro" not in cfg_retail["googleReviewUrl"]
+        assert cfg_retail.get("compatibility_flags") is None
+    finally:
+        with store._connect() as db:
+            db.execute("DELETE FROM tenants WHERE id = 'tenant_isolated_retail'")
+
+
+def test_phase_b_manifest_trust_and_deployment_gate():
+    """
+    Phase B: Dynamic Template Rendering Foundation & Safety Gate
+    1. Template manifest exists, is parseable, and includes registered templates.
+    2. Attempting to assign or publish an unrendered or preview-only template (e.g. restaurant_sweet_dessert)
+       triggers TemplateNotDeployableError and returns HTTP 409 Conflict.
+    3. Deployable templates succeed without conflict.
+    """
+    from Backend.app.core.database.template_storage import (
+        TemplateNotDeployableError,
+        get_frontend_template_manifest,
+    )
+
+    manifest = get_frontend_template_manifest()
+    assert manifest is not None
+    assert "templates" in manifest
+    assert "restaurant_classic_bistro" in manifest["templates"]
+    assert manifest["templates"]["restaurant_classic_bistro"]["deployable"] is True
+    assert manifest["templates"]["restaurant_sweet_dessert"]["deployable"] is False
+
+    store = get_store()
+
+    # 1. Direct repository test: attempting to assign a preview_only/draft template
+    with store._connect() as db:
+        # Create a test tenant
+        db.execute("""
+            INSERT OR IGNORE INTO tenants (id, business_name, status, platform, review_url, category, primary_accent, created_at, updated_at)
+            VALUES ('tenant_preview_gate_test', 'Gate Test Cafe', 'active', 'google', 'https://g.page/gate/review', 'Cafe', '#10B981', 3000.0, 3000.0)
+        """)
+        # Insert a preview_only template into SQLite
+        db.execute("""
+            INSERT OR IGNORE INTO templates (id, industry_id, name, slug, description, status, created_at, updated_at)
+            VALUES ('tpl_test_preview_only', 'ind_restaurant', 'Sweet Dessert House', 'restaurant_sweet_dessert', 'Dessert shop', 'active', 3000.0, 3000.0)
+        """)
+        db.execute("""
+            INSERT OR IGNORE INTO template_versions (id, template_id, version, configuration_json, publication_status, published_at, created_at)
+            VALUES ('ver_test_preview_only', 'tpl_test_preview_only', '1.0.0', '{}', 'published', 3000.0, 3000.0)
+        """)
+
+    try:
+        # Repository-level rejection
+        with pytest.raises(TemplateNotDeployableError) as exc_info:
+            store.template_repo.assign_template_to_business(
+                business_id="tenant_preview_gate_test",
+                template_id="tpl_test_preview_only",
+                version_id="ver_test_preview_only"
+            )
+        assert "no deployable frontend renderer" in str(exc_info.value)
+
+        # HTTP API endpoint rejection (HTTP 409 Conflict)
+        res = client.post(
+            "/api/platform/businesses/tenant_preview_gate_test/assign-template",
+            json={"template_id": "tpl_test_preview_only", "version_id": "ver_test_preview_only"}
+        )
+        assert res.status_code == 409
+        assert "no deployable frontend renderer" in res.json()["detail"]
+
+    finally:
+        with store._connect() as db:
+            db.execute("DELETE FROM template_versions WHERE id = 'ver_test_preview_only'")
+            db.execute("DELETE FROM templates WHERE id = 'tpl_test_preview_only'")
+            db.execute("DELETE FROM tenants WHERE id = 'tenant_preview_gate_test'")

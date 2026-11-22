@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiFetch } from '../lib/api';
 import TemplateManager from './admin/TemplateManager';
+import SecurityShieldDashboard from './admin/SecurityShieldDashboard';
 
 const PACKAGE_OPTIONS = [
   { id: 'both', label: 'Full Suite (Reviews + Digital Card)', entitlements: ['review_manager', 'digital_card'], icon: '🌟' },
@@ -510,9 +511,20 @@ export default function VrajaAdmin({ onNavigateToOwner, onNavigateToCard, onNavi
           >
             🎨 Industry Templates & Themes
           </button>
+          <button
+            type="button"
+            className={`admin-nav-tab ${adminTab === 'security' ? 'active' : ''}`}
+            onClick={() => setAdminTab('security')}
+            role="tab"
+            aria-selected={adminTab === 'security'}
+          >
+            🛡️ Security Shield & Alerts
+          </button>
         </div>
 
-        {adminTab === 'templates' ? (
+        {adminTab === 'security' ? (
+          <SecurityShieldDashboard />
+        ) : adminTab === 'templates' ? (
           <TemplateManager
             tenants={tenants}
             onAssignmentSuccess={(tid, tpl) => {

@@ -26,11 +26,13 @@ def check_tenant_entitlement(tenant_id: str, entitlement: str) -> bool:
     store = get_store()
     
     # Resolve aliases
-    target = "default_business" if tenant_id in ("default_business", "nasta_ghar", "nasta-ghar") else tenant_id
+    target = "default_business" if tenant_id in ("default_business", "nasta_ghar", "nasta-ghar", "", None) else tenant_id
     tenant = store.get_tenant(target)
     if not tenant:
-        # If tenant is not explicitly registered in database, allow default review assistant capabilities only
-        return entitlement == ENTITLEMENT_REVIEW_MANAGER
+        from Backend.app.core.tenants.google_reviews import google_review_manager
+        tenant = google_review_manager.get_review_url(target)
+    if not tenant:
+        return False
     
     if tenant.get("status") != "active":
         return False

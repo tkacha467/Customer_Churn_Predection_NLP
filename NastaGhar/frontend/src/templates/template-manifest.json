@@ -1,0 +1,643 @@
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-11-22T14:00:00Z",
+  "templates": {
+    "restaurant_classic_bistro": {
+      "name": "Classic Bistro",
+      "slug": "restaurant_classic_bistro",
+      "industry": "restaurant",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantClassicBistro"
+    },
+    "restaurant_classic": {
+      "name": "Classic Bistro",
+      "slug": "restaurant_classic",
+      "industry": "restaurant",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantClassicBistro"
+    },
+    "tpl_restaurant_classic": {
+      "name": "Classic Bistro",
+      "slug": "tpl_restaurant_classic",
+      "industry": "restaurant",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantClassicBistro"
+    },
+    "restaurant_modern_urban": {
+      "name": "Modern Urban",
+      "slug": "restaurant_modern_urban",
+      "industry": "restaurant",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantModernUrban"
+    },
+    "tpl_restaurant_modern_urban": {
+      "name": "Modern Urban",
+      "slug": "tpl_restaurant_modern_urban",
+      "industry": "restaurant",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantModernUrban"
+    },
+    "restaurant_luxury_dining": {
+      "name": "Luxury Dining",
+      "slug": "restaurant_luxury_dining",
+      "industry": "restaurant",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantLuxuryDining"
+    },
+    "tpl_restaurant_luxury_dining": {
+      "name": "Luxury Dining",
+      "slug": "tpl_restaurant_luxury_dining",
+      "industry": "restaurant",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantLuxuryDining"
+    },
+    "restaurant_cafe_playful": {
+      "name": "Café & Playful",
+      "slug": "restaurant_cafe_playful",
+      "industry": "restaurant",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantCafePlayful"
+    },
+    "restaurant_premium": {
+      "name": "Café & Playful",
+      "slug": "restaurant_premium",
+      "industry": "restaurant",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantCafePlayful"
+    },
+    "tpl_restaurant_premium": {
+      "name": "Café & Playful",
+      "slug": "tpl_restaurant_premium",
+      "industry": "restaurant",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantCafePlayful"
+    },
+    "restaurant_sweet_dessert": {
+      "name": "Sweet & Dessert House",
+      "slug": "restaurant_sweet_dessert",
+      "industry": "restaurant",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantSweetDessert"
+    },
+    "tpl_restaurant_sweet_dessert": {
+      "name": "Sweet & Dessert House",
+      "slug": "tpl_restaurant_sweet_dessert",
+      "industry": "restaurant",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RestaurantSweetDessert"
+    },
+
+    "salon_spa_sanctuary": {
+      "name": "Spa & Wellness Sanctuary",
+      "slug": "salon_spa_sanctuary",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "SalonSpaSanctuary"
+    },
+    "tpl_salon_spa_sanctuary": {
+      "name": "Spa & Wellness Sanctuary",
+      "slug": "tpl_salon_spa_sanctuary",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "SalonSpaSanctuary"
+    },
+    "salon_barber_lounge": {
+      "name": "Grooming & Barber Lounge",
+      "slug": "salon_barber_lounge",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "BarberGroomingLounge"
+    },
+    "tpl_salon_barber_lounge": {
+      "name": "Grooming & Barber Lounge",
+      "slug": "tpl_salon_barber_lounge",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "BarberGroomingLounge"
+    },
+    "salon_nail_lash": {
+      "name": "Nail & Lash Artistry",
+      "slug": "salon_nail_lash",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "NailLashStudio"
+    },
+    "tpl_salon_nail_lash": {
+      "name": "Nail & Lash Artistry",
+      "slug": "tpl_salon_nail_lash",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "NailLashStudio"
+    },
+    "salon_skincare_lab": {
+      "name": "Skincare & Aesthetic Lab",
+      "slug": "salon_skincare_lab",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "SkincareAestheticLab"
+    },
+    "tpl_salon_skincare_lab": {
+      "name": "Skincare & Aesthetic Lab",
+      "slug": "tpl_salon_skincare_lab",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "SkincareAestheticLab"
+    },
+    "salon_bridal_glam": {
+      "name": "Bridal & Glam Studio",
+      "slug": "salon_bridal_glam",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "BridalGlamStudio"
+    },
+    "tpl_salon_bridal_glam": {
+      "name": "Bridal & Glam Studio",
+      "slug": "tpl_salon_bridal_glam",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "BridalGlamStudio"
+    },
+    "salon_classic": {
+      "name": "Salon Studio",
+      "slug": "salon_classic",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "SalonSpaSanctuary"
+    },
+    "tpl_salon_classic": {
+      "name": "Salon Studio",
+      "slug": "tpl_salon_classic",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "SalonSpaSanctuary"
+    },
+    "salon_premium": {
+      "name": "Salon Sanctuary",
+      "slug": "salon_premium",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "BridalGlamStudio"
+    },
+    "tpl_salon_premium": {
+      "name": "Salon Sanctuary",
+      "slug": "tpl_salon_premium",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "BridalGlamStudio"
+    },
+
+    "retail_fashion_boutique": {
+      "name": "Fashion Boutique & Haute Couture",
+      "slug": "retail_fashion_boutique",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailFashionBoutique"
+    },
+    "tpl_retail_fashion_boutique": {
+      "name": "Fashion Boutique & Haute Couture",
+      "slug": "tpl_retail_fashion_boutique",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailFashionBoutique"
+    },
+    "retail_streetwear_drop": {
+      "name": "Streetwear & Sneaker Drop",
+      "slug": "retail_streetwear_drop",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailStreetwearDrop"
+    },
+    "tpl_retail_streetwear_drop": {
+      "name": "Streetwear & Sneaker Drop",
+      "slug": "tpl_retail_streetwear_drop",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailStreetwearDrop"
+    },
+    "retail_artisanal_home": {
+      "name": "Artisanal Home & Living",
+      "slug": "retail_artisanal_home",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailArtisanalHome"
+    },
+    "tpl_retail_artisanal_home": {
+      "name": "Artisanal Home & Living",
+      "slug": "tpl_retail_artisanal_home",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailArtisanalHome"
+    },
+    "retail_organic_pantry": {
+      "name": "Organic Market & Gourmet Pantry",
+      "slug": "retail_organic_pantry",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailOrganicPantry"
+    },
+    "tpl_retail_organic_pantry": {
+      "name": "Organic Market & Gourmet Pantry",
+      "slug": "tpl_retail_organic_pantry",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailOrganicPantry"
+    },
+    "retail_tech_gadgets": {
+      "name": "Electronics & Tech Haven",
+      "slug": "retail_tech_gadgets",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailTechGadgets"
+    },
+    "tpl_retail_tech_gadgets": {
+      "name": "Electronics & Tech Haven",
+      "slug": "tpl_retail_tech_gadgets",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailTechGadgets"
+    },
+    "retail_boutique": {
+      "name": "Retail Boutique",
+      "slug": "retail_boutique",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailFashionBoutique"
+    },
+    "retail_general": {
+      "name": "Retail General",
+      "slug": "retail_general",
+      "industry": "retail",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "RetailArtisanalHome"
+    },
+
+    "hotel_heritage_resort": {
+      "name": "Heritage Palace & Grand Resort",
+      "slug": "hotel_heritage_resort",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelHeritageResort"
+    },
+    "tpl_hotel_heritage_resort": {
+      "name": "Heritage Palace & Grand Resort",
+      "slug": "tpl_hotel_heritage_resort",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelHeritageResort"
+    },
+    "hotel_urban_boutique": {
+      "name": "Urban Boutique & Design Hotel",
+      "slug": "hotel_urban_boutique",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelUrbanBoutique"
+    },
+    "tpl_hotel_urban_boutique": {
+      "name": "Urban Boutique & Design Hotel",
+      "slug": "tpl_hotel_urban_boutique",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelUrbanBoutique"
+    },
+    "hotel_eco_retreat": {
+      "name": "Eco-Resort & Nature Sanctuary",
+      "slug": "hotel_eco_retreat",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelEcoRetreat"
+    },
+    "tpl_hotel_eco_retreat": {
+      "name": "Eco-Resort & Nature Sanctuary",
+      "slug": "tpl_hotel_eco_retreat",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelEcoRetreat"
+    },
+    "hotel_business_suite": {
+      "name": "Executive Business Suite",
+      "slug": "hotel_business_suite",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelBusinessSuite"
+    },
+    "tpl_hotel_business_suite": {
+      "name": "Executive Business Suite",
+      "slug": "tpl_hotel_business_suite",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelBusinessSuite"
+    },
+    "hotel_cozy_inn": {
+      "name": "Cozy Homestay & Bed & Breakfast",
+      "slug": "hotel_cozy_inn",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelCozyInn"
+    },
+    "tpl_hotel_cozy_inn": {
+      "name": "Cozy Homestay & Bed & Breakfast",
+      "slug": "tpl_hotel_cozy_inn",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelCozyInn"
+    },
+    "hotel_classic": {
+      "name": "Hotel Classic",
+      "slug": "hotel_classic",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelHeritageResort"
+    },
+    "tpl_hotel_classic": {
+      "name": "Hotel Classic",
+      "slug": "tpl_hotel_classic",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelHeritageResort"
+    },
+    "hotel_premium": {
+      "name": "Hotel Premium",
+      "slug": "hotel_premium",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelBusinessSuite"
+    },
+    "tpl_hotel_premium": {
+      "name": "Hotel Premium",
+      "slug": "tpl_hotel_premium",
+      "industry": "hotel",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "HotelBusinessSuite"
+    },
+
+    "fitness_iron_forge": {
+      "name": "Iron Forge Strength & CrossFit",
+      "slug": "fitness_iron_forge",
+      "industry": "fitness",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "FitnessIronForge"
+    },
+    "tpl_fitness_iron_forge": {
+      "name": "Iron Forge Strength & CrossFit",
+      "slug": "tpl_fitness_iron_forge",
+      "industry": "fitness",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "FitnessIronForge"
+    },
+    "fitness_zen_studio": {
+      "name": "Zen Yoga & Mindful Studio",
+      "slug": "fitness_zen_studio",
+      "industry": "fitness",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "FitnessZenStudio"
+    },
+    "tpl_fitness_zen_studio": {
+      "name": "Zen Yoga & Mindful Studio",
+      "slug": "tpl_fitness_zen_studio",
+      "industry": "fitness",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "FitnessZenStudio"
+    },
+    "fitness_modern_club": {
+      "name": "Modern Athletic Performance Club",
+      "slug": "fitness_modern_club",
+      "industry": "fitness",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "FitnessModernClub"
+    },
+    "tpl_fitness_modern_club": {
+      "name": "Modern Athletic Performance Club",
+      "slug": "tpl_fitness_modern_club",
+      "industry": "fitness",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "FitnessModernClub"
+    },
+    "fitness_combat_ring": {
+      "name": "Boxing & Combat Ring",
+      "slug": "fitness_combat_ring",
+      "industry": "fitness",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "FitnessCombatRing"
+    },
+    "tpl_fitness_combat_ring": {
+      "name": "Boxing & Combat Ring",
+      "slug": "tpl_fitness_combat_ring",
+      "industry": "fitness",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "FitnessCombatRing"
+    },
+    "fitness_athletic_turf": {
+      "name": "Field Turf & Conditioning",
+      "slug": "fitness_athletic_turf",
+      "industry": "fitness",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "FitnessAthleticTurf"
+    },
+    "tpl_fitness_athletic_turf": {
+      "name": "Field Turf & Conditioning",
+      "slug": "tpl_fitness_athletic_turf",
+      "industry": "fitness",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "FitnessAthleticTurf"
+    },
+    "fitness_gym": {
+      "name": "Fitness Energy",
+      "slug": "fitness_gym",
+      "industry": "fitness",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "FitnessIronForge"
+    },
+
+    "clinic_multi_specialty": {
+      "name": "Multi-Specialty Medical Center",
+      "slug": "clinic_multi_specialty",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicMultiSpecialty"
+    },
+    "tpl_clinic_multi_specialty": {
+      "name": "Multi-Specialty Medical Center",
+      "slug": "tpl_clinic_multi_specialty",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicMultiSpecialty"
+    },
+    "clinic_dental_studio": {
+      "name": "Modern Dental Studio",
+      "slug": "clinic_dental_studio",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicDentalStudio"
+    },
+    "tpl_clinic_dental_studio": {
+      "name": "Modern Dental Studio",
+      "slug": "tpl_clinic_dental_studio",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicDentalStudio"
+    },
+    "clinic_physio_rehab": {
+      "name": "Physiotherapy & Rehab Clinic",
+      "slug": "clinic_physio_rehab",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicPhysioRehab"
+    },
+    "tpl_clinic_physio_rehab": {
+      "name": "Physiotherapy & Rehab Clinic",
+      "slug": "tpl_clinic_physio_rehab",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicPhysioRehab"
+    },
+    "clinic_wellness_preventive": {
+      "name": "Preventive Wellness & Longevity",
+      "slug": "clinic_wellness_preventive",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicWellnessPreventive"
+    },
+    "tpl_clinic_wellness_preventive": {
+      "name": "Preventive Wellness & Longevity",
+      "slug": "tpl_clinic_wellness_preventive",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicWellnessPreventive"
+    },
+    "clinic_diagnostic_lab": {
+      "name": "Diagnostics & Pathology Lab",
+      "slug": "clinic_diagnostic_lab",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicDiagnosticLab"
+    },
+    "tpl_clinic_diagnostic_lab": {
+      "name": "Diagnostics & Pathology Lab",
+      "slug": "tpl_clinic_diagnostic_lab",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicDiagnosticLab"
+    },
+    "clinic_classic": {
+      "name": "Clinic Classic",
+      "slug": "clinic_classic",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicMultiSpecialty"
+    },
+    "tpl_clinic_classic": {
+      "name": "Clinic Classic",
+      "slug": "tpl_clinic_classic",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicMultiSpecialty"
+    },
+    "clinic_premium": {
+      "name": "Clinic Premium",
+      "slug": "clinic_premium",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicDentalStudio"
+    },
+    "tpl_clinic_premium": {
+      "name": "Clinic Premium",
+      "slug": "tpl_clinic_premium",
+      "industry": "clinic",
+      "deployable": false,
+      "preview_only": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "ClinicDentalStudio"
+    }
+  }
+}

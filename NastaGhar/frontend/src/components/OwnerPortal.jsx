@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import NastaGharRestaurantScene from './NastaGharRestaurantScene';
 import { apiFetch } from '../lib/api';
+import { useIndustryConfig } from './portal/useIndustryConfig';
 import './admin/AdminDesignSystem.css';
 import {
   AdminCard,
@@ -45,6 +46,42 @@ export default function OwnerPortal({
   // 4. 'feedback' (Private Feedback Inbox)
   // 5. 'settings' (Settings)
   const [activeTab, setActiveTab] = useState('home');
+
+  // Dynamic Multi-Industry Configuration Hook
+  const {
+    industryConfig,
+    availableIndustries,
+    updateIndustry,
+    refresh: refreshIndustry
+  } = useIndustryConfig(businessId);
+
+  const [selectedIndustry, setSelectedIndustry] = useState('restaurant');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('');
+
+  // Sync state when canonical industry config loads
+  useEffect(() => {
+    if (industryConfig) {
+      if (industryConfig.industry_id) setSelectedIndustry(industryConfig.industry_id);
+      if (industryConfig.category) {
+        setSelectedSubcategory(industryConfig.category);
+        setCategory(industryConfig.category);
+      }
+      if (industryConfig.topics && industryConfig.topics.length > 0) {
+        setTopics(industryConfig.topics);
+      }
+    }
+  }, [industryConfig]);
+
+  // Handle switching industry in setup
+  const handleIndustryChange = (newIndustryId) => {
+    setSelectedIndustry(newIndustryId);
+    const indDef = availableIndustries.find((i) => i.id === newIndustryId);
+    if (indDef) {
+      const defaultSubcat = indDef.subcategories?.[0] || indDef.name;
+      setSelectedSubcategory(defaultSubcat);
+      setCategory(defaultSubcat);
+    }
+  };
 
   // Business config state
   const [businessName, setBusinessName] = useState('Restaurant Partner');
@@ -275,7 +312,11 @@ export default function OwnerPortal({
       if (!res.ok) throw new Error('Could not save configuration');
       const data = await res.json();
       setIsUrlConfigured(Boolean(data.is_configured));
-      setSaveSuccessMsg('✓ Restaurant setup saved successfully!');
+
+      // Persist durable canonical industry and topic settings
+      await updateIndustry(selectedIndustry, selectedSubcategory, topics);
+
+      setSaveSuccessMsg('✓ Business setup and industry configuration saved successfully!');
       setTimeout(() => setSaveSuccessMsg(''), 4000);
     } catch (err) {
       console.error('Error saving config:', err);
@@ -291,6 +332,15 @@ export default function OwnerPortal({
     if (trimmed && !topics.includes(trimmed)) {
       setTopics([...topics, trimmed]);
       setNewTopicInput('');
+    }
+  };
+
+  // Reset topics to canonical industry defaults
+  const handleApplyIndustryDefaults = () => {
+    const indDef = availableIndustries.find((i) => i.id === selectedIndustry) || industryConfig;
+    if (indDef?.default_topics?.length > 0) {
+      const defaultLabels = indDef.default_topics.map((t) => (typeof t === 'string' ? t : t.label));
+      setTopics(defaultLabels);
     }
   };
 
@@ -809,13 +859,49 @@ export default function OwnerPortal({
                   placeholder="e.g. Downtown, Jubilee Garden"
                 />
 
-                <AdminInput
-                  label="Business Category"
-                  id="setup-category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="e.g. Breakfast & Snacks, Artisanal Cafe"
-                />
+                <div className="vraja-form-group">
+                  <label className="vraja-form-label">Industry Classification</label>
+                  <AdminSelect
+                    value={selectedIndustry}
+                    onChange={(e) => handleIndustryChange(e.target.value)}
+                    options={availableIndustries.map((ind) => ({
+                      value: ind.id,
+                      label: `${ind.icon || '🏢'} ${ind.name}${ind.is_restricted ? ' (Restricted)' : ''}`
+                    }))}
+                  />
+                  <span style={{ fontSize: '11.5px', color: '#718078', marginTop: '4px', display: 'block' }}>
+                    Touchpoint: <strong>{industryConfig?.terminology?.touchpoint_label || 'Table Number'}</strong> • Customer: <strong>{industryConfig?.terminology?.customer_label || 'Customer'}</strong>
+                  </span>
+                </div>
+
+                <div className="vraja-form-group">
+                  <label className="vraja-form-label">Business Subcategory</label>
+                  {availableIndustries.find((i) => i.id === selectedIndustry)?.subcategories?.length > 0 ? (
+                    <AdminSelect
+                      value={selectedSubcategory}
+                      onChange={(e) => {
+                        setSelectedSubcategory(e.target.value);
+                        setCategory(e.target.value);
+                      }}
+                      options={
+                        availableIndustries.find((i) => i.id === selectedIndustry).subcategories.map((sub) => ({
+                          value: sub,
+                          label: sub
+                        }))
+                      }
+                    />
+                  ) : (
+                    <AdminInput
+                      id="setup-category"
+                      value={category}
+                      onChange={(e) => {
+                        setCategory(e.target.value);
+                        setSelectedSubcategory(e.target.value);
+                      }}
+                      placeholder="e.g. Breakfast & Snacks, Artisanal Cafe"
+                    />
+                  )}
+                </div>
 
                 <div className="vraja-form-group">
                   <label className="vraja-form-label">Primary Accent Color</label>
@@ -920,7 +1006,18 @@ export default function OwnerPortal({
             {/* Review Aspects & Keywords */}
             <AdminCard
               title="Review Highlights & Aspects"
-              subtitle="Keywords that diners can tap when generating their review draft"
+              subtitle="Keywords that customers can tap when generating their review draft"
+              actions={
+                <AdminButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleApplyIndustryDefaults}
+                  title="Load official industry default topics"
+                >
+                  📋 Apply Industry Defaults
+                </AdminButton>
+              }
             >
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
                 {topics.map((t, idx) => (
@@ -1238,7 +1335,7 @@ export default function OwnerPortal({
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <strong style={{ color: '#26352D', fontSize: '14px' }}>{ticket.ticket_id}</strong>
                             <AdminBadge variant="neutral">
-                              📍 {ticket.table_number || 'General Dining'}
+                              📍 {ticket.table_number ? `${industryConfig?.terminology?.touchpoint_label || 'Touchpoint'}: ${ticket.table_number}` : (industryConfig?.terminology?.customer_label ? `${industryConfig.terminology.customer_label} Feedback` : 'General Experience')}
                             </AdminBadge>
                             <span style={{ color: '#C6A66B', fontSize: '13px' }}>
                               {'★'.repeat(ticket.rating || 3)}

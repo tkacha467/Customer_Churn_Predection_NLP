@@ -238,8 +238,20 @@ def check_csrf_origin(request: Request) -> None:
 
         if origin:
             if origin.rstrip("/") not in allowed:
+                from backend.app.core.security.security_shield import emit_security_event, SecurityEventType, SecuritySeverity
+                emit_security_event(
+                    event_type=SecurityEventType.CSRF_ORIGIN_VIOLATION,
+                    severity=SecuritySeverity.HIGH,
+                    details={"origin": origin, "path": request.url.path, "method": request.method}
+                )
                 raise HTTPException(status_code=403, detail="Request origin is not allowed")
         elif OWNER_COOKIE in request.cookies and os.getenv("ENVIRONMENT", "development").lower() == "production":
+            from backend.app.core.security.security_shield import emit_security_event, SecurityEventType, SecuritySeverity
+            emit_security_event(
+                event_type=SecurityEventType.CSRF_ORIGIN_VIOLATION,
+                severity=SecuritySeverity.HIGH,
+                details={"reason": "Missing origin header on authenticated mutation", "path": request.url.path, "method": request.method}
+            )
             raise HTTPException(status_code=403, detail="Missing origin header on authenticated mutation")
 
 
@@ -386,6 +398,14 @@ def require_tenant_access(required_role: str = "manager", required_entitlement: 
                 # Ordinary owner or staff MUST have an existing membership in target_id
                 target_membership = store.get_membership(ctx.user_id, target_id)
                 if not target_membership:
+                    from backend.app.core.security.security_shield import emit_security_event, SecurityEventType, SecuritySeverity
+                    emit_security_event(
+                        event_type=SecurityEventType.ACCESS_CROSS_TENANT_DENIAL,
+                        severity=SecuritySeverity.HIGH,
+                        actor_id=ctx.user_id,
+                        tenant_id=target_id,
+                        details={"requested_tenant": target_id, "active_tenant": ctx.tenant_id, "required_role": required_role}
+                    )
                     raise HTTPException(
                         status_code=403,
                         detail=f"Access denied: You do not have an authorized membership for business '{target_id}'."
@@ -439,6 +459,14 @@ async def require_platform_admin(request: Request) -> TenantContext:
     """FastAPI dependency requiring an active platform administrator session."""
     ctx = await require_auth_context(request)
     if not ctx.is_platform_admin:
+        from backend.app.core.security.security_shield import emit_security_event, SecurityEventType, SecuritySeverity
+        emit_security_event(
+            event_type=SecurityEventType.ACCESS_UNAUTHORIZED_ADMIN,
+            severity=SecuritySeverity.HIGH,
+            actor_id=ctx.user_id,
+            tenant_id=ctx.tenant_id,
+            details={"email": ctx.email, "path": request.url.path}
+        )
         raise HTTPException(
             status_code=403,
             detail="Platform administrator privileges required."

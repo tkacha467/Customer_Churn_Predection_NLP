@@ -6,6 +6,18 @@ client = TestClient(app)
 login = client.post("/api/auth/login", json={"password": "test-only-owner-password"})
 assert login.status_code == 200
 
+@pytest.fixture(autouse=True)
+def seed_test_bistro():
+    from Backend.app.core.auth.auth import get_store
+    store = get_store()
+    store.upsert_tenant({
+        "id": "test_bistro",
+        "business_name": "Test Bistro",
+        "category": "Restaurant",
+        "status": "active",
+        "entitlements": ["review_manager"]
+    })
+
 def test_review_ideas_generation_5_star():
     payload = {
         "business_id": "test_bistro",

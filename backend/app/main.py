@@ -89,6 +89,23 @@ def startup_event():
             print(f"Background model priming warning: {e}")
     threading.Thread(target=prime, daemon=True).start()
 
+    # Start decoupled Security Shield alert notification worker
+    try:
+        from backend.app.core.security.alert_mailer import alert_dispatcher
+        alert_dispatcher.start()
+        print("Security Shield alert dispatcher worker started.")
+    except Exception as e:
+        print(f"Background alert dispatcher startup warning: {e}")
+
+@app.on_event("shutdown")
+def shutdown_event():
+    try:
+        from backend.app.core.security.alert_mailer import alert_dispatcher
+        alert_dispatcher.stop(timeout=2.0)
+        print("Security Shield alert dispatcher worker stopped.")
+    except Exception as e:
+        print(f"Alert dispatcher shutdown warning: {e}")
+
 class ReviewRequest(BaseModel):
     review: str
     rating: int

@@ -17,7 +17,38 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Gujarati', 'Noto Sans Devanagari', sans-serif;
+}
+
+/* Indic Script & Multi-Language Typography Fallbacks */
+:lang(gu), [lang="gujarati"], .lang-gujarati {
+  font-family: 'Noto Sans Gujarati', 'Shruti', 'Gujarati Sangam MN', 'Mukta Vaani', -apple-system, sans-serif !important;
+}
+
+:lang(hi), [lang="hindi"], .lang-hindi {
+  font-family: 'Noto Sans Devanagari', 'Mangal', 'Devanagari Sangam MN', 'Mukta', -apple-system, sans-serif !important;
+}
+
+/* Template layout wrapper & responsive viewports */
+.vt-renderer-wrapper {
+  width: 100%;
+  min-height: 100vh;
+}
+
+@media (max-width: 480px) {
+  .vt-classic-bistro,
+  .vt-modern-urban,
+  .vt-luxury-dining,
+  .vt-cafe-playful,
+  .vt-sweet-dessert,
+  .vt-hospitality,
+  .vt-salon,
+  .vt-retail,
+  .vt-fitness,
+  .vt-healthcare,
+  .vt-template {
+    padding: 16px 10px !important;
+  }
 }
 
 body {

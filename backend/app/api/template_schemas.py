@@ -474,3 +474,4 @@ class PublicBusinessConfigResponse(BaseModel):
     ratingLabels: Dict[str, Any]
     experienceLabels: Dict[str, Any]
     localizedContent: Dict[str, Any]
+    compatibility_flags: Optional[Dict[str, Any]] = None

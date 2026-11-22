@@ -1,0 +1,152 @@
+name: VRAJA AI Enterprise CI & Security Validation
+
+'on':
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-security-and-tests:
+    name: Python 3.11 Backend Tests & Safety Guards
+    runs-on: ubuntu-latest
+    env:
+      ENVIRONMENT: test
+      MOCK_EMAIL_TRANSPORT: "true"
+      ALERT_RECIPIENT_EMAIL: "vajra.techworks@gmail.com"
+      OWNER_SESSION_SECRET: "ci-secret-token-key-must-be-at-least-32-characters!!"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov httpx
+
+      - name: Run Pytest Suite with Database Safety Guards
+        run: |
+          pytest Project_Files/Tests -v --tb=short
+
+  frontend-builds-and-audit:
+    name: Node 20 Frontend Builds & Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Audit & Build Product A (NastaGhar)
+        run: |
+          cd NastaGhar/frontend
+          npm ci
+          npm audit --audit-level=high || true
+          npm run build
+
+      - name: Audit & Build Product B (Digital Card)
+        run: |
+          cd Digital_Card/frontend
+          npm ci
+          npm audit --audit-level=high || true
+          npm run build
+
+  browser-e2e-tests:
+    name: Playwright Real Browser E2E Security Verification
+    runs-on: ubuntu-latest
+    needs: [backend-security-and-tests, frontend-builds-and-audit]
+    env:
+      ENVIRONMENT: test
+      MOCK_EMAIL_TRANSPORT: "true"
+      ALERT_RECIPIENT_EMAIL: "vajra.techworks@gmail.com"
+      OWNER_SESSION_SECRET: "ci-browser-test-secret-key-at-least-32-chars!!"
+      ENFORCE_BROWSER_TESTS: "1"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Set up Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build Product A Frontend
+        run: |
+          cd NastaGhar/frontend
+          npm ci
+          npm run build
+
+      - name: Install Dependencies & Playwright Chromium
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov httpx playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Run Enforced Browser E2E Verification
+        run: |
+          pytest Project_Files/Tests/api/test_phase_a6_4_final_verification.py -k "test_task4_real_security_center_browser_playwright_e2e" -v
+
+  release-integrity-manifest:
+    name: Release Artifact Cryptographic Manifest
+    runs-on: ubuntu-latest
+    needs: [backend-security-and-tests, frontend-builds-and-audit]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Verify Code Integrity Engine
+        run: |
+          python -c "
+          from pathlib import Path
+          from Backend.app.core.security.code_integrity import generate_release_manifest, verify_database_schema_integrity
+          
+          root = Path('.')
+          manifest = generate_release_manifest(release_id='${{ github.sha }}', repo_root=root, include_frontend_dist=False)
+          print(f'Generated release manifest with {manifest[\"total_monitored_files\"]} monitored source files.')
+          print(f'Manifest fingerprint: {manifest[\"manifest_fingerprint\"]}')
+          assert manifest['total_monitored_files'] > 30, 'Manifest must track backend source files'
+          "
+
+  secret-scanning:
+    name: Secret & Credential Leak Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks Secret Detector
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
