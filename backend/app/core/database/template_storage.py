@@ -1534,7 +1534,7 @@ class TemplateRepository:
             or (
                 "https://search.google.com/local/writereview?placeid=ChIJZeK7NwDLWTkR1pOxt51jLro"
                 if t_dict["id"] in ("default_business", "nasta_ghar")
-                else f"https://search.google.com/local/writereview?placeid={t_dict['id']}"
+                else ""
             )
         )
 

@@ -1,6 +1,10 @@
 import os
 import warnings
 import ipaddress
+import logging
+
+# Suppress PyTorch macOS redirect warning
+logging.getLogger("torch.distributed.elastic.multiprocessing.redirects").setLevel(logging.ERROR)
 
 # Suppress HF Hub unauthenticated warnings and progress bars
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
@@ -258,6 +262,10 @@ app.include_router(review_router, prefix="/api", tags=["review_assistant"])
 # Register Dynamic Industry Template Management System endpoints (Product A)
 from backend.app.api.template_routes import template_router
 app.include_router(template_router, prefix="/api", tags=["industry_templates"])
+
+# Register Platform Security Shield endpoints
+from backend.app.api.security_routes import security_router
+app.include_router(security_router, prefix="/api", tags=["security_shield"])
 
 @app.get("/healthz")
 def health_check():

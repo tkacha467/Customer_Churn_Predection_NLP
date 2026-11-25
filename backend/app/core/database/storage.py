@@ -1039,16 +1039,45 @@ class ReviewStore:
         event: dict[str, Any],
         tenant_id: str | None = None,
         traffic_source: str = "customer"
-    ) -> None:
-        raw_bid = tenant_id or event.get("metadata", {}).get("business_id")
+    ) -> dict[str, Any]:
+        raw_bid = tenant_id or event.get("metadata", {}).get("business_id") or event.get("business_id")
         resolved_tid = normalize_tenant_id(raw_bid)
-        payload_str = json.dumps(event, ensure_ascii=False)
+
+        event_id = event.get("event_id") or str(uuid.uuid4())
+        timestamp = event.get("timestamp") or time.time()
+        session_id = event.get("session_id") or event.get("metadata", {}).get("session_id") or "anonymous"
+        event_name = event.get("event_name") or "unknown"
+
+        # Sliding window deduplication per store instance (30.0s window)
+        dedup_window = 30.0
+        dedup_key = f"{resolved_tid}:{session_id}:{event_name}"
+        if not hasattr(self, "_dedup_cache"):
+            self._dedup_cache = {}
+
+        last_time = self._dedup_cache.get(dedup_key)
+        if last_time is not None and abs(timestamp - last_time) < dedup_window:
+            return {
+                "status": "deduplicated",
+                "is_duplicate": True,
+                "event_id": event_id,
+            }
+
+        self._dedup_cache[dedup_key] = timestamp
+        if len(self._dedup_cache) > 2000:
+            cutoff = timestamp - 120.0
+            self._dedup_cache = {k: v for k, v in self._dedup_cache.items() if v > cutoff}
+
+        event_to_store = dict(event)
+        event_to_store["event_id"] = event_id
+        event_to_store["timestamp"] = timestamp
+        payload_str = json.dumps(event_to_store, ensure_ascii=False)
+
         with self._connect() as db:
             if traffic_source in ("preview", "internal_admin"):
                 # Strict 3-way isolation: write exclusively to preview_analytics_events table
                 db.execute(
                     "INSERT OR IGNORE INTO preview_analytics_events(event_id, created_at, payload, tenant_id, traffic_source) VALUES (?, ?, ?, ?, ?)",
-                    (event["event_id"], event["timestamp"], payload_str, resolved_tid, traffic_source),
+                    (event_id, timestamp, payload_str, resolved_tid, traffic_source),
                 )
                 if resolved_tid:
                     db.execute("""
@@ -1059,11 +1088,11 @@ class ReviewStore:
                             LIMIT -1 OFFSET 1000
                         )
                     """, (resolved_tid,))
-                return
+                return {"status": "recorded", "is_duplicate": False, "event_id": event_id}
 
             db.execute(
                 "INSERT OR IGNORE INTO analytics_events(event_id, created_at, payload, tenant_id) VALUES (?, ?, ?, ?)",
-                (event["event_id"], event["timestamp"], payload_str, resolved_tid),
+                (event_id, timestamp, payload_str, resolved_tid),
             )
             # Per-tenant retention: prune only events for THIS tenant if exceeding 2000
             if resolved_tid:
@@ -1075,6 +1104,8 @@ class ReviewStore:
                         LIMIT -1 OFFSET 2000
                     )
                 """, (resolved_tid,))
+
+        return {"status": "recorded", "is_duplicate": False, "event_id": event_id}
 
     def list_events(self, business_id: str | None = None) -> list[dict[str, Any]]:
         tid = normalize_tenant_id(business_id)

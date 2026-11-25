@@ -13,6 +13,7 @@ Key Capabilities:
 - Target Alert Recipient: vajra.techworks@gmail.com
 """
 
+import sys
 import time
 import uuid
 import threading
@@ -102,6 +103,9 @@ class SecurityShield:
 
     def __new__(cls):
         with cls._lock:
+            global_inst = getattr(sys, "_vraja_security_shield_singleton", None)
+            if global_inst is not None:
+                return global_inst
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
                 cls._instance._buffer: List[SecurityAuditRecord] = []
@@ -110,7 +114,8 @@ class SecurityShield:
                 cls._instance._admin_email = "vajra.techworks@gmail.com"
                 cls._instance._store = SecurityStore()
                 cls._instance._mailer = alert_mailer
-        return cls._instance
+            sys._vraja_security_shield_singleton = cls._instance
+            return cls._instance
 
     @property
     def store(self) -> SecurityStore:
@@ -136,8 +141,8 @@ class SecurityShield:
         and the durable, multi-worker resilient SQLite storage.
         Evaluates detection rules and groups incidents for notification dispatch.
         """
-        ev_type_str = str(event_type.value if isinstance(event_type, SecurityEventType) else event_type)
-        sev_str = str(severity.value if isinstance(severity, SecuritySeverity) else severity).upper()
+        ev_type_str = str(event_type.value if hasattr(event_type, "value") else event_type)
+        sev_str = str(severity.value if hasattr(severity, "value") else severity).upper()
         now_ts = time.time()
         c_id = correlation_id or str(uuid.uuid4())
         sanitized = sanitize_details(details)

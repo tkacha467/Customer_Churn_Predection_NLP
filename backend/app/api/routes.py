@@ -114,6 +114,12 @@ from backend.app.core.auth.security_store import (
     verify_turnstile_token,
     CF_DUMMY_PASS_SITEKEY,
 )
+from backend.app.core.security.security_shield import (
+    security_shield,
+    emit_security_event,
+    SecurityEventType,
+    SecuritySeverity,
+)
 
 router = APIRouter()
 
@@ -920,6 +926,11 @@ async def record_analytics_event(ev: AnalyticsEventRequest, request: Request):
         if sess_info and sess_info.get("traffic_source"):
             traffic_source = sess_info["traffic_source"]
 
+    # 1b. Check registered preview session in Security Shield
+    if traffic_source == "customer" and sid:
+        if security_shield.is_preview_session(sid):
+            traffic_source = "preview"
+
     # 2. Check signed preview token if supplied via payload, header, or query
     if traffic_source == "customer":
         raw_token = (
@@ -943,6 +954,25 @@ async def record_analytics_event(ev: AnalyticsEventRequest, request: Request):
             elif auth_ctx.tenant_id == target_id:
                 traffic_source = "preview"
 
+    # Threat detection: Unregistered preview spoofing attempt
+    if traffic_source not in ("preview", "internal_admin"):
+        has_preview_claim = bool(ev.metadata and ev.metadata.get("is_preview") is True)
+        has_preview_prefix = bool(sid and sid.lower().startswith("preview"))
+        if has_preview_claim or has_preview_prefix:
+            emit_security_event(
+                event_type=SecurityEventType.ABUSE_PREVIEW_SPOOF_ATTEMPT,
+                severity=SecuritySeverity.HIGH,
+                actor_id=sid or "anonymous",
+                tenant_id=valid_id,
+                action_taken="DENIED_PREVIEW_MODE",
+                outcome="FALLBACK_CUSTOMER",
+                details={
+                    "session_id": sid,
+                    "business_id": valid_id,
+                    "reason": "Unregistered client attempted to claim preview mode or prefix",
+                }
+            )
+
     meta = dict(ev.metadata or {})
     meta["traffic_source"] = traffic_source
     meta["is_preview"] = traffic_source in ("preview", "internal_admin")
@@ -960,6 +990,39 @@ async def record_analytics_event(ev: AnalyticsEventRequest, request: Request):
         session_verified=is_session_verified,
     )
     return res
+
+
+class PreviewSessionRegistrationRequest(BaseModel):
+    business_id: str
+    session_id: str
+
+
+@router.post("/reviews/preview-session")
+async def register_preview_session(
+    payload: PreviewSessionRegistrationRequest,
+    request: Request,
+    ctx: TenantContext = Depends(require_auth_context),
+):
+    valid_id = validate_business_id(payload.business_id)
+    if not ctx.is_platform_admin and ctx.tenant_id != valid_id:
+        raise HTTPException(status_code=403, detail="Cross-tenant preview session registration forbidden.")
+
+    security_shield.register_preview_session(
+        session_id=payload.session_id,
+        tenant_id=valid_id,
+        user_id=ctx.user_id,
+    )
+    review_service.record_session(
+        session_id=payload.session_id,
+        business_id=valid_id,
+        traffic_source="preview",
+    )
+    return {
+        "status": "registered",
+        "is_preview": True,
+        "session_id": payload.session_id,
+        "business_id": valid_id,
+    }
 
 
 @router.post("/reviews/private-feedback", response_model=PrivateFeedbackResponse)

@@ -185,6 +185,7 @@ ALLOWED_ANALYTICS_EVENTS = {
     "review_clipboard_success",
     "review_clipboard_failed",
     "google_maps_redirect",
+    "google_maps_direct_click",
     "private_feedback_sent",
 }
 
