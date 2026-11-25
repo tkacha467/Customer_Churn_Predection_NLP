@@ -5,28 +5,29 @@ import React from 'react';
  * Deep navy (#1E293B) with warm amber gold (#EAB308), room number touchpoint,
  * concierge and hospitality terminology.
  */
-export default function HotelHospitality({ templateData, journeyState }) {
+export default function HotelHospitality({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Grand Heritage Hotel & Suites';
   const navy = '#0F172A';
@@ -34,19 +35,16 @@ export default function HotelHospitality({ templateData, journeyState }) {
   const cardBg = '#1E293B';
   const border = '#334155';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Beautiful room, exceptional hospitality and wonderful breakfast! 🏨';
+
   return (
-    <div
-      className="vt-hospitality"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-hospitality" style={{
         padding: '24px 16px',
         backgroundColor: navy,
         minHeight: '100vh',
         color: '#F8FAFC',
         fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ textAlign: 'center', padding: '24px 0 16px' }}>
         <div style={{ fontSize: '2rem', marginBottom: '6px' }}>🏨 ⭐ 🛎️</div>
         <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: '#FFFFFF', margin: '0 0 6px 0' }}>
@@ -148,7 +146,7 @@ export default function HotelHospitality({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -163,7 +161,7 @@ export default function HotelHospitality({ templateData, journeyState }) {
         </div>
       </section>
 
-      {/* Ideas */}
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content">{/* Ideas */}
       <section
         style={{
           background: cardBg,
@@ -226,6 +224,6 @@ export default function HotelHospitality({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

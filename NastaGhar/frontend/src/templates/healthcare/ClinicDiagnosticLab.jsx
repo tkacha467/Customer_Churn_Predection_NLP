@@ -8,26 +8,29 @@ import React from 'react';
  * - Precision lab indigo & slate (#4338CA / #1E1B4B), sterile crisp background (#EEF2FF), crystal border (#C7D2FE).
  * - Collection counter / phlebotomy station touchpoint, calibration gauge rating scale.
  */
-export default function ClinicDiagnosticLab({ templateData, journeyState }) {
+export default function ClinicDiagnosticLab({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    draftReview,
-    setDraftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Precision Diagnostics & Pathology Center';
   const indigo = '#4338CA';
@@ -37,19 +40,16 @@ export default function ClinicDiagnosticLab({ templateData, journeyState }) {
 
   const PRECISION_LABELS = ['SAMPLE', 'CALIBRATED', 'ACCURATE', 'PRECISION', 'EXEMPLARY'];
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Attentive doctor, clear consultation and reassuring care! 🩺';
+
   return (
-    <div
-      className="vt-clinic-diagnostic"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-clinic-diagnostic" style={{
         padding: '24px 16px',
         backgroundColor: bg,
         minHeight: '100vh',
         color: '#1E1B4B',
         fontFamily: "'Inter', -apple-system, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       {/* Neutral Patient Privacy Notice */}
       <div
         className="vt-privacy-notice"
@@ -192,7 +192,7 @@ export default function ClinicDiagnosticLab({ templateData, journeyState }) {
       </section>
 
       {/* Direct Lab Experience Feedback Editor */}
-      <section
+      </div>{/* RIGHT COLUMN: Authentic Review */}<div className="vt-split-content"><section
         style={{
           background: '#FFFFFF',
           borderRadius: '16px',
@@ -263,6 +263,6 @@ export default function ClinicDiagnosticLab({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

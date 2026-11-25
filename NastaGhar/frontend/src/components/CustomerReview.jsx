@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import RestaurantWorld from './RestaurantWorld';
+import TemplateRenderer from '../templates/TemplateRenderer';
 import { apiFetch } from '../lib/api';
 
 // ─── NASTA GHAR BRAND CONSTANTS ──────────────────────────────────────────────
@@ -326,11 +327,11 @@ const clearSessionDraft = (bId) => {
 };
 
 // ─── STRICT GROUNDED FALLBACK SUGGESTIONS ───────────────────────────────────
-const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, aspects = [], indId = 'restaurant') => {
+const getFallbackIdeas = (r, note = '', lang = 'english', bizName = '', aspects = [], indId = '') => {
   const noteFragment = note && note.trim() ? ` ${note.trim().replace(/[.!]+$/, '')}.` : '';
   const l = (lang || 'english').toLowerCase();
 
-  // Clean business name to never show default_business placeholder
+  // Clean business name to never show raw default_business placeholder
   let name = (bizName || '').trim();
   if (!name || name === 'default_business' || name === 'default' || name === 'nasta_ghar' || name === 'nasta-ghar') {
     if (l.includes('guj')) name = 'નાસ્તા ઘર';
@@ -341,20 +342,25 @@ const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, 
     else if (l.includes('hin')) name = 'नाश्ता घर';
   }
 
-  const isRestaurant = !indId || indId === 'restaurant';
+  const isRestaurant = indId === 'restaurant' || indId === 'dining' || indId === 'ind_restaurant' ||
+    (!indId && (name === 'Nasta Ghar' || name === 'નાસ્તા ઘર' || name === 'नाश्ता घर'));
 
   if (!isRestaurant) {
     let shortText = '';
     let detailedText = '';
     let personalText = '';
 
+    const aspectStrEn = aspects && aspects.length > 0 ? aspects.slice(0, 2).join(' & ') : 'service';
+    const aspectStrHi = aspects && aspects.length > 0 ? aspects.slice(0, 2).join(' और ') : 'सर्विस';
+    const aspectStrGu = aspects && aspects.length > 0 ? aspects.slice(0, 2).join(' અને ') : 'સર્વિસ';
+
     if (l.includes('hin')) {
       if (r === 5) {
-        shortText = `${name} ka anubhav bahut hi accha raha!${noteFragment} Maza aa gaya 😊✨`;
-        detailedText = `${name} ki service aur arrangements bahut lajawab the.${noteFragment} Sab kuch acche se manage kiya hua tha 👍`;
+        shortText = `${name} ka anubhav bahut hi accha raha!${noteFragment} ${aspectStrHi} bahut badiya lagi 😊✨`;
+        detailedText = `${name} ki ${aspectStrHi} aur arrangements bahut lajawab the.${noteFragment} Sab kuch acche se manage kiya hua tha 👍`;
         personalText = `Personal taur par ${name} ka experience kaafi shandar raha.${noteFragment} Very satisfied with the visit ❤️`;
       } else if (r === 4) {
-        shortText = `${name} me accha anubhav raha.${noteFragment} Acchi service aur support 👍`;
+        shortText = `${name} me accha anubhav raha.${noteFragment} Acchi ${aspectStrHi} aur support 👍`;
         detailedText = `Overall experience kaafi accha aur professional raha at ${name}.${noteFragment} Satisfied with today's visit 🙂`;
         personalText = `Mere liye ${name} ka visit accha raha.${noteFragment} Everything went smoothly 👍`;
       } else if (r === 3) {
@@ -372,11 +378,11 @@ const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, 
       }
     } else if (l.includes('guj')) {
       if (r === 5) {
-        shortText = `Khub j saras anubhav rahyo at ${name}!${noteFragment} Majo avi gayo ✨`;
-        detailedText = `${name} ni mulakat khub shandar rahi.${noteFragment} Badhi vyavastha khub saras hati 😊`;
+        shortText = `Khub j saras anubhav rahyo at ${name}!${noteFragment} ${aspectStrGu} khub gami ✨`;
+        detailedText = `${name} ni mulakat khub shandar rahi.${noteFragment} ${aspectStrGu} ane vyavastha khub saras hati 😊`;
         personalText = `Mane ${name} no anubhav khub j pasand aavyo.${noteFragment} Khub santosh thayo ❤️`;
       } else if (r === 4) {
-        shortText = `Saras anubhav rahyo at ${name}.${noteFragment} Badhu barabar hatu 👍`;
+        shortText = `Saras anubhav rahyo at ${name}.${noteFragment} ${aspectStrGu} barabar hatu 👍`;
         detailedText = `${name} ni mulakat ekandare sari rahi.${noteFragment} Santoshjanak anubhav 🙂`;
         personalText = `Mane ${name} ni service pasand avi.${noteFragment} Overall good visit 👍`;
       } else if (r === 3) {
@@ -394,13 +400,13 @@ const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, 
       }
     } else {
       if (r === 5) {
-        shortText = `Excellent experience with ${name}!${noteFragment} Thoroughly impressed with the quality and service ✨`;
-        detailedText = `Everything was handled smoothly and professionally at ${name}.${noteFragment} Highly satisfied with today's visit 😊`;
-        personalText = `A truly wonderful experience at ${name}.${noteFragment} Very pleased with everything 👍`;
+        shortText = `Excellent experience with ${name}!${noteFragment} Thoroughly impressed with the ${aspectStrEn} ✨`;
+        detailedText = `Everything was handled smoothly and professionally at ${name}.${noteFragment} The ${aspectStrEn} was great and well managed 😊`;
+        personalText = `A truly wonderful experience at ${name}.${noteFragment} Very pleased with the visit 👍`;
       } else if (r === 4) {
-        shortText = `Good experience at ${name}.${noteFragment} Solid and reliable service 👍`;
-        detailedText = `Overall a solid and enjoyable experience at ${name}.${noteFragment} Everything was well arranged 😊`;
-        personalText = `Had a good visit at ${name}.${noteFragment} Happy with my experience overall 👍`;
+        shortText = `Good experience at ${name}.${noteFragment} Solid ${aspectStrEn} and reliable support 👍`;
+        detailedText = `Overall a solid and enjoyable experience at ${name}.${noteFragment} Happy with the visit 😊`;
+        personalText = `Had a good visit at ${name}.${noteFragment} Satisfied with my experience overall 👍`;
       } else if (r === 3) {
         shortText = `Decent visit today at ${name}.${noteFragment} Standard experience 🙂`;
         detailedText = `Overall an average experience at ${name}. A few good points, but there is room for improvement.${noteFragment} Decent visit 🙂`;
@@ -417,9 +423,9 @@ const getFallbackIdeas = (r, note = '', lang = 'english', bizName = BRAND.name, 
     }
 
     return [
-      { id: 'opt1', focus: 'Short & Natural', text: shortText },
-      { id: 'opt2', focus: 'Detailed & Expressive', text: detailedText },
-      { id: 'opt3', focus: 'Simple & Personal', text: personalText },
+      { id: 'opt1', focus: getStyleLabel('Short & Natural', lang), text: shortText },
+      { id: 'opt2', focus: getStyleLabel('Detailed & Expressive', lang), text: detailedText },
+      { id: 'opt3', focus: getStyleLabel('Simple & Personal', lang), text: personalText },
     ];
   }
 
@@ -662,22 +668,31 @@ export default function CustomerReview({
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewStarted, setReviewStarted] = useState(() => Boolean(initialDraft?.reviewStarted));
 
+  const isDefaultTenant = businessId === 'default_business' || businessId === 'nasta_ghar';
+  const formatInitialName = (id) => {
+    if (!id || id === 'default_business' || id === 'nasta_ghar') {
+      return language === 'gujarati' ? 'નાસ્તા ઘર' : language === 'hindi' ? 'नाश्ता घर' : BRAND.name;
+    }
+    return id.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
   // Business Category & Dynamic Branding
-  const [businessName, setBusinessName] = useState(() => (businessId === 'default_business' || businessId === 'nasta_ghar' ? (language === 'gujarati' ? 'નાસ્તા ઘર' : language === 'hindi' ? 'नाश्ता घर' : BRAND.name) : ''));
+  const [businessName, setBusinessName] = useState(() => (isDefaultTenant ? (language === 'gujarati' ? 'નાસ્તા ઘર' : language === 'hindi' ? 'नाश्ता घर' : BRAND.name) : formatInitialName(businessId)));
   const [primaryAccent, setPrimaryAccent] = useState('#f97316');
   const [businessDescription, setBusinessDescription] = useState('');
-  const [businessCategory, setBusinessCategory] = useState('Breakfast & Snacks');
-  const [industryId, setIndustryId] = useState('restaurant');
+  const [businessCategory, setBusinessCategory] = useState(isDefaultTenant ? 'Breakfast & Snacks' : '');
+  const [industryId, setIndustryId] = useState(isDefaultTenant ? 'restaurant' : '');
   const [terminology, setTerminology] = useState(null);
   const [isRestricted, setIsRestricted] = useState(false);
   const [restrictionMessage, setRestrictionMessage] = useState('');
   const [notFound, setNotFound] = useState(false);
   const [notFoundId, setNotFoundId] = useState('');
   const [templateData, setTemplateData] = useState(null);
+  const [loadingConfig, setLoadingConfig] = useState(true);
 
   // Topics
-  const [availableTopics, setAvailableTopics] = useState(DEFAULT_TOPICS);
-  const [selectedTopics, setSelectedTopics] = useState(() => (Array.isArray(initialDraft?.selectedTopics) ? initialDraft.selectedTopics : ['Breakfast', 'Chai & Tea']));
+  const [availableTopics, setAvailableTopics] = useState(isDefaultTenant ? DEFAULT_TOPICS : []);
+  const [selectedTopics, setSelectedTopics] = useState(() => (Array.isArray(initialDraft?.selectedTopics) ? initialDraft.selectedTopics : (isDefaultTenant ? ['Breakfast', 'Chai & Tea'] : [])));
   const [nothingSpecific, setNothingSpecific] = useState(() => Boolean(initialDraft?.nothingSpecific));
   const [personalNote, setPersonalNote] = useState(() => initialDraft?.personalNote || '');
 
@@ -685,7 +700,14 @@ export default function CustomerReview({
   const [googleReviewUrl, setGoogleReviewUrl] = useState(BRAND.googleMapUrl);
 
   // Ideas initialized with fallback ideas (no empty screen, instant feedback)
-  const [ideas, setIdeas] = useState(() => getFallbackIdeas(rating, personalNote, language, businessName || BRAND.name, nothingSpecific ? [] : selectedTopics));
+  const [ideas, setIdeas] = useState(() => getFallbackIdeas(
+    rating,
+    personalNote,
+    language,
+    isDefaultTenant ? BRAND.name : formatInitialName(businessId),
+    nothingSpecific ? [] : (Array.isArray(initialDraft?.selectedTopics) ? initialDraft.selectedTopics : (isDefaultTenant ? ['Breakfast', 'Chai & Tea'] : [])),
+    isDefaultTenant ? 'restaurant' : ''
+  ));
   const [loadingIdeas, setLoadingIdeas] = useState(false);
   const [ideasError, setIdeasError] = useState(false);
   const isFetchingIdeasRef = useRef(false);
@@ -764,6 +786,7 @@ export default function CustomerReview({
   // ─── FETCH CONFIG (dynamic per business ID) ──────────────────────────────
   useEffect(() => {
     let active = true;
+    setLoadingConfig(true);
     setNotFound(false);
     setIsRestricted(false);
     setRestrictionMessage('');
@@ -811,7 +834,8 @@ export default function CustomerReview({
           setGoogleReviewUrl(BRAND.googleMapUrl);
         }
         if (d.category) setBusinessCategory(d.category);
-        if (d.industry_id) setIndustryId(d.industry_id);
+        const resolvedIndSlug = d.industry?.slug || d.industry_id || 'restaurant';
+        setIndustryId(resolvedIndSlug);
         if (d.terminology) setTerminology(d.terminology);
         const accent = d.theme?.primaryAccent || d.primary_accent;
         if (accent) setPrimaryAccent(accent);
@@ -819,9 +843,9 @@ export default function CustomerReview({
         if (d.topics && d.topics.length > 0) {
           const enriched = d.topics.map((item) => {
             if (typeof item === 'object' && item.label) {
-              return { label: item.label, icon: item.icon || getTopicIcon(item.label, d.industry_id) };
+              return { label: item.label, icon: item.icon || getTopicIcon(item.label, resolvedIndSlug) };
             }
-            return { label: item, icon: getTopicIcon(item, d.industry_id) };
+            return { label: item, icon: getTopicIcon(item, resolvedIndSlug) };
           });
           setAvailableTopics(enriched);
           const currentDraft = loadDraft(businessId);
@@ -831,12 +855,15 @@ export default function CustomerReview({
             saveDraft(businessId, { selectedTopics: initialLabels });
           }
         }
-        setIdeas(getFallbackIdeas(rating, personalNote, language, resolvedName, nothingSpecific ? [] : selectedTopics, d.industry_id));
+        setIdeas(getFallbackIdeas(rating, personalNote, language, resolvedName, nothingSpecific ? [] : selectedTopics, resolvedIndSlug));
       })
       .catch(() => {
         if (businessId === 'default_business' || businessId === 'nasta_ghar') {
           if (active) setBusinessName(BRAND.name);
         }
+      })
+      .finally(() => {
+        if (active) setLoadingConfig(false);
       });
 
     // Acquire server-authenticated preview token if operating in preview mode
@@ -1043,6 +1070,7 @@ export default function CustomerReview({
           user_note: personalNote.trim(),
           language,
           category: businessCategory,
+          industry_id: industryId || undefined,
         }),
       });
       if (res.ok) {
@@ -1249,6 +1277,209 @@ export default function CustomerReview({
             </button>
           )}
         </div>
+      </div>
+    );
+  }
+
+  if (loadingConfig && !templateData) {
+    return (
+      <div className="vt-page-container" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: '#f8fafc' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="admin-spinner" style={{ width: '40px', height: '40px', margin: '0 auto 16px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <p style={{ color: '#94a3b8', fontSize: '0.95rem' }}>Loading review experience…</p>
+        </div>
+      </div>
+    );
+  }
+
+  const getNotePlaceholder = () => {
+    if (templateData?.experienceLabels?.notePlaceholder) {
+      return templateData.experienceLabels.notePlaceholder;
+    }
+    const ind = templateData?.industry?.slug || industryId;
+    if (ind === 'salon' || ind === 'beauty') {
+      return language === 'gujarati' ? 'જેમ કે: હેરકટ અને રિલેક્સિંગ સર્વિસ ખૂબ જ ગમી! ✨' : language === 'hindi' ? 'जैसे: हेयरकट और रिलैक्सिंग सर्विस बहुत पसंद आई! ✨' : 'e.g. Loved the haircut and relaxing service! ✨';
+    }
+    if (ind === 'retail' || ind === 'shopping') {
+      return language === 'gujarati' ? 'જેમ કે: કલેક્શન અને ક્વોલિટી ખૂબ સરસ હતી! 🛍️' : language === 'hindi' ? 'जैसे: कलेक्शन और क्वालिटी बहुत बढ़िया थी! 🛍️' : 'e.g. Great collection and wonderful quality! 🛍️';
+    }
+    if (ind === 'hotel' || ind === 'hospitality') {
+      return language === 'gujarati' ? 'જેમ કે: રૂમ અને સર્વિસ ખૂબ જ સરસ હતી! 🏨' : language === 'hindi' ? 'जैसे: रूम और आतिथ्य बहुत अच्छा था! 🏨' : 'e.g. Comfortable room and welcoming staff! 🏨';
+    }
+    if (ind === 'fitness' || ind === 'wellness') {
+      return language === 'gujarati' ? 'જેમ કે: ટ્રેનર અને વાતાવરણ ખૂબ જ ઉત્સાહવર્ધક છે! 💪' : language === 'hindi' ? 'जैसे: ट्रेनर और माहौल बहुत ऊर्जावान है! 💪' : 'e.g. Great trainer energy and clean equipment! 💪';
+    }
+    if (ind === 'clinic' || ind === 'healthcare') {
+      return language === 'gujarati' ? 'જેમ કે: ડૉક્ટરની સલાહ ખૂબ જ સંતોષકારક રહી! 🩺' : language === 'hindi' ? 'जैसे: डॉक्टर का परामर्श बहुत तसल्लीबख्श रहा! 🩺' : 'e.g. Clear consultation and gentle care! 🩺';
+    }
+    if (businessId === 'default_business' || businessId === 'nasta_ghar') {
+      return t.notePlaceholder; // e.g. The poha was absolutely perfect! 😋
+    }
+    return language === 'gujarati' ? 'જેમ કે: સ્વાદ અને સર્વિસ ખૂબ સરસ રહી! 🍽️' : language === 'hindi' ? 'जैसे: स्वाद और सर्विस बहुत बढ़िया थी! 🍽️' : 'e.g. Great taste and wonderful service! 🍽️';
+  };
+
+  const isLegacyCanvas =
+    templateData?.compatibility_flags?.legacy_experience === 'nasta_ghar_canvas_world' ||
+    templateData?.theme?.heroBannerType === 'animated_world' ||
+    (!templateData?.theme?.heroBannerType && (businessId === 'default_business' || businessId === 'nasta_ghar'));
+
+  if (!isLegacyCanvas && templateData) {
+    const journeyState = {
+      rating,
+      setRating: handleRating,
+      hoverRating,
+      setHoverRating,
+      ratingLabel,
+      availableTopics,
+      selectedTopics,
+      toggleTopic,
+      personalNote,
+      setPersonalNote: (val) => {
+        setPersonalNote(val);
+        saveDraft(businessId, { personalNote: val });
+      },
+      touchpointLabel: terminology?.touchpoint_noun || 'Table',
+      touchpointValue: tableParam,
+      ideas,
+      selectedIdeaId,
+      onSelectIdea: (idea) => handlePostDirectly(idea),
+      draftReview,
+      setDraftReview: (val) => {
+        setDraftReview(val);
+        saveDraft(businessId, { draftReview: val });
+      },
+      onDirectGoogleHandoff: handleContinueToGoogle,
+      onOpenPrivateFeedback: () => setShowPrivate(true),
+      notePlaceholder: getNotePlaceholder(),
+      t,
+      language,
+      loadingIdeas,
+      nothingSpecific,
+      setNothingSpecific,
+    };
+
+    return (
+      <div className="vt-dynamic-page-root" style={{ minHeight: '100vh', width: '100%' }}>
+        {isPreviewMode && (
+          <div className="ng-preview-bar">
+            <span>👁️ {trafficSource === 'internal_admin' ? 'Admin Diagnostic Preview' : 'Owner Preview Mode'}</span>
+            {onSwitchToOwner && (
+              <button type="button" className="ng-preview-back" onClick={onSwitchToOwner}>
+                ← Back to Dashboard
+              </button>
+            )}
+          </div>
+        )}
+
+        <TemplateRenderer templateData={templateData} journeyState={journeyState} />
+
+        {/* Private Feedback Modal Overlay */}
+        {showPrivate && (
+          <div className="ng-modal-backdrop" onClick={() => setShowPrivate(false)}>
+            <div
+              className="ng-modal"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#ffffff',
+                color: '#1f2937',
+                borderRadius: '16px',
+                padding: '24px',
+                maxWidth: '460px',
+                width: '90%',
+                margin: 'auto',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#111827' }}>
+                  {t.sendPrivateNote}
+                </h3>
+                <button
+                  type="button"
+                  className="ng-modal-close"
+                  onClick={() => setShowPrivate(false)}
+                  style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#6b7280' }}
+                >
+                  ✕
+                </button>
+              </div>
+              {privateSent ? (
+                <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '0.75rem', color: '#10b981' }}>✓</div>
+                  <h4 style={{ margin: '0 0 8px 0', color: '#111827' }}>{t.thankYou}</h4>
+                  <p style={{ margin: 0, color: '#4b5563', fontSize: '0.95rem' }}>{t.feedbackSentMsg}</p>
+                </div>
+              ) : (
+                <form onSubmit={handlePrivateFeedback}>
+                  <p style={{ color: '#4b5563', fontSize: '0.9rem', marginBottom: '16px' }}>
+                    {t.sharePrivately}
+                  </p>
+                  <textarea
+                    rows={4}
+                    value={privateNote}
+                    onChange={(e) => setPrivateNote(e.target.value)}
+                    placeholder={t.feedbackPlaceholder}
+                    required
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      borderRadius: '8px',
+                      border: '1px solid #d1d5db',
+                      padding: '10px 12px',
+                      marginBottom: '12px',
+                      fontFamily: 'inherit',
+                      fontSize: '0.95rem',
+                      color: '#1f2937',
+                      background: '#ffffff',
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={privateContact}
+                    onChange={(e) => setPrivateContact(e.target.value)}
+                    placeholder={t.contactPlaceholder}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      borderRadius: '8px',
+                      border: '1px solid #d1d5db',
+                      padding: '10px 12px',
+                      marginBottom: '16px',
+                      fontFamily: 'inherit',
+                      fontSize: '0.95rem',
+                      color: '#1f2937',
+                      background: '#ffffff',
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmittingPrivate}
+                    className="ng-btn-primary"
+                    style={{ width: '100%', padding: '12px', fontWeight: 700 }}
+                  >
+                    {isSubmittingPrivate ? t.sending : t.sendToTeam}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Floating Copy Toast */}
+        {showCopyToast && (
+          <div className="ng-toast" role="alert">
+            <span className="ng-toast-icon">📋</span>
+            <span className="ng-toast-msg">
+              {copied
+                ? (language === 'hindi'
+                    ? 'आपकी समीक्षा कॉपी हो गई है ✓ गूगल मैप्स पर पेस्ट करके सबमिट करें।'
+                    : language === 'gujarati'
+                    ? 'તમારી સમીક્ષા કૉપિ થઈ ગઈ છે ✓ ગૂગલ મેપ્સ પર પેસ્ટ કરીને સબમિટ કરો.'
+                    : 'Review copied to clipboard ✓ Opening Google Maps...')
+                : 'Opening Google Maps...'}
+            </span>
+          </div>
+        )}
       </div>
     );
   }

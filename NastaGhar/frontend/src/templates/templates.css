@@ -1,0 +1,543 @@
+/**
+ * VRAJA AI — Multi-Industry Dynamic Template Design System
+ * 30 Genuinely Distinct Layouts, Color Systems, Typography & Microinteractions
+ */
+
+/* ─── Base Layout Container ──────────────────────────────────────────────── */
+.vt-page-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 1.5rem 1rem;
+}
+
+/* ─── Responsive Split Layout (Tablet & Desktop) ─────────────────────────── */
+.vt-split-layout {
+  width: 100%;
+  max-width: 1080px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin: 0 auto;
+}
+
+@media (min-width: 840px) {
+  .vt-split-layout {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 2.25rem;
+    align-items: start;
+    padding: 2rem 0;
+  }
+
+  .vt-split-sticky-sidebar {
+    position: sticky;
+    top: 2rem;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   1. FOOD & DINING ARCHETYPES (F01–F05)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* F01: Classic Bistro */
+.vt-classic-bistro {
+  background-color: #FAF7F2;
+  color: #1C1917;
+  font-family: 'Playfair Display', Georgia, 'Noto Serif Gujarati', 'Noto Serif Devanagari', serif;
+}
+.vt-classic-bistro .vt-bistro-card {
+  background: #FFFFFF;
+  border: 2px double #C5A880;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(27, 67, 50, 0.08);
+  padding: 24px;
+}
+.vt-classic-bistro .vt-bistro-quote {
+  border-left: 3px solid #1B4332;
+  background: #FDFBF7;
+  padding: 16px;
+  font-style: italic;
+  border-radius: 0 8px 8px 0;
+}
+
+/* F02: Modern Urban */
+.vt-modern-urban {
+  background-color: #09090B;
+  color: #FAFAFA;
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+}
+.vt-modern-urban .vt-urban-panel {
+  background: #18181B;
+  border: 1px solid #27272A;
+  border-radius: 12px;
+  padding: 24px;
+}
+.vt-modern-urban .vt-led-meter {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+.vt-modern-urban .vt-led-block {
+  height: 48px;
+  background: #27272A;
+  border: 1px solid #3F3F46;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.vt-modern-urban .vt-led-block.active {
+  background: #22C55E;
+  color: #000000;
+  border-color: #4ADE80;
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.5);
+}
+
+/* F03: Luxury Dining */
+.vt-luxury-dining {
+  background-color: #0A0A0C;
+  color: #E8E8E8;
+  font-family: 'Cormorant Garamond', Didot, 'Noto Serif Gujarati', 'Noto Serif Devanagari', serif;
+}
+.vt-luxury-dining .vt-luxury-card {
+  background: #141418;
+  border: 1px solid #2A2A32;
+  border-radius: 4px;
+  padding: 28px;
+}
+.vt-luxury-dining input[type="range"] {
+  accent-color: #D4AF37;
+}
+
+/* F04: Café & Playful */
+.vt-cafe-playful {
+  background-color: #FFFDF7;
+  color: #374151;
+  font-family: 'Nunito', 'Comfortaa', sans-serif;
+}
+.vt-cafe-playful .vt-bubble-card {
+  background: #FFFFFF;
+  border: 2px dashed rgba(251, 146, 60, 0.4);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(251, 146, 60, 0.1);
+}
+.vt-cafe-playful .vt-speech-bubble {
+  position: relative;
+  background: #FFF7ED;
+  border: 2px solid #FED7AA;
+  border-radius: 18px;
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.vt-cafe-playful .vt-speech-bubble:hover {
+  transform: translateY(-2px);
+}
+.vt-cafe-playful .vt-speech-bubble.picked {
+  border-color: #EA580C;
+  background: #FFEDD5;
+}
+
+/* F05: Sweet & Dessert House */
+.vt-sweet-dessert {
+  background-color: #FDF2F8;
+  color: #831843;
+  font-family: 'Quicksand', 'Comfortaa', sans-serif;
+}
+.vt-sweet-dessert .vt-polaroid-frame {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 25px rgba(236, 72, 153, 0.12);
+  border: 2px solid #FBCFE8;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   2. BEAUTY & GROOMING ARCHETYPES (B01–B05)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* B01: Classic Barbershop */
+.vt-barber-lounge {
+  background-color: #1C1917;
+  color: #F5F5F4;
+  font-family: 'Cinzel', 'Playfair Display', serif;
+}
+.vt-barber-lounge .vt-barber-card {
+  background: #292524;
+  border: 2px solid #44403C;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+.vt-barber-lounge .vt-brass-badge {
+  background: #B45309;
+  color: #FFFBEB;
+  border: 1px solid #D97706;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* B02: Modern Hair Salon */
+.vt-salon-hair {
+  background-color: #0F172A;
+  color: #F8FAFC;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.vt-salon-hair .vt-atelier-card {
+  background: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+/* B03: Luxury Day Spa */
+.vt-spa-sanctuary {
+  background-color: #F0FDF4;
+  color: #134E4A;
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+.vt-spa-sanctuary .vt-zen-card {
+  background: #FFFFFF;
+  border: 1px solid #CCFBF1;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(13, 148, 136, 0.08);
+}
+.vt-spa-sanctuary .vt-river-stone {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #E6FFFA;
+  border: 2px solid #99F6E4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.vt-spa-sanctuary .vt-river-stone.active {
+  background: #0D9488;
+  color: #FFFFFF;
+  border-color: #14B8A6;
+  box-shadow: 0 0 16px rgba(13, 148, 136, 0.4);
+  transform: scale(1.1);
+}
+
+/* B04: Beauty & Makeup Studio */
+.vt-bridal-glam {
+  background-color: #FFF1F2;
+  color: #881337;
+  font-family: 'Montserrat', sans-serif;
+}
+.vt-bridal-glam .vt-vanity-card {
+  background: #FFFFFF;
+  border: 2px solid #FECDD3;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 8px 30px rgba(225, 29, 72, 0.1);
+}
+
+/* B05: Nail & Lash Studio */
+.vt-nail-lash {
+  background-color: #FAF5FF;
+  color: #581C87;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.vt-nail-lash .vt-lacquer-card {
+  background: #FFFFFF;
+  border: 2px solid #E9D5FF;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.12);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   3. RETAIL & APPAREL ARCHETYPES (R01–R05)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* R01: High-Fashion Boutique */
+.vt-fashion-boutique {
+  background-color: #FFFFFF;
+  color: #09090B;
+  font-family: 'Didot', 'Bodoni MT', 'Cinzel', serif;
+}
+.vt-fashion-boutique .vt-runway-card {
+  background: #F4F4F5;
+  border: 1px solid #E4E4E7;
+  border-radius: 0;
+  padding: 28px;
+}
+
+/* R02: Streetwear & Sneaker Store */
+.vt-streetwear-drop {
+  background-color: #0A0A0A;
+  color: #F5F5F5;
+  font-family: 'Syne', 'Impact', sans-serif;
+}
+.vt-streetwear-drop .vt-drop-card {
+  background: #171717;
+  border: 2px solid #262626;
+  border-radius: 8px;
+  padding: 24px;
+  position: relative;
+}
+.vt-streetwear-drop .vt-caution-stripe {
+  background: repeating-linear-gradient(
+    -45deg,
+    #EF4444,
+    #EF4444 10px,
+    #0A0A0A 10px,
+    #0A0A0A 20px
+  );
+  height: 6px;
+  width: 100%;
+}
+
+/* R03: Everyday Apparel */
+.vt-everyday-apparel {
+  background-color: #F8FAFC;
+  color: #1E293B;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.vt-everyday-apparel .vt-apparel-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* R04: Traditional & Ethnic Wear */
+.vt-traditional-ethnic {
+  background-color: #FFFBEB;
+  color: #78350F;
+  font-family: 'Rozha One', 'Cinzel', serif;
+}
+.vt-traditional-ethnic .vt-royal-card {
+  background: #FFFFFF;
+  border: 2px solid #FDE68A;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 6px 24px rgba(153, 27, 27, 0.08);
+}
+
+/* R05: Artisanal & Lifestyle Store */
+.vt-artisanal-home {
+  background-color: #FAF5F0;
+  color: #431407;
+  font-family: 'Lora', 'Georgia', serif;
+}
+.vt-artisanal-home .vt-craft-card {
+  background: #FFFFFF;
+  border: 1px solid #FED7AA;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(194, 65, 12, 0.06);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   4. HOTELS & HOSPITALITY ARCHETYPES (T01–T05)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* T01: Luxury Resort */
+.vt-luxury-resort {
+  background-color: #030712;
+  color: #F9FAFB;
+  font-family: 'Playfair Display', serif;
+}
+.vt-luxury-resort .vt-suite-card {
+  background: #111827;
+  border: 1px solid #1F2937;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* T02: Business Hotel */
+.vt-business-suite {
+  background-color: #0F172A;
+  color: #F8FAFC;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.vt-business-suite .vt-executive-card {
+  background: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 24px;
+}
+
+/* T03: Boutique & Heritage Inn */
+.vt-boutique-heritage {
+  background-color: #FFFBEB;
+  color: #451A03;
+  font-family: 'Cinzel', serif;
+}
+.vt-boutique-heritage .vt-haveli-card {
+  background: #FFFFFF;
+  border: 2px solid #FDE68A;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+/* T04: Budget & Transit Stay */
+.vt-budget-transit {
+  background-color: #F8FAFC;
+  color: #0F172A;
+  font-family: 'Space Grotesk', sans-serif;
+}
+.vt-budget-transit .vt-transit-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 24px;
+}
+.vt-budget-transit .vt-boarding-pass {
+  border: 2px dashed #94A3B8;
+  padding: 18px;
+  border-radius: 12px;
+  background: #F1F5F9;
+  cursor: pointer;
+}
+
+/* T05: Homestay & Eco-Lodge */
+.vt-eco-lodge {
+  background-color: #F0FDF4;
+  color: #14532D;
+  font-family: 'Merriweather', serif;
+}
+.vt-eco-lodge .vt-canopy-card {
+  background: #FFFFFF;
+  border: 1px solid #BBF7D0;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   5. FITNESS & WELLNESS ARCHETYPES (G01–G05)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* G01: Powerlifting & Iron Gym */
+.vt-iron-forge {
+  background-color: #09090B;
+  color: #FAFAFA;
+  font-family: 'Chakra Petch', 'Impact', sans-serif;
+}
+.vt-iron-forge .vt-dungeon-card {
+  background: #18181B;
+  border: 2px solid #27272A;
+  border-radius: 6px;
+  padding: 24px;
+}
+.vt-iron-forge .vt-weight-plate {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #27272A;
+  border: 3px solid #52525B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.vt-iron-forge .vt-weight-plate.active {
+  background: #E11D48;
+  border-color: #FB7185;
+  color: #FFFFFF;
+  box-shadow: 0 0 16px rgba(225, 29, 72, 0.6);
+  transform: scale(1.12);
+}
+
+/* G02: Yoga & Meditation Sanctuary */
+.vt-zen-studio {
+  background-color: #F0FDF4;
+  color: #064E3B;
+  font-family: 'Outfit', sans-serif;
+}
+.vt-zen-studio .vt-shala-card {
+  background: #FFFFFF;
+  border: 1px solid #A7F3D0;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(5, 150, 105, 0.08);
+}
+.vt-zen-studio .vt-lotus-petal {
+  font-size: 2rem;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.vt-zen-studio .vt-lotus-petal.active {
+  transform: scale(1.3) translateY(-4px);
+  filter: drop-shadow(0 4px 8px rgba(5, 150, 105, 0.3));
+}
+
+/* G03: CrossFit & Performance Box */
+.vt-crossfit-box {
+  background-color: #0F172A;
+  color: #F8FAFC;
+  font-family: 'Syne', sans-serif;
+}
+.vt-crossfit-box .vt-wod-card {
+  background: #1E293B;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+/* G04: Personal Training Studio */
+.vt-personal-training {
+  background-color: #F8FAFC;
+  color: #0F172A;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.vt-personal-training .vt-pt-card {
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 14px;
+  padding: 24px;
+}
+
+/* G05: Dance, Pilates & Movement Studio */
+.vt-dance-pilates {
+  background-color: #FDF2F8;
+  color: #831843;
+  font-family: 'Quicksand', sans-serif;
+}
+.vt-dance-pilates .vt-mirror-card {
+  background: #FFFFFF;
+  border: 2px solid #FBCFE8;
+  border-radius: 20px;
+  padding: 24px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   6. HEALTHCARE & MEDICAL ARCHETYPES (H01–H05 - Quarantined Preview-Only)
+   ══════════════════════════════════════════════════════════════════════════ */
+.vt-clinic-preview-badge {
+  background: rgba(220, 38, 38, 0.12);
+  color: #DC2626;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}

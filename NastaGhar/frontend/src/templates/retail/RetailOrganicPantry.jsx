@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Wooden crate-style tags.
  * Suggestions: Chalkboard-style dark green cards with chalk lettering.
  */
-export default function RetailOrganicPantry({ templateData, journeyState }) {
+export default function RetailOrganicPantry({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Green Meadow Organic Market';
   const green = '#15803D';
@@ -37,19 +38,16 @@ export default function RetailOrganicPantry({ templateData, journeyState }) {
   const kraft = '#FEFCE8';
   const border = '#BBF7D0';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Great collection, perfect fit and helpful styling advice! 🛍️';
+
   return (
-    <div
-      className="vt-organic-pantry"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-organic-pantry" style={{
         padding: '24px 16px',
         backgroundColor: kraft,
         minHeight: '100vh',
         color: '#1E3A1E',
         fontFamily: "'Outfit', 'Plus Jakarta Sans', 'Noto Sans Gujarati', 'Noto Sans Devanagari', sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ textAlign: 'center', padding: '20px 0 16px', borderBottom: `2px solid ${border}` }}>
         <div style={{ fontSize: '2.4rem', marginBottom: '4px' }}>🍎 🥕 🌾</div>
         <div style={{ display: 'inline-block', backgroundColor: '#DCFCE7', color: greenDark, fontSize: '0.75rem', fontWeight: 800, padding: '3px 10px', borderRadius: '16px', textTransform: 'uppercase', marginBottom: '6px' }}>
@@ -157,7 +155,7 @@ export default function RetailOrganicPantry({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -172,7 +170,7 @@ export default function RetailOrganicPantry({ templateData, journeyState }) {
       </section>
 
       {/* Chalkboard Suggestions */}
-      <section
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content"><section
         style={{
           background: '#FFFFFF',
           borderRadius: '18px',
@@ -235,6 +233,6 @@ export default function RetailOrganicPantry({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Sleek badge pills.
  * Suggestions: Structured executive briefing cards with blue accent bars.
  */
-export default function HotelBusinessSuite({ templateData, journeyState }) {
+export default function HotelBusinessSuite({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Novus Executive Tower & Suites';
   const blue = '#2563EB';
@@ -37,19 +38,16 @@ export default function HotelBusinessSuite({ templateData, journeyState }) {
   const slateDark = '#0F172A';
   const border = '#334155';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Beautiful room, exceptional hospitality and wonderful breakfast! 🏨';
+
   return (
-    <div
-      className="vt-business-suite"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-business-suite" style={{
         padding: '24px 16px',
         backgroundColor: slateDark,
         minHeight: '100vh',
         color: '#F1F5F9',
         fontFamily: "'Inter', system-ui, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ padding: '20px 0 16px', borderBottom: `2px solid ${blue}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <span style={{ fontSize: '2rem' }}>✈️ 💼 🏢</span>
@@ -170,7 +168,7 @@ export default function HotelBusinessSuite({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -186,7 +184,7 @@ export default function HotelBusinessSuite({ templateData, journeyState }) {
       </section>
 
       {/* Briefing Cards */}
-      <section
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content"><section
         style={{
           background: slate,
           borderRadius: '8px',
@@ -253,6 +251,6 @@ export default function HotelBusinessSuite({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

@@ -8,26 +8,29 @@ import React from 'react';
  * - Recovery cyan & deep slate (#0284C7 / #0F172A), mobility light blue (#F0F9FF), soft border (#BAE6FD).
  * - Physical therapy treatment bay touchpoint, mobility recovery progress scale.
  */
-export default function ClinicPhysioRehab({ templateData, journeyState }) {
+export default function ClinicPhysioRehab({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    draftReview,
-    setDraftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Kinetic Motion Physiotherapy & Sports Rehab';
   const cyan = '#0284C7';
@@ -37,19 +40,16 @@ export default function ClinicPhysioRehab({ templateData, journeyState }) {
 
   const MOBILITY_LEVELS = ['REST', 'MOBILITY', 'STRENGTH', 'RECOVERY', 'FULL MOTION'];
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Attentive doctor, clear consultation and reassuring care! 🩺';
+
   return (
-    <div
-      className="vt-clinic-physio"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-clinic-physio" style={{
         padding: '24px 16px',
         backgroundColor: bg,
         minHeight: '100vh',
         color: '#0F172A',
         fontFamily: "'Inter', system-ui, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       {/* Neutral Patient Privacy Notice */}
       <div
         className="vt-privacy-notice"
@@ -192,7 +192,7 @@ export default function ClinicPhysioRehab({ templateData, journeyState }) {
       </section>
 
       {/* Direct Rehab Feedback Editor */}
-      <section
+      </div>{/* RIGHT COLUMN: Authentic Review */}<div className="vt-split-content"><section
         style={{
           background: '#FFFFFF',
           borderRadius: '16px',
@@ -263,6 +263,6 @@ export default function ClinicPhysioRehab({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

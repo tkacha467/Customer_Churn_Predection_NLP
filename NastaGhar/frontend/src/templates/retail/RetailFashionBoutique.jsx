@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Minimalist luxury tag badges with thin hairline borders.
  * Suggestions: Lookbook editorial cards with serif quotes.
  */
-export default function RetailFashionBoutique({ templateData, journeyState }) {
+export default function RetailFashionBoutique({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Maison de Mode Atelier';
   const black = '#000000';
@@ -38,19 +39,16 @@ export default function RetailFashionBoutique({ templateData, journeyState }) {
 
   const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V'];
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Great collection, perfect fit and helpful styling advice! 🛍️';
+
   return (
-    <div
-      className="vt-retail-fashion"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-retail-fashion" style={{
         padding: '28px 16px',
         backgroundColor: '#FFFFFF',
         minHeight: '100vh',
         color: '#171717',
         fontFamily: "'Didot', 'Playfair Display', 'Cormorant Garamond', 'Noto Serif Gujarati', 'Noto Serif Devanagari', serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ textAlign: 'center', padding: '24px 0 20px', borderBottom: '1px solid #171717' }}>
         <div style={{ letterSpacing: '4px', textTransform: 'uppercase', fontSize: '0.72rem', color: '#737373', marginBottom: '8px' }}>
           Atelier & Ready-to-Wear
@@ -160,7 +158,7 @@ export default function RetailFashionBoutique({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -174,7 +172,7 @@ export default function RetailFashionBoutique({ templateData, journeyState }) {
       </section>
 
       {/* Editorial Suggestions */}
-      <section
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content"><section
         style={{
           border: '1px solid #E5E5E5',
           padding: '20px',
@@ -237,6 +235,6 @@ export default function RetailFashionBoutique({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

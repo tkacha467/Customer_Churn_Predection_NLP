@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Heavy-duty combat discipline badges.
  * Suggestions: Corner coach briefing cards with red corner accent.
  */
-export default function FitnessCombatRing({ templateData, journeyState }) {
+export default function FitnessCombatRing({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Apex Combat & Boxing Club';
   const red = '#DC2626';
@@ -40,19 +41,16 @@ export default function FitnessCombatRing({ templateData, journeyState }) {
 
   const ROUND_NAMES = ['RD 1: JAB', 'RD 2: COMBO', 'RD 3: POWER', 'RD 4: CHAMPION', 'RD 5: KNOCKOUT'];
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Incredible coaching, motivating energy and pristine facility! 💪';
+
   return (
-    <div
-      className="vt-combat-ring"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-combat-ring" style={{
         padding: '24px 16px',
         backgroundColor: dark,
         minHeight: '100vh',
         color: '#F4F4F5',
         fontFamily: "'Oswald', 'Montserrat', -apple-system, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       {/* Header */}
       <header style={{ padding: '20px 0 16px', borderBottom: `2px solid ${red}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -195,7 +193,7 @@ export default function FitnessCombatRing({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -211,7 +209,7 @@ export default function FitnessCombatRing({ templateData, journeyState }) {
       </section>
 
       {/* Coach Advice Suggestions */}
-      <section
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content"><section
         style={{
           background: cardBg,
           borderRadius: '4px',
@@ -283,6 +281,6 @@ export default function FitnessCombatRing({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

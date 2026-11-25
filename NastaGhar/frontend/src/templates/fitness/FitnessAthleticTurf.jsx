@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Field drill tags (Sled Push, Agility Turf, Sprint Lane, Kettlebell, Mobility).
  * Suggestions: Coach whistle playbook cards.
  */
-export default function FitnessAthleticTurf({ templateData, journeyState }) {
+export default function FitnessAthleticTurf({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'ProTurf Field & Athletic Performance';
   const turf = '#14532D';
@@ -40,19 +41,16 @@ export default function FitnessAthleticTurf({ templateData, journeyState }) {
 
   const SPLIT_MARKS = ['SPLIT 1', 'SPLIT 2', 'SPLIT 3', 'SPLIT 4', 'RECORD SPLIT'];
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Incredible coaching, motivating energy and pristine facility! 💪';
+
   return (
-    <div
-      className="vt-athletic-turf"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-athletic-turf" style={{
         padding: '24px 16px',
         backgroundColor: turfDark,
         minHeight: '100vh',
         color: '#F8FAFC',
         fontFamily: "'Inter', system-ui, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       {/* Field Header */}
       <header style={{ padding: '20px 0 16px', borderBottom: `2px dashed ${yardLine}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -194,7 +192,7 @@ export default function FitnessAthleticTurf({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -210,7 +208,7 @@ export default function FitnessAthleticTurf({ templateData, journeyState }) {
       </section>
 
       {/* Playbook Feedback Cards */}
-      <section
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content"><section
         style={{
           background: '#0B3A1C',
           borderRadius: '12px',
@@ -280,6 +278,6 @@ export default function FitnessAthleticTurf({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

@@ -194,6 +194,30 @@ export const TEMPLATE_REGISTRY = {
     component: BridalGlamStudio,
     deployable: true,
   },
+  'salon_hair_modern': {
+    name: 'Modern Hair Salon',
+    industry: 'salon',
+    component: SkincareAestheticLab,
+    deployable: true,
+  },
+  'tpl_salon_hair_modern': {
+    name: 'Modern Hair Salon',
+    industry: 'salon',
+    component: SkincareAestheticLab,
+    deployable: true,
+  },
+  'salon_beauty_makeup': {
+    name: 'Beauty & Makeup Studio',
+    industry: 'salon',
+    component: BridalGlamStudio,
+    deployable: true,
+  },
+  'tpl_salon_beauty_makeup': {
+    name: 'Beauty & Makeup Studio',
+    industry: 'salon',
+    component: BridalGlamStudio,
+    deployable: true,
+  },
   // Legacy aliases
   'salon_classic': {
     name: 'Salon Studio',
@@ -283,6 +307,30 @@ export const TEMPLATE_REGISTRY = {
     component: RetailTechGadgets,
     deployable: true,
   },
+  'salon_hair_modern': {
+    name: 'Modern Hair Salon',
+    industry: 'salon',
+    component: SkincareAestheticLab,
+    deployable: true,
+  },
+  'tpl_salon_hair_modern': {
+    name: 'Modern Hair Salon',
+    industry: 'salon',
+    component: SkincareAestheticLab,
+    deployable: true,
+  },
+  'salon_beauty_makeup': {
+    name: 'Beauty & Makeup Studio',
+    industry: 'salon',
+    component: BridalGlamStudio,
+    deployable: true,
+  },
+  'tpl_salon_beauty_makeup': {
+    name: 'Beauty & Makeup Studio',
+    industry: 'salon',
+    component: BridalGlamStudio,
+    deployable: true,
+  },
   // Legacy aliases
   'retail_boutique': {
     name: 'Retail Boutique',
@@ -358,6 +406,30 @@ export const TEMPLATE_REGISTRY = {
     name: 'Cozy Homestay & Bed & Breakfast',
     industry: 'hotel',
     component: HotelCozyInn,
+    deployable: true,
+  },
+  'salon_hair_modern': {
+    name: 'Modern Hair Salon',
+    industry: 'salon',
+    component: SkincareAestheticLab,
+    deployable: true,
+  },
+  'tpl_salon_hair_modern': {
+    name: 'Modern Hair Salon',
+    industry: 'salon',
+    component: SkincareAestheticLab,
+    deployable: true,
+  },
+  'salon_beauty_makeup': {
+    name: 'Beauty & Makeup Studio',
+    industry: 'salon',
+    component: BridalGlamStudio,
+    deployable: true,
+  },
+  'tpl_salon_beauty_makeup': {
+    name: 'Beauty & Makeup Studio',
+    industry: 'salon',
+    component: BridalGlamStudio,
     deployable: true,
   },
   // Legacy aliases
@@ -449,6 +521,30 @@ export const TEMPLATE_REGISTRY = {
     component: FitnessAthleticTurf,
     deployable: true,
   },
+  'salon_hair_modern': {
+    name: 'Modern Hair Salon',
+    industry: 'salon',
+    component: SkincareAestheticLab,
+    deployable: true,
+  },
+  'tpl_salon_hair_modern': {
+    name: 'Modern Hair Salon',
+    industry: 'salon',
+    component: SkincareAestheticLab,
+    deployable: true,
+  },
+  'salon_beauty_makeup': {
+    name: 'Beauty & Makeup Studio',
+    industry: 'salon',
+    component: BridalGlamStudio,
+    deployable: true,
+  },
+  'tpl_salon_beauty_makeup': {
+    name: 'Beauty & Makeup Studio',
+    industry: 'salon',
+    component: BridalGlamStudio,
+    deployable: true,
+  },
   // Legacy aliases
   'fitness_gym': {
     name: 'Fitness Energy',
@@ -529,6 +625,30 @@ export const TEMPLATE_REGISTRY = {
     component: ClinicDiagnosticLab,
     deployable: false,
     preview_only: true,
+  },
+  'salon_hair_modern': {
+    name: 'Modern Hair Salon',
+    industry: 'salon',
+    component: SkincareAestheticLab,
+    deployable: true,
+  },
+  'tpl_salon_hair_modern': {
+    name: 'Modern Hair Salon',
+    industry: 'salon',
+    component: SkincareAestheticLab,
+    deployable: true,
+  },
+  'salon_beauty_makeup': {
+    name: 'Beauty & Makeup Studio',
+    industry: 'salon',
+    component: BridalGlamStudio,
+    deployable: true,
+  },
+  'tpl_salon_beauty_makeup': {
+    name: 'Beauty & Makeup Studio',
+    industry: 'salon',
+    component: BridalGlamStudio,
+    deployable: true,
   },
   // Legacy aliases
   'clinic_classic': {

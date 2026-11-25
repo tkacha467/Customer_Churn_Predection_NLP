@@ -5,47 +5,45 @@ import React from 'react';
  * Rose gold (#EC4899), soft blush lavender (#FDF2F8), stylist chair touchpoint,
  * salon and beauty terminology.
  */
-export default function SalonWellness({ templateData, journeyState }) {
+export default function SalonWellness({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Aura Hair & Beauty Studio';
   const rose = '#DB2777';
   const blush = '#FDF2F8';
   const accent = '#EC4899';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Loved the haircut, styling and relaxing service! ✨';
+
   return (
-    <div
-      className="vt-salon"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-salon" style={{
         padding: '24px 16px',
         backgroundColor: blush,
         minHeight: '100vh',
         color: '#374151',
         fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ textAlign: 'center', padding: '24px 0 16px' }}>
         <div style={{ fontSize: '2rem', marginBottom: '6px' }}>✂️ 💅 ✨</div>
         <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: rose, margin: '0 0 6px 0' }}>
@@ -148,7 +146,7 @@ export default function SalonWellness({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -162,7 +160,7 @@ export default function SalonWellness({ templateData, journeyState }) {
         </div>
       </section>
 
-      {/* Ideas */}
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content">{/* Ideas */}
       <section
         style={{
           background: '#FFFFFF',
@@ -226,6 +224,6 @@ export default function SalonWellness({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

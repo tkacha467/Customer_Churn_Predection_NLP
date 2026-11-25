@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Neon-accented pill tags.
  * Suggestions: High-contrast modular cards with clean teal borders.
  */
-export default function HotelUrbanBoutique({ templateData, journeyState }) {
+export default function HotelUrbanBoutique({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Komorebi Urban Loft & Pods';
   const teal = '#14B8A6';
@@ -37,19 +38,16 @@ export default function HotelUrbanBoutique({ templateData, journeyState }) {
   const cardBg = '#27272A';
   const border = '#3F3F46';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Beautiful room, exceptional hospitality and wonderful breakfast! 🏨';
+
   return (
-    <div
-      className="vt-urban-boutique"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-urban-boutique" style={{
         padding: '24px 16px',
         backgroundColor: charcoal,
         minHeight: '100vh',
         color: '#F4F4F5',
         fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ textAlign: 'center', padding: '20px 0 16px' }}>
         <div style={{ fontSize: '2.2rem', marginBottom: '4px' }}>🏙️ 🏊 🍸</div>
         <div style={{ display: 'inline-block', backgroundColor: `${teal}20`, border: `1px solid ${teal}`, color: teal, fontSize: '0.75rem', fontWeight: 800, padding: '3px 10px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
@@ -165,7 +163,7 @@ export default function HotelUrbanBoutique({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -180,7 +178,7 @@ export default function HotelUrbanBoutique({ templateData, journeyState }) {
         </div>
       </section>
 
-      {/* Ideas */}
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content">{/* Ideas */}
       <section
         style={{
           background: cardBg,
@@ -245,6 +243,6 @@ export default function HotelUrbanBoutique({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

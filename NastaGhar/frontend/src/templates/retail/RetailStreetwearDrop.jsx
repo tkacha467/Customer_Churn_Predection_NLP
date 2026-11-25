@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Caution-stripe styled tags.
  * Suggestions: Streetwear receipt-style cards with monospace typography.
  */
-export default function RetailStreetwearDrop({ templateData, journeyState }) {
+export default function RetailStreetwearDrop({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Kicks & Thread Drop Lab';
   const black = '#0A0A0A';
@@ -37,19 +38,16 @@ export default function RetailStreetwearDrop({ templateData, journeyState }) {
   const darkCard = '#171717';
   const border = '#262626';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Great collection, perfect fit and helpful styling advice! 🛍️';
+
   return (
-    <div
-      className="vt-streetwear-drop"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-streetwear-drop" style={{
         padding: '24px 16px',
         backgroundColor: black,
         minHeight: '100vh',
         color: '#FAFAFA',
         fontFamily: "'Space Grotesk', 'Syne', 'Noto Sans Gujarati', 'Noto Sans Devanagari', sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ padding: '20px 0 16px', borderBottom: `2px dashed ${orange}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <span style={{ fontSize: '2rem' }}>👟 🧢 ⚡</span>
@@ -163,7 +161,7 @@ export default function RetailStreetwearDrop({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -179,7 +177,7 @@ export default function RetailStreetwearDrop({ templateData, journeyState }) {
       </section>
 
       {/* Streetwear Monospace Cards */}
-      <section
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content"><section
         style={{
           background: darkCard,
           border: `1px solid ${border}`,
@@ -245,6 +243,6 @@ export default function RetailStreetwearDrop({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

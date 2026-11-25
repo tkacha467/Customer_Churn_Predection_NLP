@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Elegant silk pill badges.
  * Suggestions: Ivory satin cards with delicate rose-gold borders.
  */
-export default function BridalGlamStudio({ templateData, journeyState }) {
+export default function BridalGlamStudio({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Maharani Bridal & Couture Glam';
   const roseGold = '#BE185D';
@@ -37,19 +38,16 @@ export default function BridalGlamStudio({ templateData, journeyState }) {
   const ivory = '#FFFBEB';
   const border = '#FDE68A';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Loved the haircut, styling and relaxing service! ✨';
+
   return (
-    <div
-      className="vt-bridal-glam"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-bridal-glam" style={{
         padding: '24px 16px',
         backgroundColor: ivory,
         minHeight: '100vh',
         color: '#374151',
         fontFamily: "'Playfair Display', 'Cormorant Garamond', 'Noto Serif Gujarati', 'Noto Serif Devanagari', serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ textAlign: 'center', padding: '24px 0 16px', borderBottom: `2px double ${border}` }}>
         <div style={{ fontSize: '2.4rem', marginBottom: '6px' }}>👑 💄 ✨</div>
         <div style={{ fontSize: '0.75rem', letterSpacing: '2.5px', textTransform: 'uppercase', color: goldAccent, fontWeight: 700, marginBottom: '4px' }}>
@@ -157,7 +155,7 @@ export default function BridalGlamStudio({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -171,7 +169,7 @@ export default function BridalGlamStudio({ templateData, journeyState }) {
         </div>
       </section>
 
-      {/* Ideas */}
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content">{/* Ideas */}
       <section
         style={{
           background: '#FFFFFF',
@@ -236,6 +234,6 @@ export default function BridalGlamStudio({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

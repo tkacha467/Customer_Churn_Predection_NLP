@@ -8,26 +8,29 @@ import React from 'react';
  * - Gentle dental mint (#0D9488), sparkling white (#F0FDFA), soft aqua border (#99F6E4).
  * - Dental operatory chair touchpoint, sparkling tooth rating scale.
  */
-export default function ClinicDentalStudio({ templateData, journeyState }) {
+export default function ClinicDentalStudio({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    draftReview,
-    setDraftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Sparkle Gentle Dental & Orthodontics';
   const teal = '#0D9488';
@@ -35,19 +38,16 @@ export default function ClinicDentalStudio({ templateData, journeyState }) {
   const bg = '#F0FDFA';
   const border = '#99F6E4';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Attentive doctor, clear consultation and reassuring care! 🩺';
+
   return (
-    <div
-      className="vt-clinic-dental"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-clinic-dental" style={{
         padding: '24px 16px',
         backgroundColor: bg,
         minHeight: '100vh',
         color: '#134E4A',
         fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       {/* Neutral Patient Privacy Notice */}
       <div
         className="vt-privacy-notice"
@@ -190,7 +190,7 @@ export default function ClinicDentalStudio({ templateData, journeyState }) {
       </section>
 
       {/* Dental Feedback Editor */}
-      <section
+      </div>{/* RIGHT COLUMN: Authentic Review */}<div className="vt-split-content"><section
         style={{
           background: '#FFFFFF',
           borderRadius: '16px',
@@ -261,6 +261,6 @@ export default function ClinicDentalStudio({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

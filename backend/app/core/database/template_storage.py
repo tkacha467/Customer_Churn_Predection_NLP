@@ -52,6 +52,22 @@ DEFAULT_INDUSTRIES = [
         "status": "active"
     },
     {
+        "id": "ind_retail",
+        "name": "Retail & Apparel",
+        "slug": "retail",
+        "description": "High-fashion boutiques, streetwear drops, ethnic wear, and artisanal lifestyle stores.",
+        "icon": "🛍️",
+        "status": "active"
+    },
+    {
+        "id": "ind_fitness",
+        "name": "Fitness & Wellness",
+        "slug": "fitness",
+        "description": "Iron gyms, yoga sanctuaries, crossfit boxes, personal training, and movement studios.",
+        "icon": "💪",
+        "status": "active"
+    },
+    {
         "id": "ind_clinic",
         "name": "Healthcare & Clinic",
         "slug": "clinic",
@@ -1512,9 +1528,15 @@ class TemplateRepository:
         }
 
         # 5. Effective Google Review URL (Strictly present for Anti-Gating compliance)
-        effective_review_url = biz_cfg.get("google_review_url") or t_dict.get("review_url") or ""
-        if not effective_review_url and t_dict["id"] == "default_business":
-            effective_review_url = "https://search.google.com/local/writereview?placeid=ChIJZeK7NwDLWTkR1pOxt51jLro"
+        effective_review_url = (
+            biz_cfg.get("google_review_url")
+            or t_dict.get("review_url")
+            or (
+                "https://search.google.com/local/writereview?placeid=ChIJZeK7NwDLWTkR1pOxt51jLro"
+                if t_dict["id"] in ("default_business", "nasta_ghar")
+                else f"https://search.google.com/local/writereview?placeid={t_dict['id']}"
+            )
+        )
 
         # 6. Localized content merge
         merged_localized = {
@@ -1523,7 +1545,7 @@ class TemplateRepository:
         }
 
         compat_flags = None
-        if t_dict["id"] == "default_business":
+        if t_dict["id"] in ("default_business", "nasta_ghar"):
             compat_flags = {"legacy_experience": "nasta_ghar_canvas_world"}
 
         return {

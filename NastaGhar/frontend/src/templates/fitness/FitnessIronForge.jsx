@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Heavy-duty riveted badge tags.
  * Suggestions: Steel-stamped quote cards with orange hazard borders.
  */
-export default function FitnessIronForge({ templateData, journeyState }) {
+export default function FitnessIronForge({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Iron Forge Strength & CrossFit';
   const magma = '#EA580C';
@@ -37,19 +38,16 @@ export default function FitnessIronForge({ templateData, journeyState }) {
   const ironCard = '#1F2937';
   const border = '#374151';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Incredible coaching, motivating energy and pristine facility! 💪';
+
   return (
-    <div
-      className="vt-iron-forge"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-iron-forge" style={{
         padding: '24px 16px',
         backgroundColor: iron,
         minHeight: '100vh',
         color: '#F9FAFB',
         fontFamily: "'Barlow Condensed', 'Oswald', 'Noto Sans Gujarati', 'Noto Sans Devanagari', sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ padding: '20px 0 16px', borderBottom: `2px solid ${magma}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <span style={{ fontSize: '2rem' }}>🏋️ ⛓️ 🔥</span>
@@ -166,7 +164,7 @@ export default function FitnessIronForge({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -182,7 +180,7 @@ export default function FitnessIronForge({ templateData, journeyState }) {
       </section>
 
       {/* Suggestions */}
-      <section
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content"><section
         style={{
           background: ironCard,
           borderRadius: '4px',
@@ -251,6 +249,6 @@ export default function FitnessIronForge({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

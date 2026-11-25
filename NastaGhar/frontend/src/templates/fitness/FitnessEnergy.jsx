@@ -5,28 +5,29 @@ import React from 'react';
  * Dark athletic aesthetic (#0F172A), high-energy cyan (#06B6D4) and orange accents,
  * trainer/locker touchpoint.
  */
-export default function FitnessEnergy({ templateData, journeyState }) {
+export default function FitnessEnergy({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Apex Performance Club';
   const cyan = '#06B6D4';
@@ -34,19 +35,16 @@ export default function FitnessEnergy({ templateData, journeyState }) {
   const cardBg = '#1E293B';
   const border = '#334155';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Incredible coaching, motivating energy and pristine facility! 💪';
+
   return (
-    <div
-      className="vt-fitness"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-fitness" style={{
         padding: '24px 16px',
         backgroundColor: darkBg,
         minHeight: '100vh',
         color: '#F8FAFC',
         fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ textAlign: 'center', padding: '24px 0 16px' }}>
         <div style={{ fontSize: '2rem', marginBottom: '6px' }}>⚡ 🏋️ ⏱️</div>
         <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#FFFFFF', margin: '0 0 6px 0', textTransform: 'uppercase', letterSpacing: '-0.5px' }}>
@@ -148,7 +146,7 @@ export default function FitnessEnergy({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -163,7 +161,7 @@ export default function FitnessEnergy({ templateData, journeyState }) {
         </div>
       </section>
 
-      {/* Ideas */}
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content">{/* Ideas */}
       <section
         style={{
           background: cardBg,
@@ -228,6 +226,6 @@ export default function FitnessEnergy({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Earthy textured pill chips.
  * Suggestions: Warm clay-textured note cards with terracotta accents.
  */
-export default function RetailArtisanalHome({ templateData, journeyState }) {
+export default function RetailArtisanalHome({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Terra & Loom Home Living';
   const terracotta = '#C2410C';
@@ -37,19 +38,16 @@ export default function RetailArtisanalHome({ templateData, journeyState }) {
   const olive = '#65A30D';
   const border = '#FED7AA';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Great collection, perfect fit and helpful styling advice! 🛍️';
+
   return (
-    <div
-      className="vt-artisanal-home"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-artisanal-home" style={{
         padding: '24px 16px',
         backgroundColor: clayBg,
         minHeight: '100vh',
         color: '#431407',
         fontFamily: "'Fraunces', 'Georgia', 'Noto Serif Gujarati', 'Noto Serif Devanagari', serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ textAlign: 'center', padding: '20px 0 16px', borderBottom: `1px solid ${border}` }}>
         <div style={{ fontSize: '2.2rem', marginBottom: '4px' }}>🏺 🪴 🕯️</div>
         <div style={{ fontSize: '0.75rem', letterSpacing: '2px', textTransform: 'uppercase', color: terracotta, fontWeight: 700, marginBottom: '4px' }}>
@@ -158,7 +156,7 @@ export default function RetailArtisanalHome({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -172,7 +170,7 @@ export default function RetailArtisanalHome({ templateData, journeyState }) {
         </div>
       </section>
 
-      {/* Ideas */}
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content">{/* Ideas */}
       <section
         style={{
           background: '#FFFFFF',
@@ -237,6 +235,6 @@ export default function RetailArtisanalHome({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

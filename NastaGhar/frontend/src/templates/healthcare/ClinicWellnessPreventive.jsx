@@ -8,26 +8,29 @@ import React from 'react';
  * - Holistic botanical sage & deep forest (#3F6212 / #1A2E05), warm ivory background (#FEFCE8), lime border (#D9F99D).
  * - Consultation suite touchpoint, vitality blossom rating scale.
  */
-export default function ClinicWellnessPreventive({ templateData, journeyState }) {
+export default function ClinicWellnessPreventive({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    draftReview,
-    setDraftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Living Well Preventive & Integrative Health';
   const olive = '#3F6212';
@@ -37,19 +40,16 @@ export default function ClinicWellnessPreventive({ templateData, journeyState })
 
   const BLOSSOM_ICONS = ['🌱', '🌿', '🍃', '🌸', '🌟'];
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Attentive doctor, clear consultation and reassuring care! 🩺';
+
   return (
-    <div
-      className="vt-clinic-preventive"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-clinic-preventive" style={{
         padding: '24px 16px',
         backgroundColor: bg,
         minHeight: '100vh',
         color: '#1A2E05',
         fontFamily: "'Inter', -apple-system, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       {/* Neutral Patient Privacy Notice */}
       <div
         className="vt-privacy-notice"
@@ -192,7 +192,7 @@ export default function ClinicWellnessPreventive({ templateData, journeyState })
       </section>
 
       {/* Patient Experience Feedback Editor */}
-      <section
+      </div>{/* RIGHT COLUMN: Authentic Review */}<div className="vt-split-content"><section
         style={{
           background: '#FFFFFF',
           borderRadius: '16px',
@@ -263,6 +263,6 @@ export default function ClinicWellnessPreventive({ templateData, journeyState })
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Circuit-board styled chip buttons.
  * Suggestions: Terminal/HUD style prompt boxes with glowing borders.
  */
-export default function RetailTechGadgets({ templateData, journeyState }) {
+export default function RetailTechGadgets({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'CyberCore Tech & Gaming Outpost';
   const cyan = '#06B6D4';
@@ -38,19 +39,16 @@ export default function RetailTechGadgets({ templateData, journeyState }) {
   const cardBg = '#0B1329';
   const border = '#1E293B';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Great collection, perfect fit and helpful styling advice! 🛍️';
+
   return (
-    <div
-      className="vt-tech-gadgets"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-tech-gadgets" style={{
         padding: '24px 16px',
         backgroundColor: cyberDark,
         minHeight: '100vh',
         color: '#E0E7FF',
         fontFamily: "'Space Grotesk', monospace, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ padding: '20px 0 16px', borderBottom: `1px solid ${cyan}40` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <span style={{ fontSize: '2rem' }}>💻 🎧 🎮</span>
@@ -173,7 +171,7 @@ export default function RetailTechGadgets({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -189,7 +187,7 @@ export default function RetailTechGadgets({ templateData, journeyState }) {
       </section>
 
       {/* HUD Prompt Cards */}
-      <section
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content"><section
         style={{
           background: cardBg,
           borderRadius: '8px',
@@ -256,6 +254,6 @@ export default function RetailTechGadgets({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

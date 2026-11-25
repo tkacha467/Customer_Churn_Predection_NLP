@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Soft pastel oval pills.
  * Suggestions: Gentle floating cards with soothing lavender borders.
  */
-export default function FitnessZenStudio({ templateData, journeyState }) {
+export default function FitnessZenStudio({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Prana Flow Yoga & Pilates Shala';
   const purple = '#581C87';
@@ -38,19 +39,16 @@ export default function FitnessZenStudio({ templateData, journeyState }) {
 
   const MOON_PHASES = ['🌑', '🌒', '🌓', '🌔', '🌕'];
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Incredible coaching, motivating energy and pristine facility! 💪';
+
   return (
-    <div
-      className="vt-zen-studio"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-zen-studio" style={{
         padding: '24px 16px',
         backgroundColor: lilac,
         minHeight: '100vh',
         color: '#3B0764',
         fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ textAlign: 'center', padding: '20px 0 16px', borderBottom: `1px solid ${border}` }}>
         <div style={{ fontSize: '2.4rem', marginBottom: '4px' }}>🧘 🌸 🪷</div>
         <div style={{ fontSize: '0.75rem', letterSpacing: '2px', textTransform: 'uppercase', color: purple, fontWeight: 700, marginBottom: '4px' }}>
@@ -158,7 +156,7 @@ export default function FitnessZenStudio({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -173,7 +171,7 @@ export default function FitnessZenStudio({ templateData, journeyState }) {
       </section>
 
       {/* Floating Suggestions */}
-      <section
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content"><section
         style={{
           background: '#FFFFFF',
           borderRadius: '20px',
@@ -236,6 +234,6 @@ export default function FitnessZenStudio({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

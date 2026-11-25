@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Slanted aerodynamic pill badges with electric lime accents.
  * Suggestions: High-contrast athletic training cards with neon markers.
  */
-export default function FitnessModernClub({ templateData, journeyState }) {
+export default function FitnessModernClub({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Velocity High-Performance Athletic Club';
   const lime = '#84CC16';
@@ -39,19 +40,16 @@ export default function FitnessModernClub({ templateData, journeyState }) {
 
   const PERFORMANCE_TIERS = ['WARMUP', 'ENDURANCE', 'TEMPO', 'THRESHOLD', 'PEAK MAX'];
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Incredible coaching, motivating energy and pristine facility! 💪';
+
   return (
-    <div
-      className="vt-fitness-club"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-fitness-club" style={{
         padding: '24px 16px',
         backgroundColor: slateDark,
         minHeight: '100vh',
         color: '#F8FAFC',
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       {/* Header */}
       <header style={{ padding: '20px 0 16px', borderBottom: `2px solid ${lime}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -199,7 +197,7 @@ export default function FitnessModernClub({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 14px',
@@ -214,7 +212,7 @@ export default function FitnessModernClub({ templateData, journeyState }) {
         </div>
       </section>
 
-      {/* Ideas / Training Feedback Suggestions */}
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content">{/* Ideas / Training Feedback Suggestions */}
       <section
         style={{
           background: slateCard,
@@ -287,6 +285,6 @@ export default function FitnessModernClub({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

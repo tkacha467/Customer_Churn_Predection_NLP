@@ -8,28 +8,29 @@ import React from 'react';
  * Topics: Brass luggage-tag styled chips.
  * Suggestions: Gold-embossed parchment cards with royal gold trim.
  */
-export default function HotelHeritageResort({ templateData, journeyState }) {
+export default function HotelHeritageResort({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
-    hoverRating,
-    setHoverRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'The Raj Mahal Palace & Spa';
   const navy = '#1E1B4B';
@@ -38,19 +39,16 @@ export default function HotelHeritageResort({ templateData, journeyState }) {
   const ivory = '#FDFBF7';
   const border = '#E2D9C8';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Beautiful room, exceptional hospitality and wonderful breakfast! 🏨';
+
   return (
-    <div
-      className="vt-heritage-resort"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-heritage-resort" style={{
         padding: '24px 16px',
         backgroundColor: ivory,
         minHeight: '100vh',
         color: '#1E1B4B',
         fontFamily: "'Cinzel', 'Playfair Display', 'Georgia', 'Noto Serif Gujarati', 'Noto Serif Devanagari', serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ textAlign: 'center', padding: '24px 0 16px', borderBottom: `2px double ${gold}` }}>
         <div style={{ fontSize: '2.4rem', marginBottom: '6px' }}>🏰 🛎️ 👑</div>
         <div style={{ fontSize: '0.75rem', letterSpacing: '3px', textTransform: 'uppercase', color: gold, fontWeight: 700, marginBottom: '4px' }}>
@@ -159,7 +157,7 @@ export default function HotelHeritageResort({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -174,7 +172,7 @@ export default function HotelHeritageResort({ templateData, journeyState }) {
       </section>
 
       {/* Gold Trim Suggestions */}
-      <section
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content"><section
         style={{
           background: '#FFFFFF',
           borderRadius: '16px',
@@ -240,6 +238,6 @@ export default function HotelHeritageResort({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }

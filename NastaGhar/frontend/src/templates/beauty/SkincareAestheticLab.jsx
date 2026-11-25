@@ -8,26 +8,29 @@ import React from 'react';
  * Topics: Clean grid data chips with medical precision borders.
  * Suggestions: Lab report-style clean data cards with blue diagnostic accents.
  */
-export default function SkincareAestheticLab({ templateData, journeyState }) {
+export default function SkincareAestheticLab({ templateData, journeyState = {} }) {
   const {
-    rating,
-    setRating,
+    rating = 5,
+    setRating = () => {},
+    hoverRating = 0,
+    setHoverRating = () => {},
     ratingLabel,
-    availableTopics,
-    selectedTopics,
-    toggleTopic,
-    personalNote,
-    setPersonalNote,
-    touchpointLabel,
-    touchpointValue,
-    ideas,
-    selectedIdeaId,
-    onSelectIdea,
-    draftReview,
-    onDirectGoogleHandoff,
-    onOpenPrivateFeedback,
-    t,
-  } = journeyState;
+    availableTopics = [],
+    selectedTopics = [],
+    toggleTopic = () => {},
+    personalNote = '',
+    setPersonalNote = () => {},
+    touchpointLabel = 'Table / Station',
+    touchpointValue = null,
+    ideas = [],
+    selectedIdeaId = null,
+    onSelectIdea = () => {},
+    draftReview = '',
+    onDirectGoogleHandoff = () => {},
+    onOpenPrivateFeedback = () => {},
+    notePlaceholder,
+    t = {},
+  } = journeyState || {};
 
   const bizName = templateData?.businessName || 'Dermacell Skincare Lab';
   const cobalt = '#2563EB';
@@ -35,19 +38,16 @@ export default function SkincareAestheticLab({ templateData, journeyState }) {
   const slateText = '#334155';
   const border = '#E2E8F0';
 
+    const placeholder = notePlaceholder || t.notePlaceholder || 'e.g. Loved the haircut, styling and relaxing service! ✨';
+
   return (
-    <div
-      className="vt-skincare-lab"
-      style={{
-        maxWidth: '580px',
-        margin: '0 auto',
+    <div className="vt-page-container vt-skincare-lab" style={{
         padding: '24px 16px',
         backgroundColor: '#FFFFFF',
         minHeight: '100vh',
         color: slateText,
         fontFamily: "'Space Grotesk', 'Inter', monospace, sans-serif",
-      }}
-    >
+      }}><div className="vt-split-layout"><div className="vt-split-sticky-sidebar">
       <header style={{ padding: '20px 0 16px', borderBottom: `2px solid ${border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <span style={{ fontSize: '1.8rem' }}>🧴 🔬 💧</span>
@@ -160,7 +160,7 @@ export default function SkincareAestheticLab({ templateData, journeyState }) {
             type="text"
             value={personalNote}
             onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder={t.notePlaceholder}
+            placeholder={placeholder}
             style={{
               width: '100%',
               padding: '10px 12px',
@@ -175,7 +175,7 @@ export default function SkincareAestheticLab({ templateData, journeyState }) {
       </section>
 
       {/* Lab Report Style Cards */}
-      <section
+      </div>{/* RIGHT COLUMN: Ideas & Google Handoff */}<div className="vt-split-content"><section
         style={{
           border: `1px solid ${border}`,
           borderRadius: '8px',
@@ -241,6 +241,6 @@ export default function SkincareAestheticLab({ templateData, journeyState }) {
           {t.sendPrivateNote}
         </button>
       </footer>
-    </div>
+    </div></div></div>
   );
 }
