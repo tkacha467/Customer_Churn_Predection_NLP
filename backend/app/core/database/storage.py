@@ -56,8 +56,17 @@ class ReviewStore:
         ]
         default_path = next((p for p in _candidate_dbs if p.exists()), _candidate_dbs[0])
         self.path = Path(database_path or os.getenv("REVIEW_DB_PATH", str(default_path))).expanduser()
-        self.path.parent.mkdir(parents=True, exist_ok=True)
         env = os.getenv("ENVIRONMENT", "").strip().lower()
+        is_test_mode = env in ("test", "testing") or "PYTEST_CURRENT_TEST" in os.environ
+        protected_dbs = {path.resolve() for path in _candidate_dbs}
+        if is_test_mode and self.path.resolve() in protected_dbs:
+            raise RuntimeError(
+                "TEST-ENVIRONMENT DATABASE SAFETY GUARD TRIGGERED: "
+                f"ReviewStore attempted to connect to production database '{self.path}' during test execution. "
+                "Automated tests must explicitly provide an isolated database path via tmp_path or REVIEW_DB_PATH."
+            )
+
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         db_exists_before = self.path.exists()
         with self._connect() as db:
             if env in ("test", "testing", "dev", "development"):
@@ -1585,5 +1594,4 @@ class ReviewStore:
                 return None
 
         return self.get_tenant_document(target_tenant, document_id)
-
 
