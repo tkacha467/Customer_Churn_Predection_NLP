@@ -17,6 +17,16 @@ jobs:
   backend-security-and-tests:
     name: Python 3.11 Backend Tests & Safety Guards
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       ENVIRONMENT: test
       MOCK_EMAIL_TRANSPORT: "true"
@@ -25,6 +35,16 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Set up Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Frontend Dependencies
+        run: |
+          npm --prefix NastaGhar/frontend ci
+          npm --prefix Digital_Card/frontend ci
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5

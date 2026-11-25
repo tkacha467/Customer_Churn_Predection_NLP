@@ -31,6 +31,7 @@ from backend.app.core.auth.security_store import (
     verify_turnstile_token,
 )
 from backend.app.core.database.storage import ReviewStore
+from backend.app.api import routes as api_routes
 from backend.app.main import app
 
 
@@ -293,7 +294,7 @@ def test_scenario_07_expired_or_replayed_token_rejected(monkeypatch):
     async def mock_verify_expired(token, client_ip):
         return False, "challenge_rejected_timeout-or-duplicate"
 
-    monkeypatch.setattr("backend.app.api.routes.verify_turnstile_token", mock_verify_expired)
+    monkeypatch.setattr(api_routes, "verify_turnstile_token", mock_verify_expired)
 
     client = TestClient(app)
     for i in range(20):
@@ -326,7 +327,7 @@ def test_scenario_08_incorrect_action_or_hostname_rejected(monkeypatch):
     async def mock_action_mismatch(token, client_ip):
         return False, "action_mismatch"
 
-    monkeypatch.setattr("backend.app.api.routes.verify_turnstile_token", mock_action_mismatch)
+    monkeypatch.setattr(api_routes, "verify_turnstile_token", mock_action_mismatch)
 
     client = TestClient(app)
     for i in range(20):
@@ -726,7 +727,7 @@ def test_scenario_19_turnstile_provider_timeout_returns_503(monkeypatch):
     async def mock_timeout(token, client_ip):
         return False, "provider_timeout"
 
-    monkeypatch.setattr("backend.app.api.routes.verify_turnstile_token", mock_timeout)
+    monkeypatch.setattr(api_routes, "verify_turnstile_token", mock_timeout)
 
     client = TestClient(app)
     for i in range(20):
@@ -807,4 +808,3 @@ def test_scenario_22_concurrent_turnstile_challenge_requests():
             assert reason == "test_pass"
 
     asyncio.run(verify_batch())
-

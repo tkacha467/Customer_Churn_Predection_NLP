@@ -113,7 +113,10 @@ from backend.app.core.auth.security_store import (
     SecurityStore,
     verify_turnstile_token,
     CF_DUMMY_PASS_SITEKEY,
+    CF_DUMMY_FAIL_SITEKEY,
 )
+from backend.app.core.security.alert_mailer import AlertMailer, DEFAULT_ALERT_EMAIL
+from backend.app.core.security.security_store import SecurityStore as SecurityAuditStore
 
 router = APIRouter()
 
@@ -1422,6 +1425,42 @@ async def onboard_tenant(
     )
 
 
+@router.post("/platform/security-shield/test-alert")
+async def send_synthetic_security_test_alert(
+    request: Request,
+    payload: Optional[Dict[str, Any]] = None,
+    ctx: TenantContext = Depends(require_platform_admin),
+):
+    if not review_service.check_rate_limit(f"security-test-alert:{get_client_ip(request)}", max_per_minute=3):
+        raise HTTPException(status_code=429, detail="Too many test alert requests. Please try again later.")
+
+    recipient = payload.get("recipient") if payload else None
+    if recipient is not None and recipient != DEFAULT_ALERT_EMAIL:
+        raise HTTPException(status_code=400, detail=f"Unauthorized recipient. Must be {DEFAULT_ALERT_EMAIL}.")
+
+    return AlertMailer().send_synthetic_test_alert(
+        initiated_by=ctx.email,
+        store=SecurityAuditStore(),
+        recipient=recipient,
+    )
+
+
+@router.get("/platform/security-shield/test-alert/{test_id}")
+async def get_synthetic_security_test_alert(
+    test_id: str,
+    _: TenantContext = Depends(require_platform_admin),
+):
+    record = SecurityAuditStore().get_synthetic_test(test_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Synthetic test alert not found.")
+    return {
+        "test_id": record["test_id"],
+        "status": record["status"],
+        "recipient": record["recipient"],
+        "is_synthetic": bool(record["is_synthetic"]),
+    }
+
+
 @router.get("/platform/tenants")
 async def list_tenants_admin(
     ctx: TenantContext = Depends(require_platform_admin)
@@ -2462,5 +2501,3 @@ async def serve_tenant_image(
         media_type=media_type,
         headers=headers,
     )
-
-
