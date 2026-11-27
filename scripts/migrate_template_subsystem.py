@@ -202,19 +202,20 @@ def run_template_migration(
         )
 
     resolved_path = raw_path.resolve()
-    if not resolved_path.exists():
-        raise FileNotFoundError(f"Target database not found: {resolved_path}")
 
-    if not resolved_path.is_file():
-        raise ValueError(f"Target path is not a regular file: {resolved_path}")
-
-    # Production path guard
+    # Production path guard checked BEFORE file existence check so CI runners enforce guard cleanly
     is_prod = (resolved_path == PROD_DB_PATH)
     if is_prod and not confirm_production and not dry_run:
         raise PermissionError(
             f"PROTECTED PRODUCTION DATABASE DETECTED: {resolved_path}\n"
             "Modifications to production database require explicit authorization via --confirm-production."
         )
+
+    if not resolved_path.exists():
+        raise FileNotFoundError(f"Target database not found: {resolved_path}")
+
+    if not resolved_path.is_file():
+        raise ValueError(f"Target path is not a regular file: {resolved_path}")
 
     initial_sha256 = compute_sha256(resolved_path)
 

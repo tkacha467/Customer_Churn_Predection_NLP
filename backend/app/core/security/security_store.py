@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
 
-_REPO_ROOT = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[4])
+_REPO_ROOT = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "backend").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[4])
 DEFAULT_SECURITY_DB = _REPO_ROOT / "Project_Files" / "Data" / "security_shield.sqlite3"
 
 

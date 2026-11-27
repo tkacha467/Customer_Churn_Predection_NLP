@@ -35,9 +35,14 @@ class _AliasModule(types.ModuleType):
 
     def __setattr__(self, key: str, value) -> None:
         # When Python's import machinery attaches a child ``Backend.*`` proxy to a
-        # parent ``Backend.*`` proxy, keep the proxy binding local so the
-        # canonical ``backend.*`` package attribute is never replaced with a proxy.
+        # parent ``Backend.*`` proxy, keep the proxy binding local UNLESS the
+        # canonical ``backend.*`` package exposes a non-module singleton under
+        # that name (e.g. ``backend.app.core.security.security_shield``).
         if isinstance(value, _AliasModule):
+            target = object.__getattribute__(self, "_target_module")
+            target_dict = object.__getattribute__(target, "__dict__")
+            if key in target_dict and not isinstance(target_dict[key], types.ModuleType):
+                return
             object.__setattr__(self, key, value)
             return
         setattr(object.__getattribute__(self, "_target_module"), key, value)

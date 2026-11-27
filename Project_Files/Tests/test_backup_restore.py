@@ -212,6 +212,7 @@ def test_backup_tamper_detection(monkeypatch, multi_tenant_db):
 
 def test_restore_protection_against_overwriting_active_db(monkeypatch, tmp_path):
     """Ensures restore refuses to overwrite default active db unless allow_overwrite is True."""
+    monkeypatch.delenv("REVIEW_DB_PATH", raising=False)
     dummy_backup = tmp_path / "dummy_backup"
     dummy_backup.mkdir()
     (dummy_backup / "reviews.sqlite3").write_text("dummy")
@@ -222,6 +223,13 @@ def test_restore_protection_against_overwriting_active_db(monkeypatch, tmp_path)
     # Attempt to restore directly to DEFAULT_DB_PATH without allow_overwrite
     success = restore_backup(dummy_backup, active_parent, allow_overwrite=False)
     assert success is False
+
+    # Also verify explicit REVIEW_DB_PATH target protection
+    isolated_active = tmp_path / "active_dir" / "reviews.sqlite3"
+    isolated_active.parent.mkdir(parents=True, exist_ok=True)
+    isolated_active.write_text("existing-active-db")
+    monkeypatch.setenv("REVIEW_DB_PATH", str(isolated_active))
+    assert restore_backup(dummy_backup, isolated_active.parent, allow_overwrite=False) is False
 
 
 def test_wal_transactions_hot_backup(monkeypatch, multi_tenant_db):

@@ -17,14 +17,39 @@ jobs:
   backend-security-and-tests:
     name: Python 3.11 Backend Tests & Safety Guards
     runs-on: ubuntu-latest
+    services:
+      valkey:
+        image: valkey/valkey:8.0-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     env:
       ENVIRONMENT: test
+      REDIS_URL: "redis://127.0.0.1:6379/0"
+      REDIS_FAILURE_POLICY: "fail_closed"
+      ENFORCE_BROWSER_TESTS: "1"
       MOCK_EMAIL_TRANSPORT: "true"
       ALERT_RECIPIENT_EMAIL: "vajra.techworks@gmail.com"
       OWNER_SESSION_SECRET: "ci-secret-token-key-must-be-at-least-32-characters!!"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Set up Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install & Build Frontends for Integration Checks
+        run: |
+          npm ci --prefix NastaGhar/frontend
+          npm ci --prefix Digital_Card/frontend
+          npm --prefix NastaGhar/frontend run build
+          npm --prefix Digital_Card/frontend run build
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -38,7 +63,12 @@ jobs:
           pip install -r requirements.txt
           pip install --no-deps --no-build-isolation -e .
           python -c "import site, pathlib; (pathlib.Path(site.getsitepackages()[0]) / 'vraja_backend_alias.pth').write_text('import backend._compat; backend._compat.install_backend_alias()\n', encoding='utf-8')"
-          pip install pytest pytest-cov httpx
+          pip install pytest pytest-cov httpx playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Verify Valkey Service Readiness
+        run: |
+          python -c "import redis; client = redis.Redis.from_url('redis://127.0.0.1:6379/0'); assert client.ping() is True"
 
       - name: Run Pytest Suite with Database Safety Guards
         run: |
@@ -58,24 +88,34 @@ jobs:
 
       - name: Audit & Build Product A (NastaGhar)
         run: |
-          cd NastaGhar/frontend
-          npm ci
-          npm audit --audit-level=high || true
-          npm run build
+          npm ci --prefix NastaGhar/frontend
+          npm --prefix NastaGhar/frontend audit --audit-level=high || true
+          npm --prefix NastaGhar/frontend run build
 
       - name: Audit & Build Product B (Digital Card)
         run: |
-          cd Digital_Card/frontend
-          npm ci
-          npm audit --audit-level=high || true
-          npm run build
+          npm ci --prefix Digital_Card/frontend
+          npm --prefix Digital_Card/frontend audit --audit-level=high || true
+          npm --prefix Digital_Card/frontend run build
 
   browser-e2e-tests:
     name: Playwright Real Browser E2E Security Verification
     runs-on: ubuntu-latest
     needs: [backend-security-and-tests, frontend-builds-and-audit]
+    services:
+      valkey:
+        image: valkey/valkey:8.0-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     env:
       ENVIRONMENT: test
+      REDIS_URL: "redis://127.0.0.1:6379/0"
+      REDIS_FAILURE_POLICY: "fail_closed"
       MOCK_EMAIL_TRANSPORT: "true"
       ALERT_RECIPIENT_EMAIL: "vajra.techworks@gmail.com"
       OWNER_SESSION_SECRET: "ci-browser-test-secret-key-at-least-32-chars!!"
@@ -95,21 +135,25 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Build Product A Frontend
+      - name: Build Product A & Product B Frontends
         run: |
-          cd NastaGhar/frontend
-          npm ci
-          npm run build
+          npm ci --prefix NastaGhar/frontend
+          npm --prefix NastaGhar/frontend run build
+          npm ci --prefix Digital_Card/frontend
+          npm --prefix Digital_Card/frontend run build
 
       - name: Install Dependencies & Playwright Chromium
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install --no-deps --no-build-isolation -e .
+          python -c "import site, pathlib; (pathlib.Path(site.getsitepackages()[0]) / 'vraja_backend_alias.pth').write_text('import backend._compat; backend._compat.install_backend_alias()\n', encoding='utf-8')"
           pip install pytest pytest-cov httpx playwright
           python -m playwright install --with-deps chromium
 
       - name: Run Enforced Browser E2E Verification
         run: |
+          pytest Project_Files/Tests/api/test_phase_a6_3_staging_gate.py -k "test_playwright_browser_security_center_dom_verification" -v
           pytest Project_Files/Tests/api/test_phase_a6_4_final_verification.py -k "test_task4_real_security_center_browser_playwright_e2e" -v
 
   release-integrity-manifest:
@@ -129,13 +173,15 @@ jobs:
         run: |
           python -c "
           from pathlib import Path
-          from backend.app.core.security.code_integrity import generate_release_manifest, verify_database_schema_integrity
-          
+          from backend.app.core.security.code_integrity import generate_release_manifest, verify_code_integrity
+
           root = Path('.')
           manifest = generate_release_manifest(release_id='${{ github.sha }}', repo_root=root, include_frontend_dist=False)
           print(f'Generated release manifest with {manifest[\"total_monitored_files\"]} monitored source files.')
           print(f'Manifest fingerprint: {manifest[\"manifest_fingerprint\"]}')
           assert manifest['total_monitored_files'] > 30, 'Manifest must track backend source files'
+          is_valid, deviations, unexpected = verify_code_integrity(manifest, repo_root=root)
+          assert is_valid and not deviations and not unexpected, f'Manifest verification failed: {deviations} {unexpected}'
           "
 
   secret-scanning:
@@ -151,4 +197,3 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true

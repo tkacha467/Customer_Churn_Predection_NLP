@@ -354,8 +354,9 @@ def test_task5_and_task6_manifest_hmac_and_unexpected_files(tmp_path):
     assert verify_manifest_signature(manifest, "invalidsig123", secret_key) is False
 
     # 3. Detect unexpected new files
-    # Create a dummy unexpected py file in monitored tree
-    dummy_file = REPO_ROOT / "Backend" / "app" / "core" / "security" / "_unexpected_tamper_test.py"
+    # Create a dummy unexpected py file in canonical monitored tree
+    backend_dir = REPO_ROOT / "backend" if (REPO_ROOT / "backend").is_dir() else REPO_ROOT / "Backend"
+    dummy_file = backend_dir / "app" / "core" / "security" / "_unexpected_tamper_test.py"
     try:
         dummy_file.write_text("# injected backdoor source\n", encoding="utf-8")
         is_valid, devs, unexp = verify_code_integrity(manifest, repo_root=REPO_ROOT)

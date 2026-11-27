@@ -12,8 +12,9 @@ import re
 import sys
 from pathlib import Path
 
-root_dir = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[2])
-for _p in (root_dir, root_dir / "Backend"):
+root_dir = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "backend").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[2])
+_backend_dir = root_dir / "backend" if (root_dir / "backend").is_dir() else root_dir / "Backend"
+for _p in (root_dir, _backend_dir):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 

@@ -49,7 +49,7 @@ def set_secure_file_permissions(file_path: Path | str) -> None:
 
 class ReviewStore:
     def __init__(self, database_path: str | None = None):
-        _repo_root = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[5])
+        _repo_root = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "backend").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[5])
         _candidate_dbs = [
             _repo_root / "Project_Files" / "Data" / "nasta-ghar" / "reviews.sqlite3",
             _repo_root / "data" / "nasta-ghar" / "reviews.sqlite3",

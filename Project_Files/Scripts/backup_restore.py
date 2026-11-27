@@ -15,10 +15,11 @@ import time
 from pathlib import Path
 
 # Project root
-ROOT_DIR = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[2])
+ROOT_DIR = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "backend").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[2])
 _data_dir = ROOT_DIR / "Project_Files" / "Data" if (ROOT_DIR / "Project_Files" / "Data").exists() else ROOT_DIR / "data"
 DEFAULT_DB_PATH = _data_dir / "nasta-ghar" / "reviews.sqlite3"
-DEFAULT_CONFIG_PATH = ROOT_DIR / "Backend" / "app" / "core" / "tenants" / "business_links.json"
+_backend_dir = ROOT_DIR / "backend" if (ROOT_DIR / "backend").is_dir() else ROOT_DIR / "Backend"
+DEFAULT_CONFIG_PATH = _backend_dir / "app" / "core" / "tenants" / "business_links.json"
 DEFAULT_DOCUMENTS_PATH = _data_dir / "documents"
 BACKUP_BASE_DIR = _data_dir / "backups"
 
@@ -185,7 +186,7 @@ def verify_backup(backup_dir: Path) -> bool:
 
     # Check document assets if present in manifest
     if manifest.get("documents"):
-        backup_docs_dir = backup_dir / "documents"
+        backup_docs_dir = (backup_dir / "documents").resolve()
         for doc in manifest["documents"]:
             doc_file = (backup_docs_dir / doc["relative_path"]).resolve()
             if not doc_file.is_relative_to(backup_docs_dir) or not doc_file.is_file():
@@ -223,7 +224,7 @@ def restore_backup(backup_dir: Path, restore_dir: Path, allow_overwrite: bool = 
     active_db = Path(os.getenv("REVIEW_DB_PATH", str(DEFAULT_DB_PATH))).resolve()
     target_db = (restore_dir / "reviews.sqlite3").resolve()
 
-    if (target_db == active_db or target_db.exists()) and not allow_overwrite:
+    if (target_db == active_db or target_db == DEFAULT_DB_PATH.resolve() or target_db.exists()) and not allow_overwrite:
         print("[-] Refusing to overwrite active production/working database directly.")
         print("    Specify an isolated restore directory (e.g. /tmp/restore_test/) or pass --allow-overwrite.")
         return False

@@ -30,7 +30,7 @@ MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024
 TENANT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_\-]{1,100}$")
 
 # Default relative documents root
-_repo_root = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[4])
+_repo_root = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "backend").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[4])
 _candidate_docs = [
     _repo_root / "Project_Files" / "Data" / "documents",
     _repo_root / "data" / "documents",

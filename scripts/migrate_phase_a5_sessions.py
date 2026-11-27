@@ -257,21 +257,21 @@ def run_a5_migration(
 
     resolved_path = raw_path.resolve()
 
-    # Invariant 2: Reject missing targets
-    if not resolved_path.exists():
-        raise FileNotFoundError(f"Target database not found: {resolved_path}")
-
-    # Invariant 3: Reject non-file paths
-    if not resolved_path.is_file():
-        raise ValueError(f"Target path is not a file: {resolved_path}")
-
-    # Invariant 4: Production protection
+    # Invariant 2: Production protection checked BEFORE existence check so clean CI runners still enforce guard
     is_prod = (resolved_path == PROD_DB_PATH)
     if is_prod and not confirm_production:
         raise PermissionError(
             f"REFUSED: Target database '{resolved_path}' matches production database! "
             "Running migrations against production is strictly prohibited without explicit --confirm-production flag."
         )
+
+    # Invariant 3: Reject missing targets
+    if not resolved_path.exists():
+        raise FileNotFoundError(f"Target database not found: {resolved_path}")
+
+    # Invariant 4: Reject non-file paths
+    if not resolved_path.is_file():
+        raise ValueError(f"Target path is not a file: {resolved_path}")
 
     print(f"[*] Targeting database: {resolved_path}")
     print(f"[*] Mode: {'DRY-RUN' if dry_run else 'APPLY'}")

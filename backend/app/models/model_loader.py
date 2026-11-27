@@ -42,7 +42,7 @@ class ModelLoader:
                 from pathlib import Path
                 local_model = Path("models/distilbert")
                 if not local_model.exists():
-                    _repo_root = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[3])
+                    _repo_root = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists() or (p / "backend").exists() or (p / "Backend").exists()), Path(__file__).resolve().parents[3])
                     local_model = _repo_root / "models" / "distilbert"
 
                 try:

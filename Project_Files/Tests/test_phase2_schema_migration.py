@@ -45,22 +45,107 @@ INITIAL_PROD_HASH = _get_prod_db_hash()
 @pytest.fixture
 def isolated_db_copy(tmp_path):
     """
-    Creates an isolated clone of the production database in a temporary directory.
-    Guarantees zero modification to the active production database.
+    Creates an isolated pre-migration SQLite database in a temporary directory.
+    Uses a temporary clone when local developer DB is present, or builds a
+    deterministic WAL-mode pre-migration fixture when running in clean CI checkouts.
     """
     temp_db = tmp_path / "test_reviews.sqlite3"
-    shutil.copy2(PROD_DB_PATH, temp_db)
-    
-    # Also copy WAL/SHM if present
-    prod_wal = PROD_DB_PATH.with_name(PROD_DB_PATH.name + "-wal")
-    if prod_wal.exists():
-        shutil.copy2(prod_wal, tmp_path / prod_wal.name)
-    prod_shm = PROD_DB_PATH.with_name(PROD_DB_PATH.name + "-shm")
-    if prod_shm.exists():
-        shutil.copy2(prod_shm, tmp_path / prod_shm.name)
-        
-    con = sqlite3.connect(str(temp_db), timeout=10, isolation_level=None)
-    con.row_factory = sqlite3.Row
+    if PROD_DB_PATH.exists():
+        shutil.copy2(PROD_DB_PATH, temp_db)
+
+        prod_wal = PROD_DB_PATH.with_name(PROD_DB_PATH.name + "-wal")
+        if prod_wal.exists():
+            shutil.copy2(prod_wal, tmp_path / prod_wal.name)
+        prod_shm = PROD_DB_PATH.with_name(PROD_DB_PATH.name + "-shm")
+        if prod_shm.exists():
+            shutil.copy2(prod_shm, tmp_path / prod_shm.name)
+
+        con = sqlite3.connect(str(temp_db), timeout=10, isolation_level=None)
+        con.row_factory = sqlite3.Row
+    else:
+        con = sqlite3.connect(str(temp_db), timeout=10, isolation_level=None)
+        con.row_factory = sqlite3.Row
+        con.execute("PRAGMA journal_mode = WAL;")
+        con.execute("""
+            CREATE TABLE tenants (
+                id TEXT PRIMARY KEY,
+                business_name TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                platform TEXT DEFAULT 'google',
+                review_url TEXT,
+                branch TEXT DEFAULT '',
+                category TEXT DEFAULT '',
+                description TEXT DEFAULT '',
+                topics_json TEXT DEFAULT '[]',
+                primary_accent TEXT DEFAULT '#f97316',
+                entitlements_json TEXT DEFAULT '["review_manager"]',
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            );
+        """)
+        con.execute("""
+            CREATE TABLE business_profiles (
+                tenant_id TEXT PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+                tagline TEXT DEFAULT '',
+                phone_number TEXT DEFAULT '',
+                website_url TEXT DEFAULT '',
+                address TEXT DEFAULT '',
+                map_url TEXT DEFAULT '',
+                whatsapp_url TEXT DEFAULT '',
+                instagram_url TEXT DEFAULT '',
+                facebook_url TEXT DEFAULT '',
+                youtube_url TEXT DEFAULT '',
+                logo_path TEXT DEFAULT '',
+                cover_image_path TEXT DEFAULT '',
+                custom_links_json TEXT DEFAULT '[]',
+                is_published INTEGER NOT NULL DEFAULT 0,
+                show_review_button INTEGER NOT NULL DEFAULT 1,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL,
+                display_name TEXT DEFAULT '',
+                category TEXT DEFAULT '',
+                opening_hours TEXT DEFAULT '',
+                welcome_message TEXT DEFAULT '',
+                email TEXT DEFAULT '',
+                whatsapp_group_url TEXT DEFAULT '',
+                background_preset TEXT DEFAULT '',
+                overlay_opacity REAL DEFAULT 0.75,
+                primary_accent TEXT DEFAULT '#078BFF'
+            );
+        """)
+        now = time.time()
+        con.execute("""
+            INSERT INTO tenants (
+                id, business_name, status, platform, review_url, branch, category,
+                description, topics_json, primary_accent, entitlements_json, created_at, updated_at
+            ) VALUES (
+                'default_business', 'Nasta Ghar', 'active', 'google',
+                'https://search.google.com/local/writereview?placeid=ChIJTestDefault',
+                'Main Branch', 'Breakfast & Snacks', 'Authentic breakfast',
+                '["Breakfast","Chai"]', '#f97316', '["review_manager","digital_card"]', ?, ?
+            );
+        """, (now, now))
+        con.execute("""
+            INSERT INTO business_profiles (
+                tenant_id, display_name, category, background_preset, overlay_opacity,
+                custom_links_json, primary_accent, created_at, updated_at
+            ) VALUES (
+                'default_business', 'Nasta Ghar', 'Breakfast & Snacks', 'default_navy', 0.75,
+                '[]', '#078BFF', ?, ?
+            );
+        """, (now, now))
+        con.execute("""
+            INSERT INTO tenants (
+                id, business_name, status, platform, review_url, branch, category,
+                description, topics_json, primary_accent, entitlements_json, created_at, updated_at
+            ) VALUES (
+                'ci_unprovisioned_cafe', 'CI Unprovisioned Cafe', 'active', 'google',
+                'https://search.google.com/local/writereview?placeid=ChIJTestCI',
+                'Downtown', 'Cafe', 'Synthetic CI test tenant',
+                '["Coffee"]', '#10b981', '["review_manager"]', ?, ?
+            );
+        """, (now, now))
+
     yield con, temp_db
     con.close()
 
