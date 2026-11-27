@@ -26,6 +26,7 @@ from backend.app.schemas import (
     PrivateFeedbackResponse
 )
 from backend.app.api.generator import review_generator
+from backend.app.api.prompts import normalize_language
 from backend.app.api.validator import review_validator
 from backend.app.core.database.storage import ReviewStore
 
@@ -215,14 +216,14 @@ class ReviewService:
         If a tenant name is missing or placeholder, provides a clean fallback.
         """
         valid_id = (business_id or "").strip()
-        norm_lang = (language or "english").lower().strip()
+        norm_lang = normalize_language(language)
 
         # If client provided a valid non-placeholder name, consider it
         if client_name and client_name.strip() and client_name.strip() not in ("default_business", "default", "the restaurant"):
             if client_name.strip() in ("Nasta Ghar", "NastaGhar"):
-                if "guj" in norm_lang:
+                if norm_lang == "gujarati":
                     return "નાસ્તા ઘર"
-                elif "hin" in norm_lang:
+                elif norm_lang == "hindi":
                     return "नाश्ता घर"
             return client_name.strip()
 
@@ -249,30 +250,30 @@ class ReviewService:
 
         if is_placeholder:
             if valid_id in ("default_business", "nasta_ghar", "nasta-ghar", ""):
-                if "guj" in norm_lang:
+                if norm_lang == "gujarati":
                     return "નાસ્તા ઘર"
-                elif "hin" in norm_lang:
+                elif norm_lang == "hindi":
                     return "नाश्ता घर"
                 return "Nasta Ghar"
 
             cat = tenant.get("category", "") if tenant else ""
             if cat:
-                if "guj" in norm_lang:
+                if norm_lang == "gujarati":
                     return f"આ {cat}"
-                elif "hin" in norm_lang:
+                elif norm_lang == "hindi":
                     return f"इस {cat}"
                 return f"the {cat.lower()}"
 
-            if "guj" in norm_lang:
+            if norm_lang == "gujarati":
                 return "અહીં"
-            elif "hin" in norm_lang:
+            elif norm_lang == "hindi":
                 return "यहाँ"
             return "the restaurant"
 
         if biz_name.strip() in ("Nasta Ghar", "NastaGhar"):
-            if "guj" in norm_lang:
+            if norm_lang == "gujarati":
                 return "નાસ્તા ઘર"
-            elif "hin" in norm_lang:
+            elif norm_lang == "hindi":
                 return "नाश्ता घर"
 
         return biz_name.strip()
@@ -284,8 +285,8 @@ class ReviewService:
         """
         if not text or not text.strip():
             return False
-        l = (language or "english").lower().strip()
-        if "guj" in l:
+        l = normalize_language(language)
+        if l == "gujarati":
             # Gujarati Unicode range: 0x0A80 to 0x0AFF
             guj_chars = sum(1 for c in text if 0x0A80 <= ord(c) <= 0x0AFF)
             if guj_chars < 3:
@@ -294,7 +295,7 @@ class ReviewService:
             if latin_chars > guj_chars * 2:
                 return False
             return True
-        elif "hin" in l:
+        elif l == "hindi":
             # Devanagari Unicode range: 0x0900 to 0x097F
             hin_chars = sum(1 for c in text if 0x0900 <= ord(c) <= 0x097F)
             if hin_chars < 3:

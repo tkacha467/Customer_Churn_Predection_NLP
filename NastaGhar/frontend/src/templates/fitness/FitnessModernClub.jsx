@@ -140,7 +140,7 @@ export default function FitnessModernClub({ templateData, journeyState = {} }) {
 
         {ratingLabel && (
           <div style={{ fontSize: '0.92rem', fontWeight: 800, color: lime }}>
-            {ratingLabel}
+            {typeof ratingLabel === 'string' ? ratingLabel : `${ratingLabel?.emoji || ''} ${ratingLabel?.text || ''}`.trim()}
           </div>
         )}
       </section>

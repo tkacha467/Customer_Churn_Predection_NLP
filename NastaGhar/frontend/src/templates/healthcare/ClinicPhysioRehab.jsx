@@ -141,7 +141,7 @@ export default function ClinicPhysioRehab({ templateData, journeyState = {} }) {
 
         {ratingLabel && (
           <div style={{ fontSize: '0.92rem', fontWeight: 700, color: cyan }}>
-            {ratingLabel}
+            {typeof ratingLabel === 'string' ? ratingLabel : `${ratingLabel?.emoji || ''} ${ratingLabel?.text || ''}`.trim()}
           </div>
         )}
       </section>

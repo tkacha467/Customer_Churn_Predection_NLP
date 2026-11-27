@@ -41,9 +41,9 @@ def normalize_language(lang: Optional[str]) -> str:
     if not lang:
         return "english"
     l = lang.lower().strip()
-    if "guj" in l:
+    if "guj" in l or l == "gu" or l.startswith("gu-") or l.startswith("gu_"):
         return "gujarati"
-    if "hin" in l:
+    if "hin" in l or l == "hi" or l.startswith("hi-") or l.startswith("hi_"):
         return "hindi"
     return "english"
 
@@ -334,7 +334,7 @@ def generate_candidate_ideas(
 
         if rating == 5:
             if topic_hi:
-                short_text = f"{b_name} में {topic_hi} बहुत पसंद आया!{note_fragment} मज़ा आ गया 🍳☕"
+                short_text = f"{b_name} में {topic_hi} बहुत पसंद आया!{note_fragment} {'मज़ा आ गया 🍳☕' if is_restaurant else 'बहुत अच्छा अनुभव रहा 😊✨'}"
                 detailed_text = f"{b_name} में {topic_hi} का अनुभव वाकई लाजवाब रहा।{note_fragment} सब कुछ बहुत अच्छे से व्यवस्थित था 😊✨"
                 personal_text = f"व्यक्तिगत रूप से {b_name} में {topic_hi} बहुत अच्छा लगा।{note_fragment} विज़िट से बहुत खुशी हुई ❤️"
             else:

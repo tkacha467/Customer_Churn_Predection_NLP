@@ -321,3 +321,28 @@ def test_public_review_link_terminology(test_env):
     assert data2["industry_id"] == "restaurant"
     assert data2["touchpoint_label"] == "Table Number"
     assert data2["touchpoint_placeholder"] == "e.g. Table 4"
+
+
+def test_iso_language_codes_hi_and_gu_produce_native_script_without_culinary_emojis():
+    """Verify 'hi', 'hi-IN', 'gu', and 'gu-IN' produce Devanagari/Gujarati output without culinary emojis for gyms."""
+    ideas_hi = generate_candidate_ideas(
+        rating=5, aspects=["Equipment Quality"], business_name="Pulse Fitness", language="hi", category="fitness"
+    )
+    assert re.search(r"[\u0900-\u097F]", ideas_hi[0]["text"])
+    assert "🍳" not in ideas_hi[0]["text"] and "☕" not in ideas_hi[0]["text"]
+
+    ideas_gu = generate_candidate_ideas(
+        rating=5, aspects=["Equipment Quality"], business_name="Pulse Fitness", language="gu", category="fitness"
+    )
+    assert re.search(r"[\u0A80-\u0AFF]", ideas_gu[0]["text"])
+    assert "🍳" not in ideas_gu[0]["text"] and "☕" not in ideas_gu[0]["text"]
+
+    draft_hi = humanize_review_draft(
+        rating=5, aspects=["Equipment Quality"], business_name="Pulse Fitness", language="hi-IN", category="fitness"
+    )
+    assert re.search(r"[\u0900-\u097F]", draft_hi)
+
+    draft_gu = humanize_review_draft(
+        rating=5, aspects=["Equipment Quality"], business_name="Pulse Fitness", language="gu-IN", category="fitness"
+    )
+    assert re.search(r"[\u0A80-\u0AFF]", draft_gu)

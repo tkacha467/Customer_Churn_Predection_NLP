@@ -181,6 +181,38 @@
       "locales": ["en", "hi", "gu"],
       "component": "BridalGlamStudio"
     },
+    "salon_beauty_makeup": {
+      "name": "Beauty & Makeup Studio",
+      "slug": "salon_beauty_makeup",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "BridalGlamStudio"
+    },
+    "tpl_salon_beauty_makeup": {
+      "name": "Beauty & Makeup Studio",
+      "slug": "tpl_salon_beauty_makeup",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "BridalGlamStudio"
+    },
+    "salon_hair_modern": {
+      "name": "Modern Hair Salon",
+      "slug": "salon_hair_modern",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "SkincareAestheticLab"
+    },
+    "tpl_salon_hair_modern": {
+      "name": "Modern Hair Salon",
+      "slug": "tpl_salon_hair_modern",
+      "industry": "salon",
+      "deployable": true,
+      "locales": ["en", "hi", "gu"],
+      "component": "SkincareAestheticLab"
+    },
     "salon_classic": {
       "name": "Salon Studio",
       "slug": "salon_classic",

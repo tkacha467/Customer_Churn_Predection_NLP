@@ -454,3 +454,16 @@ def test_review_system_remains_unaffected(test_env):
     )
     assert fb_res.status_code == 200
     assert "ticket_id" in fb_res.json()
+
+
+def test_digital_card_no_silent_nasta_ghar_fallback_and_preview_css():
+    """Verify DigitalCard renders explicit unavailable state on error and preserves mobile preview styling."""
+    _repo_root = next((p for p in Path(__file__).resolve().parents if (p / "pyproject.toml").exists()), Path(__file__).resolve().parents[3])
+    card_jsx = (_repo_root / "Digital_Card" / "frontend" / "src" / "components" / "DigitalCard.jsx").read_text(encoding="utf-8")
+    card_css = (_repo_root / "Digital_Card" / "frontend" / "src" / "components" / "DigitalCard.css").read_text(encoding="utf-8")
+
+    assert "Digital Card Unavailable" in card_jsx
+    assert "Nasta Ghar" not in card_jsx
+    assert "Khaman Dhokla" not in card_jsx
+    assert ".preview-device-shell .vcard-actions-grid" in card_css
+    assert "-webkit-text-fill-color: #ffffff" in card_css

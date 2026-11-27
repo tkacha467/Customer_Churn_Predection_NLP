@@ -1458,6 +1458,103 @@ class TemplateRepository:
 
         return self.get_or_create_business_config(business_id)
 
+    def _resolve_unassigned_template_meta(self, category: Optional[str]) -> Dict[str, Any]:
+        """Resolve an industry-appropriate fallback template when no active assignment exists."""
+        from backend.app.core.industry_registry import resolve_industry
+
+        ind_def = resolve_industry(category=category)
+        raw_ind = ind_def.industry_id
+        if raw_ind in ("restaurant", "unclassified"):
+            default_tpl = FOUR_APPROVED_RESTAURANT_PRESETS[0]
+            return {
+                "id": default_tpl["id"],
+                "name": default_tpl["name"],
+                "slug": default_tpl["slug"],
+                "industry_name": "Restaurant & Dining",
+                "industry_slug": "restaurant",
+                "industry_icon": "🍽️",
+                "version": default_tpl["version"],
+                "config": default_tpl["config"],
+            }
+
+        db_ind_slug = "clinic" if raw_ind == "healthcare" else raw_ind
+        preferred_slug_map = {
+            "hotel": "hotel_business_suite",
+            "salon": "salon_spa_sanctuary",
+            "retail": "retail_fashion_boutique",
+            "fitness": "fitness_iron_forge",
+            "clinic": "clinic_classic",
+        }
+        icon_map = {
+            "hotel": "🏨",
+            "salon": "💇",
+            "retail": "🛍️",
+            "fitness": "🏋️",
+            "clinic": "🩺",
+            "automotive": "🚗",
+            "education": "🎓",
+            "events": "🎉",
+            "travel": "✈️",
+        }
+        preferred_slug = preferred_slug_map.get(db_ind_slug, f"{db_ind_slug}_default")
+
+        with self._connect() as db:
+            db.row_factory = sqlite3.Row
+            row = db.execute("""
+                SELECT t.id as template_id, t.name as template_name, t.slug as template_slug,
+                       i.name as industry_name, i.slug as industry_slug, i.icon as industry_icon,
+                       v.version, v.configuration_json
+                FROM templates t
+                JOIN industries i ON t.industry_id = i.id
+                JOIN template_versions v ON t.id = v.template_id AND v.publication_status = 'published'
+                WHERE i.slug = ? AND t.status = 'active'
+                ORDER BY CASE WHEN t.slug = ? THEN 0 ELSE 1 END, v.published_at DESC
+                LIMIT 1
+            """, (db_ind_slug, preferred_slug)).fetchone()
+
+            if row:
+                r = dict(row)
+                return {
+                    "id": r["template_id"],
+                    "name": r["template_name"],
+                    "slug": r["template_slug"],
+                    "industry_name": r["industry_name"],
+                    "industry_slug": r["industry_slug"],
+                    "industry_icon": r["industry_icon"],
+                    "version": r["version"],
+                    "config": json.loads(r["configuration_json"]),
+                }
+
+        return {
+            "id": preferred_slug,
+            "name": ind_def.display_name,
+            "slug": preferred_slug,
+            "industry_name": ind_def.display_name,
+            "industry_slug": db_ind_slug,
+            "industry_icon": icon_map.get(db_ind_slug, "🏢"),
+            "version": "1.0.0",
+            "config": {
+                "theme": {
+                    "variant": preferred_slug,
+                    "primary_accent": "#1B4332",
+                    "background_color": "#FAF7F2",
+                },
+                "topics": [{"label": topic, "icon": "✨"} for topic in ind_def.default_topics],
+                "rating_labels": {
+                    "5": {"text": "Loved it!", "emoji": "🤩"},
+                    "4": {"text": "Really good", "emoji": "😊"},
+                    "3": {"text": "It was okay", "emoji": "🙂"},
+                    "2": {"text": "Disappointed", "emoji": "😕"},
+                    "1": {"text": "Not good", "emoji": "😞"},
+                },
+                "experience_labels": {
+                    "whatStoodOut": "What stood out?",
+                    "pickMatched": "Pick anything that matched your visit",
+                    "notePlaceholder": "Share a few quick details from your experience...",
+                },
+            },
+        }
+
     # ── Sanitized Public Configuration Resolution ──
     def get_public_business_config(self, business_id: str) -> Dict[str, Any]:
         """
@@ -1492,18 +1589,8 @@ class TemplateRepository:
             }
         else:
             # Case B: Existing business without an active template assignment
-            # Fall back to baseline restaurant preset while strictly preserving this tenant's identity, review URL, and accent
-            default_tpl = FOUR_APPROVED_RESTAURANT_PRESETS[0]
-            template_meta = {
-                "id": default_tpl["id"],
-                "name": default_tpl["name"],
-                "slug": default_tpl["slug"],
-                "industry_name": "Restaurant & Dining",
-                "industry_slug": "restaurant",
-                "industry_icon": "🍽️",
-                "version": default_tpl["version"],
-                "config": default_tpl["config"]
-            }
+            # Match fallback template & default topics to the tenant's actual industry
+            template_meta = self._resolve_unassigned_template_meta(t_dict.get("category"))
 
         # 2. Get business configuration overrides
         biz_cfg = self.get_or_create_business_config(t_dict["id"])
@@ -1522,7 +1609,7 @@ class TemplateRepository:
             "primaryAccent": effective_accent,
             "background_color": base_theme.get("background_color") or base_theme.get("backgroundColor", "#FAF7F2"),
             "backgroundColor": base_theme.get("backgroundColor") or base_theme.get("background_color", "#FAF7F2"),
-            "variant": base_theme.get("variant") or "restaurant_classic",
+            "variant": base_theme.get("variant") or (template_meta.get("slug") if template_meta.get("industry_slug") not in ("restaurant", None) else "restaurant_classic"),
             "logo_url": biz_cfg.get("logo_url", ""),
             "cover_image_url": biz_cfg.get("cover_image_url", ""),
         }
@@ -1573,8 +1660,8 @@ class TemplateRepository:
                 "google_handoff", "private_feedback"
             ])) if "google_handoff" in template_config.get("components", ["google_handoff"]) else list(template_config.get("components", [])) + ["google_handoff"],
             "topics": effective_topics,
-            "ratingLabels": template_config.get("rating_labels", {}),
-            "experienceLabels": template_config.get("experience_labels", {}),
+            "ratingLabels": template_config.get("rating_labels") or template_config.get("ratingLabels", {}),
+            "experienceLabels": template_config.get("experience_labels") or template_config.get("experienceLabels", {}),
             "localizedContent": merged_localized,
             "compatibility_flags": compat_flags,
             "compatibilityFlags": compat_flags,

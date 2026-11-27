@@ -135,7 +135,7 @@ export default function FitnessAthleticTurf({ templateData, journeyState = {} })
 
         {ratingLabel && (
           <div style={{ fontSize: '0.92rem', fontWeight: 800, color: gold }}>
-            {ratingLabel}
+            {typeof ratingLabel === 'string' ? ratingLabel : `${ratingLabel?.emoji || ''} ${ratingLabel?.text || ''}`.trim()}
           </div>
         )}
       </section>

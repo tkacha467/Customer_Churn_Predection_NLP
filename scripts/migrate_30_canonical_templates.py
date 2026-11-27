@@ -326,45 +326,45 @@ CANONICAL_30_TEMPLATES = [
         }
     },
     {
-        "id": "salon_hair_modern",
+        "id": "salon_skincare_lab",
         "industry_id": "ind_salon",
-        "name": "Modern Hair Salon",
-        "slug": "salon_hair_modern",
-        "description": "High-fashion hair atelier with minimalist monochrome chic, editorial typography, and trend-focused service cards.",
+        "name": "Skincare & Aesthetic Lab",
+        "slug": "salon_skincare_lab",
+        "description": "Clinical-meets-luxury dermal skincare aesthetic lab with crisp laboratory accents and science-backed skin treatments.",
         "version": "1.0.0",
         "status": "active",
         "pub_status": "published",
         "config": {
             "theme": {
-                "variant": "salon_hair_modern",
-                "primaryAccent": "#6366F1",
-                "secondaryAccent": "#A855F7",
-                "backgroundColor": "#0F172A",
-                "cardBackground": "#1E293B",
-                "textColor": "#F8FAFC",
-                "subtextColor": "#94A3B8",
-                "borderColor": "#334155",
-                "heroBannerType": "hair_atelier"
+                "variant": "salon_skincare_lab",
+                "primaryAccent": "#0284C7",
+                "secondaryAccent": "#38BDF8",
+                "backgroundColor": "#F8FAFC",
+                "cardBackground": "#FFFFFF",
+                "textColor": "#0F172A",
+                "subtextColor": "#475569",
+                "borderColor": "#E2E8F0",
+                "heroBannerType": "skincare_lab"
             },
             "topics": [
-                {"label": "Creative Haircut", "icon": "✂️"},
-                {"label": "Balayage & Color", "icon": "🎨"},
-                {"label": "Blowout & Styling", "icon": "💨"},
-                {"label": "Keratin & Botox", "icon": "✨"},
-                {"label": "Stylist Consultation", "icon": "💬"},
-                {"label": "Premium Haircare", "icon": "🧴"}
+                {"label": "Skin Analysis", "icon": "🔬"},
+                {"label": "Hydrafacial Treatment", "icon": "💧"},
+                {"label": "Chemical Peel / Glow", "icon": "✨"},
+                {"label": "Expert Aesthetician", "icon": "👩‍⚕️"},
+                {"label": "Hygienic Clinic Lab", "icon": "🧼"},
+                {"label": "Tailored Routine", "icon": "🧴"}
             ],
             "ratingLabels": {
-                "5": {"text": "Stunning!", "emoji": "💇‍♀️"},
-                "4": {"text": "Lovely Hair", "emoji": "✨"},
-                "3": {"text": "Good", "emoji": "🙂"},
-                "2": {"text": "Not as Expected", "emoji": "😕"},
-                "1": {"text": "Unhappy", "emoji": "😢"}
+                "5": {"text": "Radiant Results!", "emoji": "✨"},
+                "4": {"text": "Visible Glow", "emoji": "💧"},
+                "3": {"text": "Good Care", "emoji": "🙂"},
+                "2": {"text": "Minimal Change", "emoji": "😕"},
+                "1": {"text": "Skin Irritation", "emoji": "⚠️"}
             },
             "experienceLabels": {
-                "whatStoodOut": "How did your stylist transform your look?",
-                "pickMatched": "Select the hair treatments you received",
-                "notePlaceholder": "e.g. Beautiful balayage color blend and bouncy blowout."
+                "whatStoodOut": "How did your skin treatment perform?",
+                "pickMatched": "Select the dermal treatments you received",
+                "notePlaceholder": "e.g. Thorough skin analysis and soothing facial treatment."
             }
         }
     },
@@ -412,17 +412,17 @@ CANONICAL_30_TEMPLATES = [
         }
     },
     {
-        "id": "salon_beauty_makeup",
+        "id": "salon_bridal_glam",
         "industry_id": "ind_salon",
-        "name": "Beauty & Makeup Studio",
-        "slug": "salon_beauty_makeup",
+        "name": "Bridal & Glam Studio",
+        "slug": "salon_bridal_glam",
         "description": "Celebrity glam makeup and bridal studio with champagne rose surfaces, sparkling ring-light highlights, and lookbook framing.",
         "version": "1.0.0",
         "status": "active",
         "pub_status": "published",
         "config": {
             "theme": {
-                "variant": "salon_beauty_makeup",
+                "variant": "salon_bridal_glam",
                 "primaryAccent": "#E11D48",
                 "secondaryAccent": "#FB7185",
                 "backgroundColor": "#FFF1F2",
@@ -586,88 +586,88 @@ CANONICAL_30_TEMPLATES = [
         }
     },
     {
-        "id": "retail_everyday_apparel",
+        "id": "retail_organic_pantry",
         "industry_id": "ind_retail",
-        "name": "Everyday Apparel",
-        "slug": "retail_everyday_apparel",
-        "description": "Clean, comfortable modern family apparel store with approachable pastel tones, organized clothing rack layout, and value highlights.",
+        "name": "Organic Market & Gourmet Pantry",
+        "slug": "retail_organic_pantry",
+        "description": "Farm-fresh organic market and pantry store with botanical cream surfaces, harvest green accents, and provenance badges.",
         "version": "1.0.0",
         "status": "active",
         "pub_status": "published",
         "config": {
             "theme": {
-                "variant": "retail_everyday_apparel",
-                "primaryAccent": "#2563EB",
-                "secondaryAccent": "#60A5FA",
-                "backgroundColor": "#F8FAFC",
+                "variant": "retail_organic_pantry",
+                "primaryAccent": "#15803D",
+                "secondaryAccent": "#65A30D",
+                "backgroundColor": "#F7FEE7",
                 "cardBackground": "#FFFFFF",
-                "textColor": "#1E293B",
-                "subtextColor": "#64748B",
-                "borderColor": "#E2E8F0",
-                "heroBannerType": "clean_apparel"
+                "textColor": "#14532D",
+                "subtextColor": "#3F6212",
+                "borderColor": "#D9F99D",
+                "heroBannerType": "organic_pantry"
             },
             "topics": [
-                {"label": "Comfortable Fit", "icon": "👕"},
-                {"label": "Durable Cotton", "icon": "🧵"},
-                {"label": "Fair Pricing", "icon": "💰"},
-                {"label": "All Sizes in Stock", "icon": "📏"},
-                {"label": "Friendly Cashier", "icon": "😊"},
-                {"label": "Easy Exchange", "icon": "🔄"}
+                {"label": "Fresh Organic Produce", "icon": "🥬"},
+                {"label": "Artisan Pantry Goods", "icon": "🍯"},
+                {"label": "Eco Packaging", "icon": "🌱"},
+                {"label": "Fair Farm Pricing", "icon": "💰"},
+                {"label": "Helpful Store Staff", "icon": "😊"},
+                {"label": "Clean Aisles", "icon": "✨"}
             ],
             "ratingLabels": {
-                "5": {"text": "Great Value!", "emoji": "🌟"},
-                "4": {"text": "Very Satisfied", "emoji": "👍"},
-                "3": {"text": "Good Everyday", "emoji": "🙂"},
-                "2": {"text": "Limited Colors", "emoji": "😕"},
-                "1": {"text": "Poor Fit", "emoji": "😞"}
+                "5": {"text": "Farm Fresh!", "emoji": "🥬"},
+                "4": {"text": "Great Harvest", "emoji": "🌱"},
+                "3": {"text": "Good Pantry", "emoji": "🙂"},
+                "2": {"text": "Low Stock", "emoji": "😕"},
+                "1": {"text": "Poor Freshness", "emoji": "😞"}
             },
             "experienceLabels": {
-                "whatStoodOut": "How was your clothing shopping today?",
-                "pickMatched": "Select your apparel highlights",
-                "notePlaceholder": "e.g. Comfortable cotton tees, great fit and friendly assistance at checkout."
+                "whatStoodOut": "How was your organic market visit?",
+                "pickMatched": "Select your pantry & produce highlights",
+                "notePlaceholder": "e.g. Ultra-fresh organic produce, raw honey selection and helpful staff."
             }
         }
     },
     {
-        "id": "retail_traditional_ethnic",
+        "id": "retail_tech_gadgets",
         "industry_id": "ind_retail",
-        "name": "Traditional & Ethnic Wear",
-        "slug": "retail_traditional_ethnic",
-        "description": "Royal festive Indian ethnic boutique featuring rich crimson and gold brocade textures, zari embroidery motifs, and heritage styling.",
+        "name": "Electronics & Tech Haven",
+        "slug": "retail_tech_gadgets",
+        "description": "Cyber hardware and electronics outpost with dark HUD panels, cyan/violet power cells, and demo station badges.",
         "version": "1.0.0",
         "status": "active",
         "pub_status": "published",
         "config": {
             "theme": {
-                "variant": "retail_traditional_ethnic",
-                "primaryAccent": "#991B1B",
-                "secondaryAccent": "#D97706",
-                "backgroundColor": "#FFFBEB",
-                "cardBackground": "#FFFFFF",
-                "textColor": "#78350F",
-                "subtextColor": "#92400E",
-                "borderColor": "#FDE68A",
-                "heroBannerType": "royal_ethnic"
+                "variant": "retail_tech_gadgets",
+                "primaryAccent": "#06B6D4",
+                "secondaryAccent": "#A855F7",
+                "backgroundColor": "#030712",
+                "cardBackground": "#0B1329",
+                "textColor": "#E0E7FF",
+                "subtextColor": "#94A3B8",
+                "borderColor": "#1E293B",
+                "heroBannerType": "cyber_hud"
             },
             "topics": [
-                {"label": "Bridal Lehengas", "icon": "👑"},
-                {"label": "Zari & Silk Sarees", "icon": "🥻"},
-                {"label": "Kurta & Sherwani", "icon": "✨"},
-                {"label": "Custom Alterations", "icon": "✂️"},
-                {"label": "Festive Collection", "icon": "🪔"},
-                {"label": "Patient Staff", "icon": "🙏"}
+                {"label": "Hardware Lineup", "icon": "💻"},
+                {"label": "Audio & Peripherals", "icon": "🎧"},
+                {"label": "Hands-On Demo", "icon": "🎮"},
+                {"label": "Specialist Advice", "icon": "⚡"},
+                {"label": "Warranty Support", "icon": "🛡️"},
+                {"label": "Fair Tech Pricing", "icon": "💳"}
             ],
             "ratingLabels": {
-                "5": {"text": "Royal & Elegant!", "emoji": "👑"},
-                "4": {"text": "Beautiful Wear", "emoji": "✨"},
-                "3": {"text": "Good Variety", "emoji": "🥻"},
-                "2": {"text": "Slow Tailoring", "emoji": "😕"},
-                "1": {"text": "Defective Zari", "emoji": "💔"}
+                "5": {"text": "Overclocked!", "emoji": "⚡"},
+                "4": {"text": "Great Specs", "emoji": "💻"},
+                "3": {"text": "Good Gear", "emoji": "🙂"},
+                "2": {"text": "Limited Stock", "emoji": "😕"},
+                "1": {"text": "Poor Support", "emoji": "🚫"}
             },
             "experienceLabels": {
-                "whatStoodOut": "What made your festive outfit special?",
-                "pickMatched": "Select your ethnic wear highlights",
-                "notePlaceholder": "e.g. Stunning silk saree collection and perfect custom blouse alteration."
+                "whatStoodOut": "How was your tech shopping experience?",
+                "pickMatched": "Select your hardware & service highlights",
+                "notePlaceholder": "e.g. Tested mechanical keyboards at the workstation and got clear expert advice."
             }
         }
     },
@@ -719,17 +719,17 @@ CANONICAL_30_TEMPLATES = [
     # 4. HEALTHCARE & MEDICAL (H01–H05 - Quarantined Preview-Only)
     # ══════════════════════════════════════════════════════════════
     {
-        "id": "clinic_general_care",
+        "id": "clinic_multi_specialty",
         "industry_id": "ind_clinic",
-        "name": "General Care Clinic",
-        "slug": "clinic_general_care",
-        "description": "Professional, trust-inspiring medical consultation center with clean clinical slate and hygienic card styling.",
+        "name": "Multi-Specialty Care Center",
+        "slug": "clinic_multi_specialty",
+        "description": "Preview-only clinical care center with hygienic card styling and mandatory neutral Patient Privacy Notice.",
         "version": "1.0.0",
         "status": "draft",
         "pub_status": "draft",
         "config": {
             "theme": {
-                "variant": "clinic_general_care",
+                "variant": "clinic_multi_specialty",
                 "primaryAccent": "#0284C7",
                 "secondaryAccent": "#0EA5E9",
                 "backgroundColor": "#F0F9FF",
@@ -803,17 +803,17 @@ CANONICAL_30_TEMPLATES = [
         }
     },
     {
-        "id": "clinic_pediatric_care",
+        "id": "clinic_wellness_preventive",
         "industry_id": "ind_clinic",
-        "name": "Pediatric & Family Care",
-        "slug": "clinic_pediatric_care",
-        "description": "Child-friendly pediatric clinic with cheerful pastel colors, playful animal icons, and gentle supportive atmosphere.",
+        "name": "Preventive Health & Longevity Center",
+        "slug": "clinic_wellness_preventive",
+        "description": "Preview-only preventive care sanctuary with gentle palette and mandatory neutral Patient Privacy Notice.",
         "version": "1.0.0",
         "status": "draft",
         "pub_status": "draft",
         "config": {
             "theme": {
-                "variant": "clinic_pediatric_care",
+                "variant": "clinic_wellness_preventive",
                 "primaryAccent": "#F59E0B",
                 "secondaryAccent": "#10B981",
                 "backgroundColor": "#FEFCE8",
@@ -933,17 +933,17 @@ CANONICAL_30_TEMPLATES = [
     # 5. HOTELS & HOSPITALITY (T01–T05)
     # ══════════════════════════════════════════════════════════════
     {
-        "id": "hotel_luxury_resort",
+        "id": "hotel_heritage_resort",
         "industry_id": "ind_hotel",
-        "name": "Luxury Resort",
-        "slug": "hotel_luxury_resort",
-        "description": "Elite destination resort and private villas with champagne accents, panoramic pool views, and VIP concierge styling.",
+        "name": "Heritage Palace & Grand Resort",
+        "slug": "hotel_heritage_resort",
+        "description": "Elite heritage palace resort with royal champagne accents, panoramic courtyard views, and concierge styling.",
         "version": "1.0.0",
         "status": "active",
         "pub_status": "published",
         "config": {
             "theme": {
-                "variant": "hotel_luxury_resort",
+                "variant": "hotel_heritage_resort",
                 "primaryAccent": "#D4AF37",
                 "secondaryAccent": "#38BDF8",
                 "backgroundColor": "#030712",
@@ -1019,17 +1019,17 @@ CANONICAL_30_TEMPLATES = [
         }
     },
     {
-        "id": "hotel_boutique_heritage",
+        "id": "hotel_urban_boutique",
         "industry_id": "ind_hotel",
-        "name": "Boutique & Heritage Inn",
-        "slug": "hotel_boutique_heritage",
-        "description": "Storied heritage haveli and artisan boutique inn with ornate arches, vintage brass keys, and cultural storytelling layout.",
+        "name": "Urban Boutique & Design Hotel",
+        "slug": "hotel_urban_boutique",
+        "description": "Design-forward urban boutique hotel with architectural framing and curated hospitality cues.",
         "version": "1.0.0",
         "status": "active",
         "pub_status": "published",
         "config": {
             "theme": {
-                "variant": "hotel_boutique_heritage",
+                "variant": "hotel_urban_boutique",
                 "primaryAccent": "#B45309",
                 "secondaryAccent": "#78350F",
                 "backgroundColor": "#FFFBEB",
@@ -1061,17 +1061,17 @@ CANONICAL_30_TEMPLATES = [
         }
     },
     {
-        "id": "hotel_budget_transit",
+        "id": "hotel_cozy_inn",
         "industry_id": "ind_hotel",
-        "name": "Budget & Transit Stay",
-        "slug": "hotel_budget_transit",
-        "description": "Smart, hassle-free airport and transit lodge prioritizing squeaky-clean linen, power showers, and instant contactless check-in.",
+        "name": "Cozy Cottage & Boutique Inn",
+        "slug": "hotel_cozy_inn",
+        "description": "Warm boutique inn with spotless bedding, heartfelt hospitality, and cottage comforts.",
         "version": "1.0.0",
         "status": "active",
         "pub_status": "published",
         "config": {
             "theme": {
-                "variant": "hotel_budget_transit",
+                "variant": "hotel_cozy_inn",
                 "primaryAccent": "#2563EB",
                 "secondaryAccent": "#3B82F6",
                 "backgroundColor": "#F8FAFC",
@@ -1103,17 +1103,17 @@ CANONICAL_30_TEMPLATES = [
         }
     },
     {
-        "id": "hotel_eco_lodge",
+        "id": "hotel_eco_retreat",
         "industry_id": "ind_hotel",
-        "name": "Homestay & Eco-Lodge",
-        "slug": "hotel_eco_lodge",
+        "name": "Eco-Resort & Nature Sanctuary",
+        "slug": "hotel_eco_retreat",
         "description": "Earthy nature retreat and farmstay with forest canopy textures, solar-powered warmth, and homegrown farm-to-table breakfast.",
         "version": "1.0.0",
         "status": "active",
         "pub_status": "published",
         "config": {
             "theme": {
-                "variant": "hotel_eco_lodge",
+                "variant": "hotel_eco_retreat",
                 "primaryAccent": "#15803D",
                 "secondaryAccent": "#65A30D",
                 "backgroundColor": "#F0FDF4",
@@ -1235,17 +1235,17 @@ CANONICAL_30_TEMPLATES = [
         }
     },
     {
-        "id": "fitness_crossfit_box",
+        "id": "fitness_modern_club",
         "industry_id": "ind_fitness",
-        "name": "CrossFit & Performance Box",
-        "slug": "fitness_crossfit_box",
-        "description": "High-intensity functional fitness arena with rugged rubber gym flooring, digital interval timers, and community high-fives.",
+        "name": "Modern Athletic & Luxury Club",
+        "slug": "fitness_modern_club",
+        "description": "Luxury athletic performance club with sleek architectural surfaces, studio classes, and recovery lounge highlights.",
         "version": "1.0.0",
         "status": "active",
         "pub_status": "published",
         "config": {
             "theme": {
-                "variant": "fitness_crossfit_box",
+                "variant": "fitness_modern_club",
                 "primaryAccent": "#F97316",
                 "secondaryAccent": "#EAB308",
                 "backgroundColor": "#0F172A",
@@ -1278,17 +1278,17 @@ CANONICAL_30_TEMPLATES = [
         }
     },
     {
-        "id": "fitness_personal_training",
+        "id": "fitness_combat_ring",
         "industry_id": "ind_fitness",
-        "name": "Personal Training Studio",
-        "slug": "fitness_personal_training",
-        "description": "Exclusive private 1-on-1 coaching suite focusing on tailored biometric metrics, dedicated trainers, and private workout pods.",
+        "name": "Boxing, MMA & Combat Arena",
+        "slug": "fitness_combat_ring",
+        "description": "High-octane boxing and combat training gym with intense ring contrast, round-bell badges, and coach focus.",
         "version": "1.0.0",
         "status": "active",
         "pub_status": "published",
         "config": {
             "theme": {
-                "variant": "fitness_personal_training",
+                "variant": "fitness_combat_ring",
                 "primaryAccent": "#3B82F6",
                 "secondaryAccent": "#60A5FA",
                 "backgroundColor": "#F8FAFC",
@@ -1321,17 +1321,17 @@ CANONICAL_30_TEMPLATES = [
         }
     },
     {
-        "id": "fitness_dance_pilates",
+        "id": "fitness_athletic_turf",
         "industry_id": "ind_fitness",
-        "name": "Dance, Pilates & Movement Studio",
-        "slug": "fitness_dance_pilates",
-        "description": "Boutique reformer Pilates and rhythm dance hall with light maple floors, mirrored wall reflections, and posture alignment grids.",
+        "name": "Athletic Track, CrossFit & Outdoor Turf",
+        "slug": "fitness_athletic_turf",
+        "description": "Sprint turf and conditioning arena with bold field lines, agility metrics, and dynamic coaching feedback.",
         "version": "1.0.0",
         "status": "active",
         "pub_status": "published",
         "config": {
             "theme": {
-                "variant": "fitness_dance_pilates",
+                "variant": "fitness_athletic_turf",
                 "primaryAccent": "#EC4899",
                 "secondaryAccent": "#F472B6",
                 "backgroundColor": "#FDF2F8",
@@ -1433,6 +1433,7 @@ def migrate_30_templates(db_path: Path):
     return True
 
 if __name__ == "__main__":
-    target = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(r"D:\Review\Review AI\staging_data\reviews_staging.sqlite3")
+    repo_root = Path(__file__).resolve().parent.parent
+    target = Path(sys.argv[1]) if len(sys.argv) > 1 else (repo_root / "Project_Files" / "Data" / "nasta-ghar" / "reviews_staging.sqlite3")
     success = migrate_30_templates(target)
     sys.exit(0 if success else 1)

@@ -173,7 +173,19 @@ def test_legacy_nasta_ghar_compatibility_isolation():
         assert res_test.status_code == 200
         cfg_test = res_test.json()
         assert cfg_test.get("compatibility_flags") is None
+        assert cfg_test["industry"]["slug"] == "fitness"
         assert "ChIJZeK7NwDLWTkR1pOxt51jLro" not in cfg_test.get("googleReviewUrl", "")
     finally:
         with store._connect() as db:
             db.execute("DELETE FROM tenants WHERE id = 'tenant_distinct_test'")
+
+
+def test_no_template_renders_bare_rating_label_object():
+    """Guard against React Error #31 by ensuring {ratingLabel} is never rendered directly as a raw child."""
+    import re
+    for item in EXPECTED_30_TEMPLATES:
+        file_path = TEMPLATES_DIR / item["file"]
+        content = file_path.read_text(encoding="utf-8")
+        assert not re.search(r">\s*\{ratingLabel\}\s*<", content), (
+            f"{item['file']} renders bare {{ratingLabel}} object directly inside JSX"
+        )

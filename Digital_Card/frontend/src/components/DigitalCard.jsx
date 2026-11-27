@@ -40,6 +40,7 @@ export default function DigitalCard({
   onOpenEditor = null,
 }) {
   const [cardData, setCardData] = useState(previewData);
+  const [cardError, setCardError] = useState('');
   const [isLoading, setIsLoading] = useState(!previewData);
   const [toastMessage, setToastMessage] = useState('');
   const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
@@ -64,12 +65,14 @@ export default function DigitalCard({
   useEffect(() => {
     if (previewData) {
       setCardData(previewData);
+      setCardError('');
       setIsLoading(false);
       return;
     }
 
     let active = true;
     setIsLoading(true);
+    setCardError('');
 
     apiFetch(`/api/businesses/${encodeURIComponent(businessId)}/card`)
       .then(async (res) => {
@@ -78,38 +81,27 @@ export default function DigitalCard({
           const data = await res.json();
           setCardData(data);
         } else {
-          setCardData({
-            business_name: 'Nasta Ghar',
-            display_name: 'Nasta Ghar',
-            tagline: 'Authentic Gujarati Breakfast & Special Chai',
-            category: 'Breakfast & Snacks',
-            opening_hours: 'Mon – Sun: 7:00 AM – 10:00 PM',
-            welcome_message: 'Authentic homestyle Gujarati breakfast, fresh kathiyawadi snacks, and special kadak masala chai in Rajkot.',
-            phone_number: '+91 98765 43210',
-            address: 'Near Jubilee Garden, Rajkot, Gujarat 360001',
-            website_url: 'https://maps.google.com',
-            whatsapp_url: 'https://wa.me/919876543210',
-            primary_accent: '#f97316',
-            documents: [{ id: 'menu_1', display_name: 'Breakfast Menu', file_size_bytes: 87040 }]
-          });
+          let detail = '';
+          try {
+            const errJson = await res.json();
+            detail = errJson?.detail || '';
+          } catch {
+            detail = '';
+          }
+          setCardData(null);
+          if (res.status === 403) {
+            setCardError(detail || 'Digital Business Card is not enabled for this business.');
+          } else if (res.status === 404) {
+            setCardError(detail || 'Business digital card not found.');
+          } else {
+            setCardError(detail || 'Unable to load digital business card right now.');
+          }
         }
       })
       .catch(() => {
         if (!active) return;
-        setCardData({
-          business_name: 'Nasta Ghar',
-          display_name: 'Nasta Ghar',
-          tagline: 'Authentic Gujarati Breakfast & Special Chai',
-          category: 'Breakfast & Snacks',
-          opening_hours: 'Mon – Sun: 7:00 AM – 10:00 PM',
-          welcome_message: 'Authentic homestyle Gujarati breakfast, fresh kathiyawadi snacks, and special kadak masala chai in Rajkot.',
-          phone_number: '+91 98765 43210',
-          address: 'Near Jubilee Garden, Rajkot, Gujarat 360001',
-          website_url: 'https://maps.google.com',
-          whatsapp_url: 'https://wa.me/919876543210',
-          primary_accent: '#f97316',
-          documents: [{ id: 'menu_1', display_name: 'Breakfast Menu', file_size_bytes: 87040 }]
-        });
+        setCardData(null);
+        setCardError('Unable to reach server to load this digital business card.');
       })
       .finally(() => {
         if (active) setIsLoading(false);
@@ -153,9 +145,40 @@ export default function DigitalCard({
     );
   }
 
-  const primaryDoc = cardData?.documents?.[0];
+  if (cardError || !cardData) {
+    return (
+      <div className="vcard-redesign-viewport" style={{ justifyContent: 'center', padding: '24px' }}>
+        <main className="vcard-redesign-shell" aria-label="Digital Business Card Unavailable" style={{ maxWidth: '420px', textAlign: 'center', padding: '32px 24px', background: '#0f172a', color: '#f8fafc', borderRadius: '20px', border: '1px solid rgba(148,163,184,0.2)' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🪪</div>
+          <h1 style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0 0 8px' }}>Digital Card Unavailable</h1>
+          <p style={{ fontSize: '0.92rem', color: '#94a3b8', margin: '0 0 20px', lineHeight: 1.5 }}>
+            {cardError || 'This business digital card could not be loaded.'}
+          </p>
+          {onOpenEditor && (
+            <button
+              type="button"
+              onClick={onOpenEditor}
+              className="vcard-footer-editor-link"
+            >
+              Owner Studio ⚙️
+            </button>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  const docs = Array.isArray(cardData?.documents) ? cardData.documents : [];
+  const primaryDoc = docs[0];
   const coverImage = cardData?.cover_image_path || '/restaurant/scene-phone.webp';
-  const bizTitle = cardData?.display_name || cardData?.business_name || 'Nasta Ghar';
+  const bizTitle = cardData?.display_name || cardData?.business_name || businessId;
+  const fallbackInitials = bizTitle
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'VC';
 
   return (
     <div className="vcard-redesign-viewport">
@@ -188,27 +211,24 @@ export default function DigitalCard({
           {/* Avatar / Company Logo */}
           <div className="vcard-avatar-wrap">
             <div className="vcard-avatar-inner">
-              <img
-                src={cardData?.logo_path || '/restaurant/nasta-ghar-logo.svg'}
-                alt={bizTitle}
-                className="vcard-avatar-img"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  if (e.currentTarget.nextSibling) {
-                    e.currentTarget.nextSibling.style.display = 'flex';
-                  }
-                }}
-              />
+              {cardData?.logo_path ? (
+                <img
+                  src={cardData.logo_path}
+                  alt={bizTitle}
+                  className="vcard-avatar-img"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextSibling) {
+                      e.currentTarget.nextSibling.style.display = 'flex';
+                    }
+                  }}
+                />
+              ) : null}
               <div
                 className="vcard-avatar-fallback"
-                style={{ display: 'none' }}
+                style={{ display: cardData?.logo_path ? 'none' : 'flex' }}
               >
-                {bizTitle
-                  .split(' ')
-                  .map((w) => w[0])
-                  .slice(0, 2)
-                  .join('')
-                  .toUpperCase()}
+                {fallbackInitials}
               </div>
             </div>
           </div>
@@ -226,9 +246,11 @@ export default function DigitalCard({
           )}
 
           {/* Introduction / Welcome text */}
-          <p className="vcard-intro-text">
-            {cardData?.welcome_message || cardData?.tagline || 'Authentic homestyle Gujarati breakfast, fresh snacks, and special kadak chai.'}
-          </p>
+          {(cardData?.welcome_message || cardData?.tagline) && (
+            <p className="vcard-intro-text">
+              {cardData?.welcome_message || cardData?.tagline}
+            </p>
+          )}
 
           {/* Operating Hours */}
           {cardData?.opening_hours && (
@@ -312,25 +334,27 @@ export default function DigitalCard({
 
             <div className="vcard-actions-grid">
 
-              {/* ACTION A: VIEW MENU */}
-              <button
-                type="button"
-                onClick={() => setIsMenuModalOpen(true)}
-                className="vcard-action-tile"
-                aria-label="View menu document"
-              >
-                <div className="vcard-action-icon-circle menu">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                  </svg>
-                </div>
-                <h2 className="vcard-action-title">View Menu</h2>
-                <p className="vcard-action-subtitle">
-                  {primaryDoc ? `${primaryDoc.display_name} (PDF)` : 'Breakfast Menu (PDF)'}
-                </p>
-                <span className="vcard-action-badge orange">Open PDF ↗</span>
-              </button>
+              {/* ACTION A: VIEW DOCUMENTS / MENU */}
+              {docs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsMenuModalOpen(true)}
+                  className="vcard-action-tile"
+                  aria-label="View business documents"
+                >
+                  <div className="vcard-action-icon-circle menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                    </svg>
+                  </div>
+                  <h2 className="vcard-action-title">Documents & Menu</h2>
+                  <p className="vcard-action-subtitle">
+                    {primaryDoc?.display_name || 'Document (PDF)'}
+                  </p>
+                  <span className="vcard-action-badge orange">Open PDF ↗</span>
+                </button>
+              )}
 
               {/* ACTION B: SAVE CONTACT */}
               <button
@@ -353,41 +377,45 @@ export default function DigitalCard({
               </button>
 
               {/* ACTION C: CALL US */}
-              <a
-                href={cardData?.phone_number ? `tel:${cardData.phone_number}` : '#'}
-                onClick={() => showToast(`Dialing ${cardData?.phone_number || 'business'}...`)}
-                className="vcard-action-tile"
-                aria-label={`Call ${cardData?.phone_number || 'business'}`}
-              >
-                <div className="vcard-action-icon-circle call">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                  </svg>
-                </div>
-                <h2 className="vcard-action-title">Call Us</h2>
-                <p className="vcard-action-subtitle">{cardData?.phone_number || '+91 98765 43210'}</p>
-                <span className="vcard-action-badge sky">Direct Call 📞</span>
-              </a>
+              {cardData?.phone_number && (
+                <a
+                  href={`tel:${cardData.phone_number}`}
+                  onClick={() => showToast(`Dialing ${cardData.phone_number}...`)}
+                  className="vcard-action-tile"
+                  aria-label={`Call ${cardData.phone_number}`}
+                >
+                  <div className="vcard-action-icon-circle call">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                    </svg>
+                  </div>
+                  <h2 className="vcard-action-title">Call Us</h2>
+                  <p className="vcard-action-subtitle">{cardData.phone_number}</p>
+                  <span className="vcard-action-badge sky">Direct Call 📞</span>
+                </a>
+              )}
 
               {/* ACTION D: WHATSAPP */}
-              <a
-                href={cardData?.whatsapp_url || 'https://wa.me/919876543210'}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => showToast('Opening WhatsApp Chat...')}
-                className="vcard-action-tile"
-                aria-label="Chat on WhatsApp"
-              >
-                <div className="vcard-action-icon-circle whatsapp">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
-                    <path d="M12.031 0C5.394 0 0 5.394 0 12.031c0 2.122.553 4.195 1.603 6.016L.062 24l6.166-1.617c1.76.96 3.754 1.467 5.803 1.467 6.637 0 12.031-5.394 12.031-12.031S18.668 0 12.031 0zm0 21.848c-1.8 0-3.565-.484-5.105-1.399l-.366-.217-3.791.994 1.012-3.696-.238-.379c-1.006-1.6-1.537-3.463-1.537-5.37 0-5.518 4.488-10.006 10.025-10.006 5.518 0 10.006 4.488 10.006 10.006 0 5.536-4.488 10.067-10.006 10.067z" />
-                    <path d="M17.473 14.382c-.301-.15-1.782-.88-2.058-.98-.276-.1-.476-.15-.677.15-.201.3-.777.98-.953 1.18-.175.2-.351.226-.652.075-.301-.15-1.272-.469-2.423-1.496-.895-.798-1.5-1.784-1.676-2.085-.175-.301-.019-.464.132-.614.136-.135.301-.351.451-.527.151-.175.201-.301.301-.501.1-.201.05-.376-.025-.527-.075-.15-.677-1.631-.928-2.233-.244-.587-.493-.507-.677-.517-.175-.01-.376-.01-.577-.01s-.527.075-.803.376c-.276.3-1.053 1.029-1.053 2.509s1.079 2.91 1.229 3.11c.15.201 2.122 3.24 5.141 4.544.718.311 1.279.497 1.716.636.721.23 1.377.197 1.895.12.577-.086 1.782-.728 2.033-1.431.251-.703.251-1.305.176-1.431-.076-.126-.276-.201-.577-.351z" fill="#ffffff" />
-                  </svg>
-                </div>
-                <h2 className="vcard-action-title">WhatsApp</h2>
-                <p className="vcard-action-subtitle">Chat with us</p>
-                <span className="vcard-action-badge green">Instant Chat 💬</span>
-              </a>
+              {cardData?.whatsapp_url && (
+                <a
+                  href={cardData.whatsapp_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => showToast('Opening WhatsApp Chat...')}
+                  className="vcard-action-tile"
+                  aria-label="Chat on WhatsApp"
+                >
+                  <div className="vcard-action-icon-circle whatsapp">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
+                      <path d="M12.031 0C5.394 0 0 5.394 0 12.031c0 2.122.553 4.195 1.603 6.016L.062 24l6.166-1.617c1.76.96 3.754 1.467 5.803 1.467 6.637 0 12.031-5.394 12.031-12.031S18.668 0 12.031 0zm0 21.848c-1.8 0-3.565-.484-5.105-1.399l-.366-.217-3.791.994 1.012-3.696-.238-.379c-1.006-1.6-1.537-3.463-1.537-5.37 0-5.518 4.488-10.006 10.025-10.006 5.518 0 10.006 4.488 10.006 10.006 0 5.536-4.488 10.067-10.006 10.067z" />
+                      <path d="M17.473 14.382c-.301-.15-1.782-.88-2.058-.98-.276-.1-.476-.15-.677.15-.201.3-.777.98-.953 1.18-.175.2-.351.226-.652.075-.301-.15-1.272-.469-2.423-1.496-.895-.798-1.5-1.784-1.676-2.085-.175-.301-.019-.464.132-.614.136-.135.301-.351.451-.527.151-.175.201-.301.301-.501.1-.201.05-.376-.025-.527-.075-.15-.677-1.631-.928-2.233-.244-.587-.493-.507-.677-.517-.175-.01-.376-.01-.577-.01s-.527.075-.803.376c-.276.3-1.053 1.029-1.053 2.509s1.079 2.91 1.229 3.11c.15.201 2.122 3.24 5.141 4.544.718.311 1.279.497 1.716.636.721.23 1.377.197 1.895.12.577-.086 1.782-.728 2.033-1.431.251-.703.251-1.305.176-1.431-.076-.126-.276-.201-.577-.351z" fill="#ffffff" />
+                    </svg>
+                  </div>
+                  <h2 className="vcard-action-title">WhatsApp</h2>
+                  <p className="vcard-action-subtitle">Chat with us</p>
+                  <span className="vcard-action-badge green">Instant Chat 💬</span>
+                </a>
+              )}
             </div>
 
             {/* PRODUCT A GOOGLE REVIEW BUTTON */}
@@ -406,44 +434,45 @@ export default function DigitalCard({
           </section>
 
           {/* 4. FIND US SECTION */}
-          <section className="vcard-section-location" aria-label="Location and Directions">
-            <div className="vcard-section-title">
-              <span>Find Us</span>
-            </div>
-
-            <div className="vcard-find-us-card">
-              <div className="vcard-location-row">
-                <div className="vcard-location-pin" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                </div>
-                <div className="vcard-location-details">
-                  <p className="vcard-address-main">
-                    {cardData?.address || 'Near Jubilee Garden, Rajkot'}
-                  </p>
-                  <p className="vcard-address-sub">
-                    Gujarat 360001, India
-                  </p>
-                </div>
+          {(cardData?.address || cardData?.map_url) && (
+            <section className="vcard-section-location" aria-label="Location and Directions">
+              <div className="vcard-section-title">
+                <span>Find Us</span>
               </div>
 
-              {/* Get Directions Button */}
-              <a
-                href={cardData?.map_url || `https://maps.google.com/?q=${encodeURIComponent(cardData?.address || 'Nasta Ghar Rajkot')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="vcard-directions-btn"
-                aria-label="Open directions in Google Maps"
-              >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                </svg>
-                <span>Get Directions</span>
-              </a>
-            </div>
-          </section>
+              <div className="vcard-find-us-card">
+                {cardData?.address && (
+                  <div className="vcard-location-row">
+                    <div className="vcard-location-pin" aria-hidden="true">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    </div>
+                    <div className="vcard-location-details">
+                      <p className="vcard-address-main">
+                        {cardData.address}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Get Directions Button */}
+                <a
+                  href={cardData?.map_url || `https://maps.google.com/?q=${encodeURIComponent(cardData?.address || bizTitle)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="vcard-directions-btn"
+                  aria-label="Open directions in Google Maps"
+                >
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                  </svg>
+                  <span>Get Directions</span>
+                </a>
+              </div>
+            </section>
+          )}
 
         </div>
 
@@ -495,25 +524,24 @@ export default function DigitalCard({
             </div>
 
             <div className="vcard-modal-body">
-              <div className="vcard-menu-item-row">
-                <span>Khaman Dhokla (Regular / Nylon)</span>
-                <span>₹40</span>
-              </div>
-              <div className="vcard-menu-item-row">
-                <span>Fafda Jalebi Combo</span>
-                <span>₹80</span>
-              </div>
-              <div className="vcard-menu-item-row">
-                <span>Special Kathiyawadi Kadak Chai</span>
-                <span>₹20</span>
-              </div>
-              <div className="vcard-menu-item-row">
-                <span>Thepla with Chhundo & Pickle</span>
-                <span>₹50</span>
-              </div>
-              <p style={{ textAlign: 'center', fontSize: '11px', color: '#64748b', margin: '4px 0 0' }}>
-                Live menu from backend document storage
-              </p>
+              {docs.length > 0 ? (
+                docs.map((doc) => (
+                  <div key={doc.id || doc.display_name} className="vcard-menu-item-row">
+                    <span>{doc.display_name || doc.original_filename || 'Document'}</span>
+                    {doc.download_url ? (
+                      <a href={doc.download_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>
+                        Open PDF ↗
+                      </a>
+                    ) : (
+                      <span>{doc.document_type || 'PDF'}</span>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p style={{ textAlign: 'center', fontSize: '13px', color: '#64748b', margin: '8px 0' }}>
+                  No documents published yet.
+                </p>
+              )}
             </div>
 
             <div className="vcard-modal-actions">

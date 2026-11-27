@@ -61,6 +61,10 @@
   background-repeat: no-repeat;
   color: #ffffff;
   padding: 28px 20px 24px;
+  margin-bottom: 0;
+  animation: none;
+  transform: none;
+  opacity: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -155,10 +159,15 @@
 }
 
 /* Business Title */
-.vcard-biz-title {
+.vcard-biz-title,
+header.vcard-redesign-header h1.vcard-biz-title {
   font-size: clamp(20px, 5.2vw, 24px);
   font-weight: 800;
   color: #ffffff;
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: #ffffff;
   letter-spacing: -0.3px;
   margin: 0 0 6px;
   line-height: 1.22;
@@ -1229,6 +1238,147 @@
   .vcard-redesign-footer {
     padding: 20px 36px 24px;
   }
+}
+
+/* Force mobile phone layout inside the fixed-width editor preview shells */
+.preview-device-shell .vcard-redesign-viewport,
+.editor-preview-modal-body .vcard-redesign-viewport {
+  min-height: 100%;
+  padding: 0;
+  background: #ffffff;
+  background-image: none;
+}
+
+.preview-device-shell .vcard-redesign-shell,
+.editor-preview-modal-body .vcard-redesign-shell {
+  max-width: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.preview-device-shell .vcard-redesign-header,
+.editor-preview-modal-body .vcard-redesign-header {
+  padding: 24px 16px 20px;
+  min-height: auto;
+  justify-content: flex-start;
+  border-radius: 0 0 20px 20px;
+}
+
+.preview-device-shell .vcard-avatar-wrap,
+.editor-preview-modal-body .vcard-avatar-wrap {
+  width: 76px;
+  height: 76px;
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+
+.preview-device-shell .vcard-biz-title,
+.preview-device-shell header.vcard-redesign-header h1.vcard-biz-title,
+.editor-preview-modal-body .vcard-biz-title,
+.editor-preview-modal-body header.vcard-redesign-header h1.vcard-biz-title {
+  font-size: 21px;
+}
+
+.preview-device-shell .vcard-category-badge,
+.editor-preview-modal-body .vcard-category-badge {
+  font-size: 10.5px;
+  padding: 3px 10px;
+  margin-bottom: 8px;
+}
+
+.preview-device-shell .vcard-intro-text,
+.editor-preview-modal-body .vcard-intro-text {
+  font-size: 12.5px;
+  max-width: 100%;
+}
+
+.preview-device-shell .vcard-content-body,
+.editor-preview-modal-body .vcard-content-body {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 14px 20px;
+  gap: 18px;
+}
+
+.preview-device-shell .vcard-actions-grid,
+.editor-preview-modal-body .vcard-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.preview-device-shell .vcard-action-tile,
+.editor-preview-modal-body .vcard-action-tile {
+  padding: 14px 12px 12px;
+  min-height: 112px;
+  border-radius: 16px;
+}
+
+.preview-device-shell .vcard-action-icon-circle,
+.editor-preview-modal-body .vcard-action-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.preview-device-shell .vcard-action-title,
+.editor-preview-modal-body .vcard-action-title {
+  font-size: 13.5px;
+}
+
+.preview-device-shell .vcard-action-subtitle,
+.editor-preview-modal-body .vcard-action-subtitle {
+  font-size: 11px;
+}
+
+.preview-device-shell .vcard-action-badge,
+.editor-preview-modal-body .vcard-action-badge {
+  font-size: 10px;
+  padding: 3px 7px;
+  margin-top: 8px;
+}
+
+.preview-device-shell .vcard-social-grid,
+.editor-preview-modal-body .vcard-social-grid {
+  gap: 8px;
+  flex: initial;
+}
+
+.preview-device-shell .vcard-social-tile,
+.editor-preview-modal-body .vcard-social-tile {
+  padding: 12px 6px 10px;
+  border-radius: 14px;
+}
+
+.preview-device-shell .vcard-social-icon-box,
+.editor-preview-modal-body .vcard-social-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  margin-bottom: 6px;
+}
+
+.preview-device-shell .vcard-social-label,
+.editor-preview-modal-body .vcard-social-label {
+  font-size: 11.5px;
+}
+
+.preview-device-shell .vcard-find-us-card,
+.editor-preview-modal-body .vcard-find-us-card {
+  padding: 14px;
+  border-radius: 16px;
+}
+
+.preview-device-shell .vcard-directions-btn,
+.editor-preview-modal-body .vcard-directions-btn {
+  padding: 11px 16px;
+  font-size: 13px;
+}
+
+.preview-device-shell .vcard-redesign-footer,
+.editor-preview-modal-body .vcard-redesign-footer {
+  padding: 16px 14px 20px;
 }
 
 /* E. Landscape Orientation on Mobile Devices (Short Viewport) */
