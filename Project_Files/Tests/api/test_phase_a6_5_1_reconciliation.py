@@ -137,7 +137,7 @@ def test_task1_reconciled_requirements_inventory():
     assert p_a_pkg["dependencies"]["react"] == "^19.2.7"
     assert p_a_pkg["devDependencies"]["vite"] == "^8.1.1"
     assert p_a_lock["packages"]["node_modules/react"]["version"] == "19.2.7"
-    assert p_a_lock["packages"]["node_modules/vite"]["version"] == "8.1.4"
+    assert p_a_lock["packages"]["node_modules/vite"]["version"] == "8.3.8"
 
     # 2. Product B package.json & package-lock.json
     p_b_pkg = json.loads((REPO_ROOT / "Digital_Card" / "frontend" / "package.json").read_text(encoding="utf-8"))

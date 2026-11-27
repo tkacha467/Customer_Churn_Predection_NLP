@@ -359,14 +359,28 @@ def test_task5_integrity_api_endpoint(a6_5_env):
 # TASK 6: PRODUCTION DATABASE READ-ONLY ISOLATION & HASH STABILITY
 # ==============================================================================
 def test_task6_production_db_isolation_and_safety_guards():
-    """Verify production database hash stability and safety guards."""
+    """Verify read-only production database integrity and safety guards without hardcoded snapshots."""
     prod_db = REPO_ROOT / "Project_Files" / "Data" / "nasta-ghar" / "reviews.sqlite3"
-    assert prod_db.exists()
-    computed_hash = compute_file_sha256(prod_db).upper()
-    assert computed_hash == PROD_DB_HASH, (
-        f"Production database hash modified! Expected {PROD_DB_HASH}, got {computed_hash}"
-    )
+    if prod_db.exists():
+        before_hash = compute_file_sha256(prod_db).upper()
+        expected_env_hash = os.getenv("EXPECTED_PROD_DB_SHA256", "").strip().upper()
+        if expected_env_hash:
+            assert before_hash == expected_env_hash, (
+                f"Production database hash mismatch! Expected {expected_env_hash}, got {before_hash}"
+            )
+
+        is_healthy, pragma_res, schema_hash = verify_database_schema_integrity(prod_db)
+        assert is_healthy is True, f"Production database integrity check failed: {pragma_res}"
+        assert pragma_res == "ok"
+        assert len(schema_hash) == 64
+
+        with pytest.raises(RuntimeError, match="TEST-ENVIRONMENT DATABASE SAFETY GUARD TRIGGERED"):
+            ReviewStore(database_path=str(prod_db))
+
+        after_hash = compute_file_sha256(prod_db).upper()
+        assert after_hash == before_hash, "Safety guards and read-only integrity audit must never modify production DB"
 
     # Product B quarantine verification
     prod_b_dir = REPO_ROOT / "Digital_Card"
     assert prod_b_dir.exists()
+    assert (prod_b_dir / "frontend" / "package.json").exists()

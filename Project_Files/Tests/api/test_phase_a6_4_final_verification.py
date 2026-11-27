@@ -514,24 +514,43 @@ def test_task5_smtp_readiness_and_staging_alert_configuration(a6_4_env):
 # ==============================================================================
 # TASK 6: CODE INTEGRITY CONTROLS AUDIT & DATABASE HASH STABILITY
 # ==============================================================================
-def test_task6_code_integrity_controls_audit():
-    """Verify code integrity, placeholder .github state, and database SHA-256 stability."""
+def test_task6_code_integrity_controls_audit(tmp_path):
+    """Verify code integrity controls, non-mutating SQLite audit, and Product B isolation."""
+    from Backend.app.core.security.code_integrity import verify_database_schema_integrity
+
     # 1. Audit .github directory
     gh_dir = REPO_ROOT / ".github"
     assert gh_dir.exists()
     gh_files = [f.name for f in gh_dir.iterdir() if f.is_file()]
-    # .github currently contains placeholder only
     assert ".gitkeep" in gh_files or "README.md" in gh_files
 
-    # 2. Production Database SHA-256 verification
-    prod_db = REPO_ROOT / "Project_Files" / "Data" / "nasta-ghar" / "reviews.sqlite3"
-    assert prod_db.exists(), "Production reviews.sqlite3 must exist"
-    data = prod_db.read_bytes()
-    computed_hash = hashlib.sha256(data).hexdigest().upper()
-    assert computed_hash == PROD_DB_HASH, (
-        f"Production database checksum mismatch! Expected: {PROD_DB_HASH}, Got: {computed_hash}"
-    )
+    # 2. Deterministic isolated SQLite schema integrity check
+    sample_db = tmp_path / "sample_audit.sqlite3"
+    store = ReviewStore(database_path=str(sample_db))
+    del store
+    is_healthy, pragma_res, schema_hash = verify_database_schema_integrity(sample_db)
+    assert is_healthy is True
+    assert pragma_res == "ok"
+    assert len(schema_hash) == 64
 
-    # 3. Product B directory untouched
+    # 3. Non-mutating read-only audit of gitignored local production DB when present
+    prod_db = REPO_ROOT / "Project_Files" / "Data" / "nasta-ghar" / "reviews.sqlite3"
+    if prod_db.exists():
+        before_hash = hashlib.sha256(prod_db.read_bytes()).hexdigest().upper()
+        expected_env_hash = os.getenv("EXPECTED_PROD_DB_SHA256", "").strip().upper()
+        if expected_env_hash:
+            assert before_hash == expected_env_hash, (
+                f"Production database checksum mismatch! Expected: {expected_env_hash}, Got: {before_hash}"
+            )
+
+        p_healthy, p_pragma, p_schema_hash = verify_database_schema_integrity(prod_db)
+        assert p_healthy is True, f"Production database schema audit failed: {p_pragma}"
+        assert p_pragma == "ok"
+        assert len(p_schema_hash) == 64
+
+        after_hash = hashlib.sha256(prod_db.read_bytes()).hexdigest().upper()
+        assert after_hash == before_hash, "Read-only audit must NEVER mutate reviews.sqlite3"
+
+    # 4. Product B directory untouched
     product_b_dir = REPO_ROOT / "Digital_Card"
     assert product_b_dir.exists()

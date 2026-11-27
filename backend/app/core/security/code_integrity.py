@@ -48,8 +48,8 @@ def generate_release_manifest(
     """
     manifest_files: Dict[str, str] = {}
 
-    # 1. Monitored Backend Source Files
-    backend_dir = repo_root / "Backend"
+    # 1. Monitored Backend Source Files (canonical 'backend/', fallback 'Backend/')
+    backend_dir = repo_root / "backend" if (repo_root / "backend").is_dir() else repo_root / "Backend"
     if backend_dir.exists():
         for p in backend_dir.rglob("*.py"):
             if not any(excluded in p.parts for excluded in EXCLUDED_DIR_NAMES):
@@ -174,7 +174,7 @@ def verify_code_integrity(
             deviations.append(f"ERROR_READING: {rel_path} ({e})")
 
     # 6. Detect unexpected new executable source files in monitored backend root
-    backend_dir = repo_root / "Backend"
+    backend_dir = repo_root / "backend" if (repo_root / "backend").is_dir() else repo_root / "Backend"
     if backend_dir.exists():
         for p in backend_dir.rglob("*.py"):
             if not any(excluded in p.parts for excluded in EXCLUDED_DIR_NAMES):

@@ -209,3 +209,36 @@ def test_staging_login_rejects_dummy_turnstile_sitekeys_without_nameerror(tmp_pa
         )
         assert resp.status_code == 503
         assert "unavailable" in resp.json()["detail"].lower()
+
+
+def test_backend_alias_never_creates_duplicate_singletons():
+    """Verify Backend.* and backend.* imports share identical module singletons in both orders."""
+    import subprocess
+    import sys
+
+    from backend.app.core.auth import auth as b_auth
+    from Backend.app.core.auth import auth as B_auth
+    from backend.app.api import service as b_svc
+    from Backend.app.api import service as B_svc
+    from backend.app.core.security import security_shield as b_shield
+    from Backend.app.core.security import security_shield as B_shield
+
+    assert b_auth._stores is B_auth._stores
+    assert b_svc.review_service is B_svc.review_service
+    assert b_shield is B_shield
+    assert b_auth.__name__ == "backend.app.core.auth.auth"
+
+    # Also verify reverse import order (Backend.* first) in a fresh Python subprocess
+    script = (
+        "from Backend.app.core.auth import auth as B_auth\n"
+        "from backend.app.core.auth import auth as b_auth\n"
+        "from Backend.app.api import service as B_svc\n"
+        "from backend.app.api import service as b_svc\n"
+        "assert B_auth._stores is b_auth._stores\n"
+        "assert B_svc.review_service is b_svc.review_service\n"
+        "assert b_auth.__name__ == 'backend.app.core.auth.auth'\n"
+        "print('SUBPROCESS_SINGLETON_OK')\n"
+    )
+    res = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    assert res.returncode == 0, res.stderr
+    assert "SUBPROCESS_SINGLETON_OK" in res.stdout

@@ -36,6 +36,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install --no-deps --no-build-isolation -e .
+          python -c "import site, pathlib; (pathlib.Path(site.getsitepackages()[0]) / 'vraja_backend_alias.pth').write_text('import backend._compat; backend._compat.install_backend_alias()\n', encoding='utf-8')"
           pip install pytest pytest-cov httpx
 
       - name: Run Pytest Suite with Database Safety Guards
@@ -127,7 +129,7 @@ jobs:
         run: |
           python -c "
           from pathlib import Path
-          from Backend.app.core.security.code_integrity import generate_release_manifest, verify_database_schema_integrity
+          from backend.app.core.security.code_integrity import generate_release_manifest, verify_database_schema_integrity
           
           root = Path('.')
           manifest = generate_release_manifest(release_id='${{ github.sha }}', repo_root=root, include_frontend_dist=False)

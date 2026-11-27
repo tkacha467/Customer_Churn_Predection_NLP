@@ -22,7 +22,7 @@ dependencies = [
 
 [tool.pytest.ini_options]
 testpaths = ["Project_Files/Tests"]
-pythonpath = [".", "Backend", "Project_Files/Scripts"]
+pythonpath = [".", "backend", "Project_Files/Scripts"]
 
 [tool.setuptools.packages.find]
-include = ["Backend*"]
+include = ["backend*"]

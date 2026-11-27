@@ -34,7 +34,8 @@ def staging_gate_env(tmp_path, monkeypatch):
     monkeypatch.setenv("OWNER_SESSION_SECRET", "staging-gate-owner-secret-at-least-32-characters!")
     monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:6379/0")
     monkeypatch.setenv("TURNSTILE_SITE_KEY", "0x4AAAAAAAStagingNonDummySiteKey123456")
-    monkeypatch.setenv("TURNSTILE_ENABLED", "false")
+    monkeypatch.setenv("TURNSTILE_SECRET_KEY", "staging-turnstile-secret-key-not-used-unless-stepup")
+    monkeypatch.setenv("TURNSTILE_ENABLED", "true")
     monkeypatch.setenv("TRUSTED_PROXIES", "127.0.0.1")
 
     # Simulate pre-migrated authoritative staging schema before booting in staging mode
