@@ -93,6 +93,7 @@ def is_safe_google_review_url(url: Optional[str]) -> bool:
 
 SOURCE_CONFIG_FILE = Path(__file__).parent / "business_links.json"
 CONFIG_FILE = Path(os.getenv("BUSINESS_LINKS_PATH", str(SOURCE_CONFIG_FILE))).expanduser()
+_INITIAL_CONFIG_FILE = CONFIG_FILE
 
 DEFAULT_TOPICS = [
     "Breakfast",
@@ -170,8 +171,20 @@ class GoogleReviewManager:
         self._last_cache_key = (0, 0)
         self._load_links()
 
+    def _get_config_file(self) -> Path:
+        override = getattr(self, "_file_path", None)
+        if override:
+            return Path(override).expanduser()
+        if CONFIG_FILE != _INITIAL_CONFIG_FILE:
+            return CONFIG_FILE
+        env_path = os.getenv("BUSINESS_LINKS_PATH", "").strip()
+        if env_path:
+            return Path(env_path).expanduser()
+        return CONFIG_FILE
+
     def _refresh_if_needed(self):
-        source = CONFIG_FILE if CONFIG_FILE.exists() else SOURCE_CONFIG_FILE
+        cfg_file = self._get_config_file()
+        source = cfg_file if cfg_file.exists() else SOURCE_CONFIG_FILE
         if source.exists():
             try:
                 st = source.stat()
@@ -189,7 +202,8 @@ class GoogleReviewManager:
 
     def _load_links(self):
         with self._lock:
-            source = CONFIG_FILE if CONFIG_FILE.exists() else SOURCE_CONFIG_FILE
+            cfg_file = self._get_config_file()
+            source = cfg_file if cfg_file.exists() else SOURCE_CONFIG_FILE
             if source.exists():
                 try:
                     st = source.stat()
@@ -216,14 +230,15 @@ class GoogleReviewManager:
 
     def _save_links(self):
         try:
-            CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-            temporary = CONFIG_FILE.with_name(
-                f"{CONFIG_FILE.name}.{os.getpid()}.{threading.get_ident()}.{id(self)}.tmp"
+            cfg_file = self._get_config_file()
+            cfg_file.parent.mkdir(parents=True, exist_ok=True)
+            temporary = cfg_file.with_name(
+                f"{cfg_file.name}.{os.getpid()}.{threading.get_ident()}.{id(self)}.tmp"
             )
             with open(temporary, "w", encoding="utf-8") as f:
                 json.dump(self._links, f, indent=2)
-            temporary.replace(CONFIG_FILE)
-            st = CONFIG_FILE.stat()
+            temporary.replace(cfg_file)
+            st = cfg_file.stat()
             self._last_cache_key = (st.st_mtime_ns, st.st_size)
         except Exception as e:
             raise RuntimeError("Could not persist restaurant configuration") from e

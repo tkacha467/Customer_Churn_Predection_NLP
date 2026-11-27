@@ -26,12 +26,28 @@ def staging_gate_env(tmp_path, monkeypatch):
 
     monkeypatch.setenv("REVIEW_DB_PATH", str(stag_rev))
     monkeypatch.setenv("SECURITY_DB_PATH", str(stag_sec))
-    monkeypatch.setenv("ENVIRONMENT", "staging")
     monkeypatch.setenv("MOCK_EMAIL_TRANSPORT", "true")
     monkeypatch.setenv("PAUSE_INCIDENT_DISPATCH", "true")
     monkeypatch.setenv("ALLOW_LIVE_SMTP_TEST", "false")
     monkeypatch.setenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+    monkeypatch.setenv("SECURITY_HMAC_SECRET", "staging-gate-hmac-secret-at-least-32-characters!!")
+    monkeypatch.setenv("OWNER_SESSION_SECRET", "staging-gate-owner-secret-at-least-32-characters!")
+    monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+    monkeypatch.setenv("TURNSTILE_SITE_KEY", "0x4AAAAAAAStagingNonDummySiteKey123456")
+    monkeypatch.setenv("TURNSTILE_ENABLED", "false")
+    monkeypatch.setenv("TRUSTED_PROXIES", "127.0.0.1")
 
+    # Simulate pre-migrated authoritative staging schema before booting in staging mode
+    monkeypatch.setenv("ENVIRONMENT", "test")
+    from Backend.app.core.auth.auth import _stores
+    from Backend.app.core.auth.security_store import reset_redis_client
+    reset_redis_client()
+    _stores.clear()
+    _seed_store = ReviewStore(str(stag_rev))
+    del _seed_store
+
+    monkeypatch.setenv("ENVIRONMENT", "staging")
+    _stores.clear()
     rev_store = ReviewStore(str(stag_rev))
     sec_store = SecurityStore(str(stag_sec))
     now = time.time()

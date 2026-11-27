@@ -85,6 +85,9 @@ class BusinessReviewLinkResponse(BaseModel):
     entitlements: List[str] = Field(default_factory=lambda: ["review_manager", "digital_card"])
     logo_path: Optional[str] = ""
     terminology: Optional[TerminologySchema] = None
+    touchpoint_label: Optional[str] = None
+    touchpoint_placeholder: Optional[str] = None
+    allow_ai_ideas: bool = True
 
 class BusinessConfigUpdateRequest(BaseModel):
     business_name: Optional[str] = None

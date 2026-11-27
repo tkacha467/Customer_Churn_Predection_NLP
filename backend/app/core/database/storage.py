@@ -55,9 +55,28 @@ class ReviewStore:
             _repo_root / "data" / "nasta-ghar" / "reviews.sqlite3",
         ]
         default_path = next((p for p in _candidate_dbs if p.exists()), _candidate_dbs[0])
-        self.path = Path(database_path or os.getenv("REVIEW_DB_PATH", str(default_path))).expanduser()
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        _default_security_db = _repo_root / "Project_Files" / "Data" / "security_shield.sqlite3"
+        _protected_dbs = {p.resolve() for p in [*_candidate_dbs, _default_security_db]}
+
         env = os.getenv("ENVIRONMENT", "").strip().lower()
+        is_test_mode = (env == "test" or "PYTEST_CURRENT_TEST" in os.environ)
+        env_db_path = os.getenv("REVIEW_DB_PATH", "").strip()
+
+        if is_test_mode:
+            if not database_path and not env_db_path:
+                raise RuntimeError(
+                    "TEST-ENVIRONMENT DATABASE SAFETY GUARD TRIGGERED: "
+                    "ReviewStore() attempted to resolve to default/production database without explicit REVIEW_DB_PATH or database_path."
+                )
+            resolved_candidate = Path(database_path or env_db_path).expanduser().resolve()
+            if resolved_candidate in _protected_dbs:
+                raise RuntimeError(
+                    f"TEST-ENVIRONMENT DATABASE SAFETY GUARD TRIGGERED: "
+                    f"ReviewStore attempted to connect to protected production database '{resolved_candidate}' during test execution."
+                )
+
+        self.path = Path(database_path or (env_db_path if env_db_path else str(default_path))).expanduser()
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         db_exists_before = self.path.exists()
         with self._connect() as db:
             if env in ("test", "testing", "dev", "development"):
@@ -1048,24 +1067,26 @@ class ReviewStore:
         session_id = event.get("session_id") or event.get("metadata", {}).get("session_id") or "anonymous"
         event_name = event.get("event_name") or "unknown"
 
-        # Sliding window deduplication per store instance (30.0s window)
-        dedup_window = 30.0
-        dedup_key = f"{resolved_tid}:{session_id}:{event_name}"
-        if not hasattr(self, "_dedup_cache"):
-            self._dedup_cache = {}
+        # Sliding window deduplication per store instance (30.0s window) for
+        # implicit/unkeyed events (preserving callers providing distinct explicit event_id values).
+        if not event.get("event_id"):
+            dedup_window = 30.0
+            dedup_key = f"{resolved_tid}:{session_id}:{event_name}"
+            if not hasattr(self, "_dedup_cache"):
+                self._dedup_cache = {}
 
-        last_time = self._dedup_cache.get(dedup_key)
-        if last_time is not None and abs(timestamp - last_time) < dedup_window:
-            return {
-                "status": "deduplicated",
-                "is_duplicate": True,
-                "event_id": event_id,
-            }
+            last_time = self._dedup_cache.get(dedup_key)
+            if last_time is not None and abs(timestamp - last_time) < dedup_window:
+                return {
+                    "status": "deduplicated",
+                    "is_duplicate": True,
+                    "event_id": event_id,
+                }
 
-        self._dedup_cache[dedup_key] = timestamp
-        if len(self._dedup_cache) > 2000:
-            cutoff = timestamp - 120.0
-            self._dedup_cache = {k: v for k, v in self._dedup_cache.items() if v > cutoff}
+            self._dedup_cache[dedup_key] = timestamp
+            if len(self._dedup_cache) > 2000:
+                cutoff = timestamp - 120.0
+                self._dedup_cache = {k: v for k, v in self._dedup_cache.items() if v > cutoff}
 
         event_to_store = dict(event)
         event_to_store["event_id"] = event_id

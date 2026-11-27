@@ -18,12 +18,35 @@ elif hasattr(sys.modules["scripts"], "__path__") and str(_root_scripts_dir) not 
 import importlib
 import importlib.abc
 import importlib.util
+import types
+
+class _AliasModule(types.ModuleType):
+    """Non-destructive module proxy for Backend.* -> backend.* imports."""
+    def __init__(self, alias_name, target_module):
+        super().__init__(alias_name)
+        object.__setattr__(self, "_target_module", target_module)
+
+    def __getattr__(self, item):
+        return getattr(object.__getattribute__(self, "_target_module"), item)
+
+    def __setattr__(self, key, value):
+        setattr(object.__getattribute__(self, "_target_module"), key, value)
+
+    def __delattr__(self, item):
+        delattr(object.__getattribute__(self, "_target_module"), item)
+
+    def __dir__(self):
+        return dir(object.__getattribute__(self, "_target_module"))
 
 class _AliasLoader(importlib.abc.Loader):
-    def __init__(self, target_module):
+    def __init__(self, alias_name, target_module):
+        self.alias_name = alias_name
         self.target_module = target_module
     def create_module(self, spec):
-        return self.target_module
+        proxy = _AliasModule(self.alias_name, self.target_module)
+        if hasattr(self.target_module, "__path__"):
+            object.__setattr__(proxy, "__path__", self.target_module.__path__)
+        return proxy
     def exec_module(self, module):
         pass
 
@@ -33,8 +56,7 @@ class BackendAliasFinder(importlib.abc.MetaPathFinder):
         if fullname == "Backend" or fullname.startswith("Backend."):
             real_name = "backend" + fullname[len("Backend"):]
             real_mod = importlib.import_module(real_name)
-            sys.modules[fullname] = real_mod
-            return importlib.util.spec_from_loader(fullname, _AliasLoader(real_mod))
+            return importlib.util.spec_from_loader(fullname, _AliasLoader(fullname, real_mod))
         return None
 
 sys.meta_path.insert(0, BackendAliasFinder())

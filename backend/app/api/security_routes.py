@@ -209,12 +209,12 @@ async def trigger_synthetic_test_alert(
 ):
     """
     Triggers an authorized synthetic security test alert to the verified target recipient.
-    Strictly rate limited to max 2 requests per minute.
+    Strictly rate limited to max 3 requests per minute.
     Recipient cannot be overridden to unauthorized addresses.
     """
     client_ip = get_client_ip(request)
-    if not review_service.check_rate_limit(f"sec_test_alert:{client_ip}", max_per_minute=2):
-        raise HTTPException(status_code=429, detail="Test alert rate limit exceeded. Max 2 requests per minute.")
+    if not review_service.check_rate_limit(f"sec_test_alert:{client_ip}", max_per_minute=3):
+        raise HTTPException(status_code=429, detail="Too many test alert requests. Maximum 3 requests per minute allowed.")
 
     if payload and payload.recipient:
         if payload.recipient.strip() != DEFAULT_ALERT_EMAIL:

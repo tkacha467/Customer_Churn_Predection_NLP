@@ -110,6 +110,17 @@ class ReviewService:
             return record
         return None
 
+    def register_preview_session(self, session_id: str, tenant_id: str = "default_business") -> None:
+        """Registers a server-authoritative preview session so preview traffic is excluded from production metrics."""
+        if not session_id:
+            return
+        self._verified_preview_sessions[session_id] = time.time()
+        try:
+            from backend.app.core.security.security_shield import security_shield
+            security_shield.register_preview_session(session_id=session_id, tenant_id=tenant_id)
+        except Exception:
+            pass
+
     def record_event(
         self,
         event_name: str,
@@ -124,6 +135,17 @@ class ReviewService:
         resolved_tid = tenant_id or meta.get("business_id") or "default_business"
         if "business_id" not in meta:
             meta["business_id"] = resolved_tid
+
+        # Check server-registered preview session
+        if session_id and session_id in self._verified_preview_sessions:
+            traffic_source = "preview"
+        else:
+            try:
+                from backend.app.core.security.security_shield import security_shield
+                if session_id and security_shield.is_preview_session(session_id):
+                    traffic_source = "preview"
+            except Exception:
+                pass
 
         # Check session's server-verified traffic source if not explicitly passed
         if traffic_source == "customer" and session_id and session_id not in ("anonymous", "unverified"):
@@ -668,7 +690,8 @@ class ReviewService:
                 val = uuid.UUID(s, version=4)
                 return val.version == 4
             except (ValueError, AttributeError, TypeError):
-                return False
+                import re
+                return bool(re.match(r"^sess-[a-zA-Z0-9_-]+$", s))
 
         # Session-level deduplicated google_clicks:
         # Each distinct valid session with at least one Google redirect event counts exactly once.
@@ -678,7 +701,7 @@ class ReviewService:
         google_redirect_sessions = set()
         for ev in events:
             en = ev.get("event_name")
-            if en in ("google_maps_redirect", "google_review_link_opened", "google_review_link_clicked"):
+            if en in ("google_maps_direct_click", "google_maps_redirect", "google_review_link_opened", "google_review_link_clicked"):
                 sid = ev.get("session_id")
                 if _is_valid_session(sid):
                     google_redirect_sessions.add(str(sid).strip())

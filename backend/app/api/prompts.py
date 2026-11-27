@@ -121,7 +121,7 @@ EMOJI_MAP = {
 
 def pick_tasteful_emojis(rating: int, aspects: List[str], preference: str = "light", industry_id: Optional[str] = None) -> str:
     """Selects 1-2 tasteful contextual emojis based on rating, industry, and mentioned aspects."""
-    if preference == "none":
+    if preference == "none" or rating <= 1:
         return ""
 
     emojis = []
@@ -260,8 +260,8 @@ def generate_candidate_ideas(
         if cleaned_aspects:
             chosen = aspects[:2] if len(aspects) >= 2 else aspects[:1]
             topic_en = " and ".join([a.strip().lower() for a in chosen])
-            topic_hi = " aur ".join([a.strip().lower() for a in chosen])
-            topic_gu = " ane ".join([a.strip().lower() for a in chosen])
+            topic_hi = " और ".join([a.strip() for a in chosen])
+            topic_gu = " અને ".join([a.strip() for a in chosen])
         else:
             topic_en = ""
             topic_hi = ""
@@ -553,33 +553,35 @@ def humanize_review_draft(
             elif rating == 2:
                 draft = f"The food was okay at {b_name}, but the wait was quite long today.{note_text} Hopefully the service gets a little quicker next time.{emojis}"
             else: # 1 star
-                draft = f"Unfortunately, my experience wasn't great at {b_name} today. The service took quite a while and the food wasn't what I expected.{note_text} I hope things improve.{emojis}"
+                draft = f"Unfortunately, I had a poor and disappointing experience at {b_name} today. The service was very slow and the food was cold.{note_text} Major improvements are needed.{emojis}"
     else:
         # Multi-industry generalized synthesis (Zero food or dining assumptions)
         aspect_mention = f" The {', '.join(aspects[:2]).lower()} was well managed." if aspects else ""
+        aspect_phrase_hi = f" ({', '.join(aspects[:2])})" if aspects else ""
+        aspect_phrase_gu = f" ({', '.join(aspects[:2])})" if aspects else ""
         if lang == "hindi":
             if rating == 5:
-                draft = f"Overall anubhav bahut shandar raha at {business_name}!{aspect_mention} Service aur arrangement kaafi acchi thi.{note_text} Highly recommend karte hain{emojis}"
+                draft = f"{b_name} में समग्र अनुभव बहुत ही शानदार रहा!{aspect_phrase_hi} सर्विस और व्यवस्था काफी अच्छी थी।{note_text} हम सभी को यहाँ आने की सलाह देते हैं{emojis}"
             elif rating == 4:
-                draft = f"Kaafi accha experience raha at {business_name}.{aspect_mention} Staff attentive tha aur sab smoothly handle hua.{note_text} Good experience overall{emojis}"
+                draft = f"{b_name} में काफी अच्छा अनुभव रहा।{aspect_phrase_hi} स्टाफ सहयोगी था और सब कुछ सुचारू रूप से हुआ।{note_text} एक अच्छी विज़िट रही{emojis}"
             elif rating == 3:
-                draft = f"Anubhav theek tha at {business_name}.{aspect_mention} Anubhav normal raha, par thode aur improvement ki gunjaish hai.{note_text} Standard visit.{emojis}"
+                draft = f"{b_name} में अनुभव ठीक-ठाक रहा।{aspect_phrase_hi} कुल मिलाकर सामान्य रहा, पर थोड़े और सुधार की गुंजाइश है।{note_text} औसत विज़िट।{emojis}"
             elif rating == 2:
-                draft = f"Visit expectation se kam rahi at {business_name}.{note_text} Service aur care me improvement ki zaroorat hai.{emojis}"
-            else: # 1 star
-                draft = f"Experience bilkul accha nahi raha at {business_name}.{note_text} Bade sudhar ki zaroorat hai.{emojis}"
+                draft = f"{b_name} में विज़िट उम्मीद से कम रही।{note_text} सर्विस और देखभाल में सुधार की ज़रूरत है।{emojis}"
+            else: # 1 star (strictly zero emojis)
+                draft = f"{b_name} में आज का अनुभव बिल्कुल अच्छा नहीं रहा।{note_text} सर्विस और गुणवत्ता में बड़े सुधार की सख्त ज़रूरत है।"
 
         elif lang == "gujarati":
             if rating == 5:
-                draft = f"Samagra anubhav khub j saras rahyo at {business_name}!{aspect_mention} Vyavastha sari hati ane service pan fast mali.{note_text} Badhane jarur recommend karish{emojis}"
+                draft = f"{b_name}માં સમગ્ર અનુભવ ખૂબ જ સરસ રહ્યો!{aspect_phrase_gu} વ્યવસ્થા ઉત્તમ હતી અને સર્વિસ પણ ઝડપી મળી.{note_text} બધાને અહીં આવવાની ભલામણ કરું છું{emojis}"
             elif rating == 4:
-                draft = f"Khub saro anubhav rahyo at {business_name}.{aspect_mention} Staff no swabhav vinamra hato ane arrangement saras hatu.{note_text} Saro time spend thayo{emojis}"
+                draft = f"{b_name}માં ખૂબ સારો અનુભવ રહ્યો.{aspect_phrase_gu} સ્ટાફનો સ્વભાવ વિનમ્ર હતો અને બધું સરસ રીતે ગોઠવાયેલું હતું.{note_text} સારો સમય પસાર થયો{emojis}"
             elif rating == 3:
-                draft = f"Anubhav thik hato at {business_name}.{aspect_mention} Thoda sudhara ni jarur chhe.{note_text} Average mulakat rahi.{emojis}"
+                draft = f"{b_name}માં અનુભવ ઠીક રહ્યો.{aspect_phrase_gu} થોડા સુધારાની જરૂર જણાય છે.{note_text} સરેરાશ મુલાકાત રહી.{emojis}"
             elif rating == 2:
-                draft = f"Mulakat thi thodi nirasha thai at {business_name}.{note_text} Sudharo karvo zaroori chhe.{emojis}"
-            else: # 1 star
-                draft = f"Experience aaje bilkul saro na rahyo at {business_name}.{note_text} Sudharo karvani jarur chhe.{emojis}"
+                draft = f"{b_name}ની મુલાકાતથી થોડી નિરાશા થઈ.{note_text} સર્વિસ અને સંભાળમાં સુધારો કરવો જરૂરી છે.{emojis}"
+            else: # 1 star (strictly zero emojis)
+                draft = f"{b_name}માં આજનો અનુભવ બિલકુલ સારો ન રહ્યો.{note_text} સર્વિસ અને ગુણવત્તામાં મોટા સુધારાની તાતી જરૂર છે."
 
         else: # English
             if rating == 5:
@@ -590,8 +592,8 @@ def humanize_review_draft(
                 draft = f"Decent experience overall at {business_name}.{aspect_mention} A few good points, though there is room for minor improvement.{note_text} Standard visit.{emojis}"
             elif rating == 2:
                 draft = f"The visit fell below expectations at {business_name}.{note_text} Several things could be improved with better care and attention.{emojis}"
-            else: # 1 star
-                draft = f"Unfortunately, my experience at {business_name} was quite disappointing.{note_text} Major improvements are needed in service and responsiveness.{emojis}"
+            else: # 1 star (strictly zero emojis)
+                draft = f"Unfortunately, my experience at {business_name} was quite disappointing.{note_text} Major improvements are needed in service and responsiveness."
 
     return draft.strip()
 

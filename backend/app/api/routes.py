@@ -12,7 +12,10 @@ import re
 import struct
 import zoneinfo
 import ipaddress
+import logging
 from datetime import datetime, date, time as dtime, timedelta
+
+logger = logging.getLogger(__name__)
 from fastapi import APIRouter, HTTPException, Request, Response, Depends, UploadFile, File, Form, Query
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
@@ -113,6 +116,7 @@ from backend.app.core.auth.security_store import (
     SecurityStore,
     verify_turnstile_token,
     CF_DUMMY_PASS_SITEKEY,
+    CF_DUMMY_FAIL_SITEKEY,
 )
 from backend.app.core.security.security_shield import (
     security_shield,
@@ -583,12 +587,13 @@ async def change_password(
 # ---------------------------------------------------------
 # Customer Review Flow Endpoints (Public)
 # ---------------------------------------------------------
-def _resolve_tenant_review_context(business_id: str) -> Dict[str, Any]:
+def _resolve_tenant_review_context(business_id: str, endpoint: str = "reviews") -> Dict[str, Any]:
     valid_id = validate_business_id(business_id)
+    target_id = "default_business" if valid_id in ("default_business", "nasta_ghar", "nasta-ghar") else valid_id
     info = google_review_manager.get_review_url(valid_id)
     if not info:
-        store = ReviewStore()
-        tenant = store.get_tenant(valid_id)
+        store = get_store()
+        tenant = store.get_tenant(target_id)
         if tenant:
             from backend.app.core.industry_registry import resolve_industry, resolve_effective_topics
             from dataclasses import asdict, is_dataclass
@@ -603,30 +608,55 @@ def _resolve_tenant_review_context(business_id: str) -> Dict[str, Any]:
                 "is_restricted": ind_def.is_restricted,
                 "restriction_notice": ind_def.restriction_notice,
                 "status": tenant.get("status", "active"),
+                "entitlements": tenant.get("entitlements", ["review_manager"]),
                 "terminology": asdict(ind_def.terminology) if is_dataclass(ind_def.terminology) else ind_def.terminology,
             }
         else:
-            from backend.app.core.industry_registry import resolve_industry
-            from dataclasses import asdict, is_dataclass
-            ind_def = resolve_industry()
-            info = {
-                "business_id": valid_id,
-                "business_name": valid_id,
-                "category": "Unclassified",
-                "industry_id": ind_def.industry_id,
-                "topics": ind_def.default_topics,
-                "is_restricted": False,
-                "restriction_notice": None,
-                "status": "active",
-                "terminology": asdict(ind_def.terminology) if is_dataclass(ind_def.terminology) else ind_def.terminology,
-            }
-    if info.get("status") == "suspended":
+            emit_security_event(
+                event_type=SecurityEventType.ACCESS_UNKNOWN_TENANT,
+                severity=SecuritySeverity.MEDIUM,
+                actor_id="anonymous",
+                tenant_id=valid_id,
+                details={"requested_tenant": valid_id, "endpoint": endpoint},
+            )
+            raise HTTPException(status_code=404, detail=f"Business '{valid_id}' not found.")
+
+    if info.get("status") != "active":
+        emit_security_event(
+            event_type=SecurityEventType.ACCESS_SUSPENDED_TENANT,
+            severity=SecuritySeverity.HIGH,
+            actor_id="anonymous",
+            tenant_id=valid_id,
+            details={"requested_tenant": valid_id, "status": info.get("status"), "endpoint": endpoint},
+        )
         raise HTTPException(status_code=403, detail=f"Business '{valid_id}' is inactive or suspended.")
+
     if info.get("is_restricted"):
+        emit_security_event(
+            event_type=SecurityEventType.ACCESS_HEALTHCARE_RESTRICTION,
+            severity=SecuritySeverity.HIGH,
+            actor_id="anonymous",
+            tenant_id=valid_id,
+            details={"industry_id": info.get("industry_id"), "business_id": valid_id, "endpoint": endpoint},
+        )
         raise HTTPException(
             status_code=403,
-            detail=f"Customer review experience is restricted for industry '{info.get('industry_id')}' due to regulatory and safety compliance."
+            detail=f"Customer review experience is restricted for healthcare ('{info.get('industry_id')}') due to regulatory and safety compliance."
         )
+
+    if not check_tenant_entitlement(valid_id, ENTITLEMENT_REVIEW_MANAGER):
+        emit_security_event(
+            event_type=SecurityEventType.TENANT_ENTITLEMENT_VIOLATION,
+            severity=SecuritySeverity.HIGH,
+            actor_id="anonymous",
+            tenant_id=valid_id,
+            details={"entitlement": ENTITLEMENT_REVIEW_MANAGER, "business_id": valid_id, "endpoint": endpoint},
+        )
+        raise HTTPException(
+            status_code=403,
+            detail=f"Feature '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{valid_id}'."
+        )
+
     from backend.app.core.tenants.google_reviews import is_safe_google_review_url
     if "review_url" in info:
         raw_u = info.get("review_url", "")
@@ -640,13 +670,7 @@ def _resolve_tenant_review_context(business_id: str) -> Dict[str, Any]:
 async def get_review_ideas(req: ReviewIdeasRequest, request: Request):
     if not review_service.check_rate_limit(f"ideas:{get_client_ip(request)}", max_per_minute=30):
         raise HTTPException(status_code=429, detail="Rate limit reached. Please wait a moment.")
-    from backend.app.core.entitlements.entitlements import check_tenant_entitlement, ENTITLEMENT_REVIEW_MANAGER
-    if not check_tenant_entitlement(req.business_id, ENTITLEMENT_REVIEW_MANAGER):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Feature '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{req.business_id}'."
-        )
-    info = _resolve_tenant_review_context(req.business_id)
+    info = _resolve_tenant_review_context(req.business_id, endpoint="ideas")
     try:
         return review_service.generate_ideas(
             req,
@@ -672,13 +696,7 @@ async def generate_review(req: ReviewGenerateRequest, request: Request):
             status_code=429,
             detail="Rate limit reached. Please wait a moment before generating another review."
         )
-    from backend.app.core.entitlements.entitlements import check_tenant_entitlement, ENTITLEMENT_REVIEW_MANAGER
-    if not check_tenant_entitlement(req.business_id, ENTITLEMENT_REVIEW_MANAGER):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Feature '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{req.business_id}'."
-        )
-    info = _resolve_tenant_review_context(req.business_id)
+    info = _resolve_tenant_review_context(req.business_id, endpoint="generate")
     try:
         response = review_service.generate_review(
             req,
@@ -870,17 +888,7 @@ async def record_analytics_event(ev: AnalyticsEventRequest, request: Request):
         b_id = "default_business"
 
     valid_id = validate_business_id(b_id)
-    store = get_store()
-    if not store.tenant_exists(valid_id):
-        raise HTTPException(status_code=404, detail=f"Business '{valid_id}' not found.")
-    tenant = store.get_tenant(valid_id)
-    if tenant and tenant.get("status") != "active":
-        raise HTTPException(status_code=403, detail=f"Business '{valid_id}' is inactive or suspended.")
-    if not check_tenant_entitlement(valid_id, ENTITLEMENT_REVIEW_MANAGER):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Module '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{valid_id}'."
-        )
+    _resolve_tenant_review_context(valid_id, endpoint="events")
 
     target_id = "default_business" if valid_id in ("default_business", "nasta_ghar", "nasta-ghar") else valid_id
 
@@ -1055,18 +1063,7 @@ async def submit_private_feedback(req: PrivateFeedbackRequest, request: Request)
 @router.get("/businesses/{business_id}/review-link", response_model=BusinessReviewLinkResponse)
 async def get_business_review_link(business_id: str):
     valid_id = validate_business_id(business_id)
-    info = google_review_manager.get_review_url(valid_id)
-    if not info:
-        raise HTTPException(status_code=404, detail=f"Business '{valid_id}' not found.")
-    if info.get("status") == "suspended":
-        raise HTTPException(status_code=403, detail=f"Business '{valid_id}' is inactive or suspended.")
-    if info.get("is_restricted"):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Customer review experience is restricted for industry '{info.get('industry_id')}' due to regulatory and safety compliance."
-        )
-    if not check_tenant_entitlement(valid_id, ENTITLEMENT_REVIEW_MANAGER):
-        raise HTTPException(status_code=403, detail=f"Module '{ENTITLEMENT_REVIEW_MANAGER}' is not enabled for business '{valid_id}'.")
+    info = _resolve_tenant_review_context(valid_id, endpoint="review-link")
     raw_term = info.get("terminology")
     term_dict = None
     if raw_term is not None:
@@ -1080,6 +1077,18 @@ async def get_business_review_link(business_id: str):
     safe_review_url = raw_review_url if is_safe_google_review_url(raw_review_url) else "https://maps.google.com"
     is_conf = info.get("is_configured", False) if safe_review_url == raw_review_url else False
 
+    ind_id = info.get("industry_id", "restaurant")
+    if ind_id == "restaurant":
+        tp_label = "Table Number"
+        tp_placeholder = "e.g. Table 4"
+    elif ind_id == "hotel":
+        tp_label = "Room / Suite Number"
+        tp_placeholder = "e.g. Room 302"
+    else:
+        tp_label = (term_dict or {}).get("touchpoint_noun", "Location")
+        raw_ph = (term_dict or {}).get("touchpoint_placeholder", "Counter")
+        tp_placeholder = raw_ph if raw_ph.lower().startswith("e.g.") else f"e.g. {raw_ph}"
+
     return BusinessReviewLinkResponse(
         business_id=valid_id,
         platform=info.get("platform", "google"),
@@ -1088,14 +1097,17 @@ async def get_business_review_link(business_id: str):
         business_name=info.get("business_name", "Nasta Ghar"),
         branch=info.get("branch", ""),
         category=info.get("category", "Breakfast & Snacks"),
-        industry_id=info.get("industry_id", "restaurant"),
+        industry_id=ind_id,
         description=info.get("description", "Authentic homestyle breakfast, chai, and snacks in Rajkot."),
         topics=info.get("topics", []),
         primary_accent=info.get("primary_accent", "#f97316"),
         domain=info.get("domain", ""),
         entitlements=info.get("entitlements", ["review_manager", "digital_card"]),
         logo_path=info.get("logo_path", ""),
-        terminology=term_dict
+        terminology=term_dict,
+        touchpoint_label=tp_label,
+        touchpoint_placeholder=tp_placeholder,
+        allow_ai_ideas=not bool(info.get("is_restricted", False)),
     )
 
 

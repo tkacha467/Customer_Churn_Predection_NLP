@@ -56,7 +56,7 @@ class SecurityStore:
             os.getenv("ENVIRONMENT", "").strip().lower() == "test"
             or "PYTEST_CURRENT_TEST" in os.environ
         )
-        _repo_root = DEFAULT_SECURITY_DB.parent.parent
+        _repo_root = _REPO_ROOT
         _protected_dbs = [
             DEFAULT_SECURITY_DB.resolve(),
             (_repo_root / "Project_Files" / "Data" / "nasta-ghar" / "reviews.sqlite3").resolve(),
